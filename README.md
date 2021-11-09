@@ -1,7 +1,7 @@
 # CRNS
 Closed Reaction Network Structure Library
 
-Install
+## Install
 
 CRNS can be installed from source. After downloading the repository, run
 
