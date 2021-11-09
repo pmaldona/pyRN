@@ -8,3 +8,7 @@ CRNS can be installed from source. After downloading the repository, run
     $ python setup.py install --user
 
 CRNS requires libSBML, SciPy, NumPy and SymPy. Future releses will also need tellurium library 
+
+## Use
+
+An descriptive test file can be find in `test_CRNS.py` and the library it self `CRNS.py` also has a description for each function.
