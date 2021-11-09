@@ -9,11 +9,11 @@ Created on Wed Oct  6 11:39:25 2021
 from CRNS import CRNS
 
 #loading form sbml file 
-file="./networks/BIOMD0000000013.xml"
+file="networks/BIOMD0000000013.xml"
 RN = CRNS.from_sbml(file)
 
 #loading form a text file please refer to rn_test.txt to see example
-file="./networks/rn_test.txt"
+file="networks/rn_test.txt"
 RN = CRNS.form_txt(file)
 
 print(RN.mp)
@@ -47,4 +47,7 @@ print(RN.is_sm(close_sp_set))
 
 # Generation of reaction equivalence clases and basic sets
 RN.gen_basics()
+print(RN.sp_b)
+print(RN.conn)
+print(RN.dyn_conn)
  
