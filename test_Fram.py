@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Oct  6 11:39:25 2021
+Created on Mon Jan 17 18:19:05 2022
 
 @author: pmaldona
 """
@@ -9,10 +9,12 @@ Created on Wed Oct  6 11:39:25 2021
 from CRNS import CRNS
 from bitarray import frozenbitarray
 import networkx as nx
+from bitarray import bitarray as bt
+
 
 #loading form sbml file 
 # file="networks/BIOMD0000000013.xml"
-file="networks/PW000035.sbml"
+file="./networks/Farm_sbml.xml"
 RN = CRNS.from_sbml(file,False)
 
 # loading form a text file please refer to rn_test.txt to see example
@@ -60,28 +62,15 @@ print(RN.dyn_conn)
 
 # Generation of the synergic structure
 RN.gen_syn_str()
-print(RN.syn_str.nodes())
-print(RN.syn_str.edges())
-print(RN.ssms)
+print(len(RN.syn_str.nodes()))
+print(len(RN.syn_str.edges()))
+print(len(RN.ssms))
+ssm_nodes = [x for x,y in RN.syn_str.nodes(data=True) if y['is_ssm']]
 
-selected_edges = [(u,v,e) for u,v,e in RN.syn_str.edges(data=True) if e['syn'] == True]
-
-print(RN.syn_str.nodes[frozenbitarray('000101')])
-for u,v,e in RN.syn_str.edges(data=True):
-    if e['syn']==True:
-        print ([u,v,RN.syn_str[u][v]])
-
-# Generation of the synergic structure
+# Generation of the semi-self-maintained structure
 RN.gen_ssm_str()
-print(RN.ssm_str.nodes())
-print(RN.ssm_str.edges())
-print(RN.ssms)
+print(len(RN.ssm_str.nodes()))
+print(len(RN.ssm_str.edges()))
+print(len(RN.ssms))
 
-# generation of minimal generators
-RN.gen_mgen()
-print(RN.mgen)
 
-# Generation of all proto synergies
-RN.all_syn()   
-print(RN.syn)
-print(RN.syn_p)
