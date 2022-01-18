@@ -7,7 +7,7 @@ CRNS can be installed from source. After downloading the repository, run
 
     $ python setup.py install --user
 
-CRNS requires bitarray, SciPy, NumPy and BeautifulSoup. Future releases will also require tellurium library 
+CRNS requires bitarray, SciPy, NumPy, networkx and BeautifulSoup. Future releases will also require tellurium library 
 
 ## Use
 
