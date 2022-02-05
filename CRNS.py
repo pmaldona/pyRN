@@ -983,6 +983,7 @@ class CRNS:
         
         # Bitarray for partition combinations.
         p=bt(len(xp))
+        p.setall(0)
         
         # Recursive search of all proto synergies
         for i in range(len(xp)):
@@ -997,11 +998,16 @@ class CRNS:
     # to be explored will be cut. The proto synergies are stored in a list (syn).
     def r_syn_gen(self,p,o,sp,xp,pi):
         
+        
+        
+
+        
         # Species bitarray result of the proto sinergy
         u=bt(len(self.sp))
         u.setall(0)
         # Adding partitionn as candiadate to combinate
         p[o]=1;
+        
         
          # Eliminating redundant partitions that are already in account.
         if(p.count()>1):
@@ -1037,60 +1043,76 @@ class CRNS:
                 op.setall(0)
                 op[pi]=1
                 self.syn_p.append(op)
+
                 
             p[o]=0
             return
+        
         # if not recursion continue
         for i in range(o+1,len(xp)):
             self.r_syn_gen(p,i,sp,xp,pi)
-
+     
+        p[o]=0
+                
     # Given the problem of inconsistency of recursive functions in Python,
     # this function iterates until no apparent changes in the porto-synergies 
     # are seen.
-    def all_syn(self,th=1000):    
+    # def all_syn(self,th=1000):    
+    #     if not hasattr(self, 'mgen'):
+    #         print("The minimal genetators have not been initialized, please run the gen_mgen() function.")
+    #         return         
+        
+    #     # Initializes the variables for synergies
+    #     self.syn=[]
+    #     self.syn_p=[]
+        
+        
+        
+    #     self.mgen_syn()
+        
+    #     # syn=self.syn.copy()
+    #     # k=0
+    #     # creates repeats the creation of proto synergies until no changes are seen in th steps
+    #     # while True:
+    #     #     self.mgen_syn()
+                
+    #     #     if syn==self.syn:
+    #     #             k+=1
+    #     #     if k>th:
+    #     #         break
+            
+    #     #     syn = self.syn.copy()
+            
+    # # Function that generates all the proto synergies from the minimum 
+    # # generators. This is achieved through the use of the function gen_syn()
+    # # and the recursive function r_gen_syn(). The output consists of list syn 
+    # # which contains all the proto synergies and list syn_p which contains 
+    # # all the triggered partitions.   
+    
+    def all_syn(self):
         if not hasattr(self, 'mgen'):
             print("The minimal genetators have not been initialized, please run the gen_mgen() function.")
             return         
+        # List of posible synergies
         
-        # Initializes the variables for synergies
         self.syn=[]
         self.syn_p=[]
-        
-        
-        
-        self.mgen_syn()
-        
-        syn=self.syn.copy()
-        k=0
-        # creates repeats the creation of proto synergies until no changes are seen in th steps
-        while True:
-            self.mgen_syn()
-                
-            if syn==self.syn:
-                    k+=1
-            if k>th:
-                break
-            
-            syn = self.syn.copy()
-            
-    # Function that generates all the proto synergies from the minimum 
-    # generators. This is achieved through the use of the function gen_syn()
-    # and the recursive function r_gen_syn(). The output consists of list syn 
-    # which contains all the proto synergies and list syn_p which contains 
-    # all the triggered partitions.   
-    
-    def mgen_syn(self):
-        if not hasattr(self, 'syn'):
-            print("The minimal genetators have not been initialized, please run the gen_mgen() function.")
-            return         
-        # List of posible synergies
-
         
         # Generation of al proto synergies from all minimum generators
         for i in range(len(self.mgen)):
             for j in self.mgen[i]:
                 if j.count()>0:
                     self.syn_gen(j,i)
+                else:
+                    for k in range(len(self.mgen)):
+                        if k!=i:
+                            op=bt(len(self.p_b))
+                            op.setall(0)
+                            op[k]=1
+                            self.syn.append(op.copy())
+                            op.setall(0)
+                            op[i]=1
+                            self.syn_p.append(op.copy())
                     
        
         
