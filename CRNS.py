@@ -17,10 +17,6 @@ from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 from scipy.optimize import linprog
 import networkx as nx
-from sys import setrecursionlimit
-
-setrecursionlimit(1000000000)
-
 
 #Class definition: It consist
 class CRNS:
@@ -56,6 +52,7 @@ class CRNS:
             rn[2] = rn[2].str.split("+",expand=False)
             rn[3] = rn[3].str.split("+",expand=False)
             
+            print(rn)
             # obtaining list of reactions separated as reactive part
             er = list()
             ep = list()
@@ -84,7 +81,7 @@ class CRNS:
                 
                 if len(rn[3][i])!=0:
                     for j in range(len(rn[3][i])):
-                        st=re.search("[0-9]*",rn[2][i][j]).group()
+                        st=re.search("[0-9]*",rn[3][i][j]).group()
                         if st=='':
                             pst.append(1.0)
                         else:
@@ -146,7 +143,7 @@ class CRNS:
             
             return out
         except:
-            print("error reading smbl file")
+            print("error reading txt file")
     # Initialization of the network from a smbl file, "file" corresponds 
     # to the path of the smbl file. 
     @classmethod
@@ -1054,40 +1051,12 @@ class CRNS:
      
         p[o]=0
                 
-    # Given the problem of inconsistency of recursive functions in Python,
-    # this function iterates until no apparent changes in the porto-synergies 
-    # are seen.
-    # def all_syn(self,th=1000):    
-    #     if not hasattr(self, 'mgen'):
-    #         print("The minimal genetators have not been initialized, please run the gen_mgen() function.")
-    #         return         
-        
-    #     # Initializes the variables for synergies
-    #     self.syn=[]
-    #     self.syn_p=[]
-        
-        
-        
-    #     self.mgen_syn()
-        
-    #     # syn=self.syn.copy()
-    #     # k=0
-    #     # creates repeats the creation of proto synergies until no changes are seen in th steps
-    #     # while True:
-    #     #     self.mgen_syn()
-                
-    #     #     if syn==self.syn:
-    #     #             k+=1
-    #     #     if k>th:
-    #     #         break
             
-    #     #     syn = self.syn.copy()
-            
-    # # Function that generates all the proto synergies from the minimum 
-    # # generators. This is achieved through the use of the function gen_syn()
-    # # and the recursive function r_gen_syn(). The output consists of list syn 
-    # # which contains all the proto synergies and list syn_p which contains 
-    # # all the triggered partitions.   
+    # Function that generates all the proto synergies from the minimum 
+    # generators. This is achieved through the use of the function gen_syn()
+    # and the recursive function r_gen_syn(). The output consists of list syn 
+    # which contains all the proto synergies and list syn_p which contains 
+    # all the triggered partitions.   
     
     def all_syn(self):
         if not hasattr(self, 'mgen'):
@@ -1115,7 +1084,104 @@ class CRNS:
                             self.syn_p.append(op.copy())
                     
        
+    # verifies which species of a reaction network (not necessarily an organization) 
+    # are overproducible. Inputs are species sp_set and process vector pr, 
+    # returns a list of overproducible species
+    
+    def over_prod(self,sp_set,pr):     
+        # Checks if input is or not bita array, if it's no, it make the 
+        # transmation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.mp.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.mp.index.values:
+                    ind=self.mp.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+        
+        if not (isinstance(pr,bt)):
+            v=bt(self.mp.shape[0])
+            v.setall(0)
+            
+            for i in pr:
+                v[i]=1
+        else:
+            v=pr
+        
+        Ns=sp.count() # number of species (rows)
+        nsp=list(set(range(len(sp)))-set(self.bt_ind(sp))) #species no present
+        
+        rc =[] # creating variable of available reaction 
+        for j in self.bt_ind(v):
+            if (all(self.mp.iloc[nsp,j]==0) and all(self.mr.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+        # stoichiometric matrix of rn with prepended destruction reactions
+        
+        S=self.mp.iloc[self.bt_ind(sp),rc]-self.mr.iloc[self.bt_ind(sp),rc]
+        S=S.to_numpy()
+        S=np.column_stack((-np.identity(Ns),S))
+        S=S.tolist()
+        
+        # flow vector constraint: production of every species = 0
+        f=np.zeros(Ns) #norm of porcess vector for minimization 
+        f=f.tolist()
+        
+        # cost 0 for every reaction
+        cost=np.zeros(Ns+len(rc)) #norm of porcess vector for minimization 
+        cost=cost.tolist()
+        
+        # print("S: ",np.array(S))
+
         
         
+        # overproducible status for species (initially False, until proven to be True).
+        o=[]
+        for i in range(len(sp)):
+            o.append(False)
         
+        for p in range(len(sp)):
+            if not (o[p]):  # already known overproducible species are skipped 
+                
+                S[p][p]=1 # creation instead of destruction for p
+                f[p]=1 # production of p = 1 instead of 0, if it is possible with creation rate 0, then it is overproducible
+                cost[p]=1  # cost for creation of p = 1 instead of 0
+            
+                # lineal programing calculation of existance of a solution to be 
+                # self-mantainend
+                
+                print("S: ",np.array(S))
+                print("p: ",p)
+                print("f: ",f)
+                print("cots: ",cost)
+               
+                res = linprog(cost, A_eq=S, b_eq=f,method='highs')
+                # The unknown is the process vector v. The equations are S v = f with the inequality constraint v>=0 (rates can be 0).
+                # Only the creation reaction for p is penalized in Cost (the rate should be 0 if p is overproducible).
+                print("x: ",res.x)
+                print("\n")
+                
+                if(res.x[p]==0):
+                
+                    o[p] = True # no need of creation implies p is overproducible
+                    for i in range(Ns):
+                        if res.x[i]>0:
+                            o[i]=True
+            
+                S[p][p] = -1 
+                f[p] = 0
+                cost[p] = 0  # original destruction reaction and zero values for next iteration
+            
         
+        print(o)
+        opsp=bt(len(sp))
+        opsp.setall(0)
+        for i in range(len(o)):
+            if o[i]:
+                opsp[self.bt_ind(sp)[i]]=1
+                
+        return(opsp)
+    
+    
