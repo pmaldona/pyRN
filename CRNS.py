@@ -52,13 +52,12 @@ class CRNS:
             rn[2] = rn[2].str.split("+",expand=False)
             rn[3] = rn[3].str.split("+",expand=False)
             
-            print(rn)
             # obtaining list of reactions separated as reactive part
             er = list()
             ep = list()
             
             for i in range(len(rn[0])):
-                # print(i)
+
                 psp = list()
                 pst = list()
                 ssp = list()
@@ -159,7 +158,6 @@ class CRNS:
         
             for i in b_i:
 
-                # print(i['id'])
                 er.append([[[]],[[]]])
                 ep.append([[i['id']],[1]])
             
@@ -189,7 +187,7 @@ class CRNS:
                 # Reactant species and stoichimetry
                 reac = i.find('listOfReactants')
                 if not (reac is None):
-                    # print(i['id'])
+
                     reac = reac.select('speciesReference')
                     for j in reac:
 
@@ -324,7 +322,6 @@ class CRNS:
             if (sp & self.reac[n_reac[i]]) == self.reac[n_reac[i]]:
                 
                 sp=sp|self.prod[n_reac[i]]
-                # print(sp)
                 n_reac=np.delete(n_reac,i)
                 flag=True
             else:
@@ -398,7 +395,6 @@ class CRNS:
         else:
             sp=sp_set
         
-        # print(sp)
         # init of reactant species and product species array
         r = bt(self.mp.shape[0])
         r.setall(0)
@@ -1118,8 +1114,8 @@ class CRNS:
         for j in self.bt_ind(v):
             if (all(self.mp.iloc[nsp,j]==0) and all(self.mr.iloc[nsp,j]==0)):
                 rc.append(j) # selecting reactions that can be trigger with available species
+       
         # stoichiometric matrix of rn with prepended destruction reactions
-        
         S=self.mp.iloc[self.bt_ind(sp),rc]-self.mr.iloc[self.bt_ind(sp),rc]
         S=S.to_numpy()
         S=np.column_stack((-np.identity(Ns),S))
@@ -1132,10 +1128,6 @@ class CRNS:
         # cost 0 for every reaction
         cost=np.zeros(Ns+len(rc)) #norm of porcess vector for minimization 
         cost=cost.tolist()
-        
-        # print("S: ",np.array(S))
-
-        
         
         # overproducible status for species (initially False, until proven to be True).
         o=[]
@@ -1152,17 +1144,10 @@ class CRNS:
                 # lineal programing calculation of existance of a solution to be 
                 # self-mantainend
                 
-                print("S: ",np.array(S))
-                print("p: ",p)
-                print("f: ",f)
-                print("cots: ",cost)
-               
                 res = linprog(cost, A_eq=S, b_eq=f,method='highs')
                 # The unknown is the process vector v. The equations are S v = f with the inequality constraint v>=0 (rates can be 0).
                 # Only the creation reaction for p is penalized in Cost (the rate should be 0 if p is overproducible).
-                print("x: ",res.x)
-                print("\n")
-                
+
                 if(res.x[p]==0):
                 
                     o[p] = True # no need of creation implies p is overproducible
@@ -1175,7 +1160,6 @@ class CRNS:
                 cost[p] = 0  # original destruction reaction and zero values for next iteration
             
         
-        print(o)
         opsp=bt(len(sp))
         opsp.setall(0)
         for i in range(len(o)):
@@ -1185,3 +1169,143 @@ class CRNS:
         return(opsp)
     
     
+    # Decomposition function, calculates the overproducible and catalytic 
+    # species, as the respective fragile cycles of the reaction network. It 
+    # takes as input the existing sp species and the process vector pr of the
+    # present reactions. It returns an array whose components indicate the 
+    # function performed by each species, correlative positions to sp species 
+    # vector. If the value is -1 it corresponds to an overproducible species, 
+    # if it is -2 to a catalytic species and if it is 0 the species is 
+    # not present. The integer values indicate belonging to a fragile cycle.
+    def op_dcom(self,sp_set,pr):
+        
+        # Checks if input is or not bita array, if it's no, it make the 
+        # transmation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.mp.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.mp.index.values:
+                    ind=self.mp.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+        
+        if not (isinstance(pr,bt)):
+            v=bt(self.mp.shape[0])
+            v.setall(0)
+            
+            for i in pr:
+                v[i]=1
+        else:
+            v=pr
+        
+        # generetinf the decompotion vector
+        dcom=np.zeros(len(sp))
+        
+        # generating overproducible species
+        opsp = self.over_prod(sp,v)
+        dcom[self.bt_ind(opsp)]=-1
+        
+        # generating matrices to find catalytic and non catalytic species
+        sp_ind=self.bt_ind(sp)
+        c_m = self.mr.iloc[sp_ind,]
+        nc_m = c_m.copy()
+        
+        for i in self.bt_ind(v):
+            c_m.iloc[sp_ind,i] = ((self.mp.iloc[sp_ind,i]!=0) & (self.mr.iloc[sp_ind,i]!=0)) & (self.mp.iloc[sp_ind,i]==self.mr.iloc[sp_ind,i])
+            nc_m.iloc[sp_ind,i] = (self.mp.iloc[sp_ind,i])!=(self.mr.iloc[sp_ind,i])
+        
+       
+        
+        #finding catalytic species
+        csp=sp.copy()
+        csp.setall(0)
+        j=0
+        for i in ((c_m.sum(axis=1)!=0) & (nc_m.sum(axis=1)==0)):
+            if i:
+                csp[sp_ind[j]]=1
+            j+=1
+        
+        
+        
+        # findinng all other species that aren't catalysers o opverproducble
+        fsp=sp.copy() & ~(csp.copy() | opsp.copy())
+        print("fsp: ",fsp)
+        print("opsp: ",opsp)
+        print("csp: ",csp)
+        
+        nsp=list(set(range(len(sp)))-set(self.bt_ind(sp))) #species no present
+        
+        rc =[] # creating variable of available reaction 
+        for j in self.bt_ind(v):
+            if (all(self.mp.iloc[nsp,j]==0) and all(self.mr.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+        # if there aren't reactive 
+        if(len(rc)==0):
+            return
+        
+        # creating fragile cycles 
+        if fsp.count()>1:
+            
+            # subselecting matrix for fragile cycles species
+            m=self.mp.iloc[self.bt_ind(fsp),rc]-self.mr.iloc[self.bt_ind(fsp),rc]
+            
+            # creating matrix for find conneting species via reactions
+            adj=np.zeros((fsp.count(),fsp.count()))
+            for i in range(m.shape[1]):
+                ka = np.where(m.iloc[:,i]!=0)[0]
+                for j in ka:
+                    adj[j,j] = 1
+  
+            adj = adj + adj.transpose()
+            adj=adj>0
+            
+            
+            fsp_v=np.zeros(fsp.count()) #index of equivalence classes of fragile cycles
+            eci=0 
+            
+            while(all(fsp_v==0)):
+                j=0
+                ec = np.where(fsp_v==0)[0] # auxilar variable for finding all species of the fragile cycle
+                while(True):
+                    np.append(ec,np.where(adj[:,ec[j]]))
+                    ec=np.unique(ec)
+                    j+=1
+                    if (j >= len(ec) ):
+                        break
+                eci+=1 # numbering the equivalance class
+                fsp_v[ec]=eci # classifying the corresponding fragile cycle 
+                
+            
+            # changing fragile cycles of one reaction to catalytic species
+            for j in np.unique(fsp_v):
+                if np.sum(fsp_v==j)==1:
+                    ind=np.where(fsp_v==j)
+                    ind=self.bt_ind(fsp)[ind]
+                    fsp[ind]=0
+                    csp=1
+                    fsp_v.delete(ind)
+                    ec.delete(ind)
+            
+            # identifying catalyst species
+            dcom[self.bt_ind(csp)]=-2
+            
+            # identifying species from the corresponding fragile cycles
+            for i in range(fsp.count()):
+                dcom[self.bt_ind(fsp)[i]]=fsp_v[i]
+                
+            
+            return dcom
+                    
+                                        
+                
+            
+            
+            
+        
+        
+        
+        
+        
