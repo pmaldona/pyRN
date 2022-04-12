@@ -1,0 +1,66 @@
+<html>
+    <head>
+        <link href="{{ url_for('static', filename = 'style.css') }}" rel="stylesheet" />
+        <meta charset=utf-8 />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui">
+        <title>CRNS</title>
+    <script src="{{ url_for('static', filename = 'cytoscape.min.js') }}"></script>
+    </head>
+   
+    <body>
+        <div id="cy" style="width: 70%; height: 70%;"></div>
+        <script>
+            var cy = window.cy = cytoscape({
+                container: document.getElementById('cy'),
+
+                boxSelectionEnabled: false,
+
+                style: [
+                    {
+                    selector: 'node',
+                    css: {
+                        'content': 'data(id)',
+                        'text-valign': 'center',
+                        'text-halign': 'center'
+                    }
+                    },
+                    {
+                    selector: ':parent',
+                    css: {
+                        'text-valign': 'top',
+                        'text-halign': 'center',
+                    }
+                    },
+                    {
+                    selector: 'edge',
+                    css: {
+                        'curve-style': 'bezier',
+                        'target-arrow-shape': 'triangle'
+                    }
+                    }
+                ],
+
+                elements: {
+                    nodes: [
+                    { data: { id: 'a', parent: 'b' }, position: { x: 215, y: 85 } },
+                    { data: { id: 'b' } },
+                    { data: { id: 'c', parent: 'b' }, position: { x: 300, y: 85 } },
+                    { data: { id: 'd' }, position: { x: 215, y: 175 } },
+                    { data: { id: 'e' } },
+                    { data: { id: 'f', parent: 'e' }, position: { x: 300, y: 175 } }
+                    ],
+                    edges: [
+                    { data: { id: 'ad', source: 'a', target: 'd' } },
+                    { data: { id: 'eb', source: 'e', target: 'b' } }
+
+                    ]
+                },
+
+                layout: {
+                    name: 'preset',
+                    padding: 5
+                }
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,33 @@
+name: Continuous Delivery
+
+on:
+  - push
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      # Setup Python
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      # run setup.py
+      - name: Setup.py
+        run: python setup.py install --user
