@@ -12,11 +12,11 @@ import networkx as nx
 from bitarray import bitarray as bt
 
 # loading form a text file please refer to rn_test.txt to see example
-# file="networks/rn_test_op.txt"
-# RN = CRNS.form_txt(file)
+file="networks/rn_test_op.txt"
+RN = CRNS.form_txt(file)
 
-file="networks/PW000035.sbml"
-RN = CRNS.from_sbml(file,False)
+# file="networks/PW000035.sbml"
+# RN = CRNS.from_sbml(file,False)
 
 print(RN.mp)
 print(RN.mr)
