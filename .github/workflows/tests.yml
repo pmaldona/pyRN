@@ -31,3 +31,7 @@ jobs:
       # run setup.py
       - name: Setup.py
         run: python3 setup.py install --user
+
+      # run test-file
+      - name: test-file
+        run: python3 test_CRNS.py
