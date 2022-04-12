@@ -32,5 +32,5 @@ setup(
     packages=find_packages(exclude=['tests']),
 
     # run-time dependencies that will be installed by pip
-    install_requires=['numpy','pandas','BeautifulSoup4', 'bitarray','scipy','networkx']
+    install_requires=['numpy','pandas','BeautifulSoup4', 'bitarray','scipy','networkx', 'pypoman']
 )
