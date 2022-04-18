@@ -68,5 +68,6 @@ sp=bt(RN.mp.shape[0])
 sp.setall(1)
 
 # generating the decomposition of a reaction network
-dcom=RN.op_dcom(sp, pr)
-print(dcom)
+# currently not working!!
+# dcom=RN.op_dcom(sp, pr)
+# print(dcom)
