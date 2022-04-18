@@ -29,7 +29,7 @@ jobs:
           python-version: 3.9
 
       - name: install pycddlib
-        run: conda install pycddlib
+        run: pip3 install pycddlib==2.1.1
       # run setup.py
       - name: Setup.py
         run: python3 setup.py install --user
