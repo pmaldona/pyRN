@@ -32,6 +32,14 @@ jobs:
       - name: Setup.py
         run: python3 setup.py install --user
 
+      - name: Read rn_test.txt
+        id: ReactionNetwork
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./networks/rn_test.txt
+      - name: Echo test network
+        run: echo "${{ steps.ReactionNetwork.outputs.content }}"
+
       # run test-file
       - name: test-file
         run: python3 test_CRNS.py
