@@ -62,8 +62,7 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.6
-      - name: install pycddlib
-        run: pip3 install pycddlib
+          
       # run setup.py
       - name: Setup.py
         run: python3 setup.py install --user
