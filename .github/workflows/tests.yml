@@ -1,4 +1,4 @@
-name: Continuous Delivery
+name: Tests
 
 on:
   - push
@@ -9,16 +9,10 @@ defaults:
 
 jobs:
 
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
+  build_linux:
+    name: "linux Tests"
+    runs-on: "ubuntu-latest"
     steps:
-
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
@@ -27,9 +21,47 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: 3.9
+      # run setup.py
+      - name: Setup.py
+        run: python3 setup.py install --user
 
-      - name: Install gmp
-        run: brew install gmp
+      # run test-CRNS
+      - name: test-CRNS
+        run: python3 test_CRNS.py
+
+  build_windows:
+    name: "Windows Tests"
+    runs-on: "windows-latest"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      # Setup Python
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      # run setup.py
+      - name: Setup.py
+        run: python3 setup.py install --user
+
+      # run test-CRNS
+      - name: test-CRNS
+        run: python3 test_CRNS.py
+
+
+  build_mac:
+    name: "Mac Tests"
+    runs-on: "macos-latest"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      # Setup Python
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
       - name: install pycddlib
         run: pip3 install pycddlib
       # run setup.py
