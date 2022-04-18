@@ -28,8 +28,10 @@ jobs:
         with:
           python-version: 3.9
 
+      - name: Install gmp
+        run: brew install gmp
       - name: install pycddlib
-        run: pip3 install pycddlib==2.1.1
+        run: pip3 install pycddlib
       # run setup.py
       - name: Setup.py
         run: python3 setup.py install --user
