@@ -7,66 +7,75 @@ Created on Wed Oct  6 11:39:25 2021
 """
 #load of the library, it must be in the same work directory
 from CRNS import CRNS
-from bitarray import frozenbitarray
+import time
 import networkx as nx
-from bitarray import bitarray as bt
-
+ 
 # loading form a text file please refer to rn_test.txt to see example
-# file="networks/rn_test_op.txt"
-# RN = CRNS.form_txt(file)
+file="networks/rn_test.txt"
+RN = CRNS.form_txt(file)
 
-file="networks/PW000035.sbml"
-RN = CRNS.from_sbml(file,False)
-
-print(RN.mp)
-print(RN.mr)
-print(RN.sp)
-print(RN.sp_n)
-
-# # Veryfing if network is RN-mantainig
-print(RN.is_sm(RN.sp))
+# file="networks/PW000035.sbml"
+# file="networks/Farm_sbml.xml"
+# RN = CRNS.from_sbml(file,False)
 
 
-# # Generation of reaction equivalence clases and basic sets
-RN.gen_basics()
-print(RN.sp_b)
-print(RN.conn)
-print(RN.dyn_conn)
+start = time.time()
+# generation of the basics sets
+b_steps=RN.gen_basics()
+end = time.time()
+b_time=end-start
 
-# # Generation of the synergic structure
-RN.gen_syn_str()
-print(RN.syn_str.nodes())
-print(RN.syn_str.edges())
-print(RN.ssms)
+start = time.time()
+# generation of the strucutres close structre
+syn_steps=RN.gen_syn_str()
+end = time.time()
+syn_time=end-start
 
-selected_edges = [(u,v,e) for u,v,e in RN.syn_str.edges(data=True) if e['syn'] == True]
+start = time.time()
+# generation of all orgs
+all_orgs=[]
+for i in RN.syn_ssms:
+    if RN.is_sm(i):
+        all_orgs.append(i)
+end = time.time()
+all_orgs_time=end-start
 
-# print(RN.syn_str.nodes[frozenbitarray('000101')])
-for u,v,e in RN.syn_str.edges(data=True):
-    if e['syn']==True:
-        print ([u,v,RN.syn_str[u][v]])
+all_orgs=list(map(lambda x: x.tolist(),all_orgs))
 
-# Generation of the synergic structure
-RN.gen_ssm_str()
-print(RN.ssm_str.nodes())
-print(RN.ssm_str.edges())
-print(RN.ssms)
+start = time.time()
+# Generation of the dynamical connected structure
+ssm_steps=RN.gen_ssm_str()
+end = time.time()
+ssm_time=end-start
 
-# # generation of minimal generators
-RN.gen_mgen()
-print(len(RN.mgen))
+start = time.time()
+# Generation of the dynamical connected structure
+dyn_steps=RN.gen_dyn_str()
+end = time.time()
+dyn_time=end-start
 
-# Generation of all proto synergies
-RN.all_syn()  
-print(len(RN.syn))
-# print(RN.syn_p)
+# generation of dynamically connected orgs
+dyn_orgs=[]
+#generation of dynamically connected networks
+for i in RN.dyn_ssms:
+    
+    if i.tolist() in all_orgs:
+        dyn_orgs.append(i.tolist())
 
+start = time.time()
+# Hasse of overproduced species
+dyn_dcom=[]
+op_h_steps=[]
+for i in dyn_orgs:
+    if len(i)>1:
+        G , op_h_st = RN.over_hasse(i)
+        dyn_dcom+=list(nx.get_node_attributes(G,'dcom').values())
+        op_h_steps.append(op_h_st)
+    else:
+        dyn_dcom.append(RN.dcom(i, i, RN.sp2r(i)))
 
-pr=bt(RN.mp.shape[1])
-pr.setall(1)
-sp=bt(RN.mp.shape[0])
-sp.setall(1)
+end = time.time()
+op_h_time=end-start
 
-# generating the decomposition of a reaction network
-dcom=RN.op_dcom(sp, pr)
-print(dcom)
+steps=[b_steps,syn_steps,ssm_steps,dyn_steps,op_h_steps]
+times=[b_time,syn_time,ssm_time,dyn_time,op_h_time,all_orgs_time]
