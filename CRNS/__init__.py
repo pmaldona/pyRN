@@ -1,4 +1,5 @@
-from CRNS import CRNS
+from .CRNS import CRNS as crns
 
-def from_txt(path):
-  print("Hello World")
+def new_from_txt(path):
+  reaction_network = crns.form_txt(path)
+  return reaction_network
