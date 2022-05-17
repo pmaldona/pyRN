@@ -29,7 +29,8 @@ setup(
 
     keywords='chemical reaction networks, closed structure',
 
-    packages=find_packages(exclude=['tests']),
+    #packages=find_packages(exclude=['tests']),
+    packages=["CRNS"]
 
     # run-time dependencies that will be installed by pip
     install_requires=['numpy','pandas','beautifulsoup4', 'bitarray','scipy','networkx']
