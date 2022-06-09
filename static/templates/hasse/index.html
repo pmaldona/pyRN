@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Hasse Diagramm{% endblock %}
+{% block head_scripts %}        
+    eel.expose(say_hello_js);               // Expose this function to Python
+    function say_hello_js(x) {
+        console.log("Hello from " + x);
+    }
+
+    eel.expose(js_random);
+    function js_random() {
+        return Math.random();
+    }
+
+    function print_num(n) {
+        console.log('Got this from Python: ' + n);
+    }
+
+    function calculate_orgs() {
+        let bool = eel.calculate_orgs()();
+        location.reload();
+    }
+{% endblock %}
+{% block content %}
+<h3 style="margin-bottom: -40px;">Hasse Diagramm</h3>
+
+{% include "hasse/graph.html" ignore missing without context %}
+<a class="waves-effect waves-light btn" onclick="calculate_orgs();">Calculate</a>
+{% endblock %}
