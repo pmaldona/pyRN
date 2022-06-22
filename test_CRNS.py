@@ -97,8 +97,8 @@ print(RN.model.simulate(0,25,100))
 RN.model.plot()
 
 # Loading sbml file
-# RN=CRNS.from_sbml("../networks/BIOMD0000000013.xml")
-RN=CRNS.from_sbml("../COT/networks/ReacNet/raw/BIOMD0000000013.xml")
+RN=CRNS.from_sbml("../networks/BIOMD0000000013.xml")
+
 # loading mass action model
 RN.ma_model(i_sp=np.ones(RN.mp.shape[0]),rt=np.ones(RN.mp.shape[1]))
 # simulation fo 25 time steps
