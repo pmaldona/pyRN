@@ -21,6 +21,8 @@ import pypoman as ph
 from itertools import chain, combinations
 from typing import List, Any, Iterable
 import random as rm
+import tellurium as te
+
 
 #Class definition: It consist
 class CRNS:
@@ -40,17 +42,16 @@ class CRNS:
 
     # Reaction Network inizalization form text file similar to antimony format, 
     # see example "rn_test.txt". calling the object can be done by RN(file_name). 
-    # Example rn = RN.("rn_text.txt")
-    
+    # Example rn = RN.form_txt("rn_text.txt")
     @classmethod
-    def form_txt(cls,file):
+    def from_txt(cls,file):
         try:
             # list fitering
             rn = pd.read_csv(file,header=None)
             rn[0] = rn[0].str.replace("[ \t]","",regex=True)        
             rn[0] = rn[0].str.replace("^.*:","",regex=True)        
             rn[0] = rn[0].str.replace("[;#].*$","",regex=True)
-            rn[1] = rn[0].str.contains("=>")         
+            rn[1] = rn[0].str.contains("->")         
             rn[2] = rn[0].str.split("->|=>",expand=True)[0]
             rn[3] = rn[0].str.split("->|=>",expand=True)[1]
             rn[2] = rn[2].str.split("+",expand=False)
@@ -142,15 +143,18 @@ class CRNS:
             out.mp=mp.T
             out.reac=reac
             out.prod=prod
-            
+            out.fname=file
+            out.txt=True
+            out.sbml=False
             
             return out
         except:
             print("error reading txt file")
+            
     # Initialization of the network from a smbl file, "file" corresponds 
     # to the path of the smbl file. 
     @classmethod
-    def from_sbml(cls,file,modifiers=True,bond_con=True,rand_bc=True):
+    def from_sbml(cls,file,modifiers=True,bond_con=True,rand_bc=False):
         try:
             with open(file,'r') as file:
                 bs_sbml = bs(file.read(), "xml")
@@ -165,11 +169,14 @@ class CRNS:
             
                 if (rand_bc):
                     n_bi=rm.sample(range(len(b_i)),rm.randint(0,len(b_i)))
-             
+                else:
+                    n_bi=range(len(b_i))
+                    
                 for j in n_bi:
                     i=b_i[j]
                     er.append([[[]],[[]]])
                     ep.append([[i['id']],[1]])
+                
                 
             # obtaining list of reactions separated as reactive part 
             # and product part
@@ -300,11 +307,76 @@ class CRNS:
             out.mp=mp.T
             out.prod=prod
             out.reac=reac
+            out.fname=file.name
+            out.txt=False 
+            out.sbml=True 
             
             return out
         except:
             print("error reading smbl file")
+
+    # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
+    # reaction network. It recives as input a vector of the initial concentration 
+    # of species i_sp, the reactive constant vector rt and the concentration 
+    # thearshold where a species is condidered not present.
+    def ma_model(self, i_sp=np.array([]) ,rt=np.array([]) ,th=0.1):
+        
+        # Creating the model
+        self.model=te.loada("")
+        self.model.addCompartment("C", 1,True)
+        
+        # Creating the random initial concetration if it's out of condition
+        if (i_sp.size==0): 
+            i_sp=np.random.rand(self.mp.shape[0])
+        elif(len(i_sp) !=self.mp.shape[0]):
+            i_sp=np.random.rand(self.mp.shape[0])
+        
+        # Creating the random initial concetration if it's out of condition
+        if (rt.size==0):  
+            rt=np.random.rand(self.mp.shape[1])
+        elif (len(rt) !=self.mp.shape[1]):
+           rt=np.random.rand(self.mp.shape[1])
+           
+        # Adding species to the model and treshold concetration
+        for i in range(len(self.sp)):
+            self.model.addSpecies(self.sp[i], compartment="C", initConcentration=i_sp[i],forceRegenerate=True)
+            self.model.addEvent("e"+str(i),False,self.sp[i]+"<"+str(th),True)
+            self.model.addEventAssignment("e"+str(i),self.sp[i],"0",True)
+        
+        # Adding reactions and reactions rate constants
+        for i in range(self.mp.shape[1]):
+            self.model.addParameter("k"+str(i),rt[i],True)
             
+            prod=[]
+            for j in np.where(self.mp.iloc[:,i])[0]:
+                if self.mp.iloc[j,i].astype(int) > 1:
+                    prod.append(str(self.mp.iloc[j,i].astype(int))+self.mp.index[j])
+                else:
+                    prod.append(self.mp.index[j])
+            reac=[]
+            rate="k"+str(i)
+            for j in np.where(self.mr.iloc[:,i])[0]:
+                if self.mr.iloc[j,i].astype(int) > 1:
+                    reac.append(str(self.mr.iloc[j,i].astype(int))+self.mr.index[j])
+                else:
+                    reac.append(self.mr.index[j])
+                    
+                if self.mr.iloc[j,i]>1:
+                    for k in range(1,self.mr.iloc[j,i].astype(int)+1):
+                        rate+=" * "+self.mr.index[j]
+                else:
+                    rate+=" * "+self.mr.index[j]
+
+            self.model.addReaction("r"+str(i), reac, prod, rate)
+                    
+    # Function that load dynamical model directly form the sbml file     
+    def sbml_model(self):
+        if not self.sbml:
+            print("network do not correspond to an sbml file")
+            return
+        self.model = te.loadSBMLModel(self.fname)
+        
+    
     
     # Function that use a input the existing species and return, the reaction
     # that are be able to be trigered (R_X of X).
@@ -606,9 +678,12 @@ class CRNS:
         # list of basic sets
         sp_b=[]
         
+        # number of steps
+        st=0
         # creating equivalence clases for each reaction that generate the same
         # closure and so each basic can be created
         for i in range(len(x_r_p)):
+            st+=1
             # reaction already assigned to equivalnce class
             if x_r_p[i]>=0:
                continue
@@ -617,6 +692,7 @@ class CRNS:
             sp_b.append(c_reac[i])
             
             for j in range(i,self.mp.shape[1]):
+                st+=1
                 if c_reac[i]==c_reac[j]:
                     x_r_p[j]=xeqc
                     
@@ -656,7 +732,6 @@ class CRNS:
             
         self.r_p=r_p
         
-        
         # Creation of other related variables:
         p_b=[] # partitions (equivalence classes) contained in each closure
         r_b=[] # reactions supported by each bassic (equivalence class)
@@ -689,7 +764,7 @@ class CRNS:
         self.psp_b=psp_b
         self.sp_sp_b=sp_sp_b
         self.sn_sp_b=sn_sp_b
-        
+       
         # Creating connnectig basics and dyncamiclly coected basics sets
         conn=[]
         dyn_conn=[]
@@ -720,7 +795,8 @@ class CRNS:
         
         self.conn=conn
         self.dyn_conn=dyn_conn
-    
+        return(st)
+        
     # Function of species that returns the partiton that contains the species
     def sp2p(self, sp):
         p=bt(len(self.sp_b))
@@ -828,8 +904,11 @@ class CRNS:
         # Initialization of the list of semi-self-maintaine sets
         ssms=[]
         
+        #step mesurment
+        st=0
         # The nodes corresponding to the basic sets are generated.
         for i in range(len(self.p_b)):
+            st+=1
             G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=self.is_ssm(self.sp_b[i]))
@@ -845,7 +924,7 @@ class CRNS:
              # Generating closrues whit connected basics sets for each set in level i
             for j in nodes:
                  for k in self.bt_ind(self.conn_b(bt(j))):
-                     
+                     st+=1    
                      # Closure result
                      cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),True)
                      cr_p=fbt(self.sp2p(cr_sp))
@@ -865,8 +944,8 @@ class CRNS:
                         G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=False)
                 
         self.syn_str=G
-        self.ssms=ssms
-                    
+        self.syn_ssms=ssms
+        return(st)
                     
 
     # Semi-self-maintained structure calculation function, requires the gen_basics() 
@@ -891,8 +970,12 @@ class CRNS:
         # Initialization of the list of semi-self-maintaine sets
         ssms=[]
         
+        # step mesure
+        st=0
+        
         # The nodes corresponding to the basic sets are generated.
         for i in range(len(self.p_b)):
+            st+=1
             G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=self.is_ssm(self.sp_b[i]))
@@ -907,7 +990,6 @@ class CRNS:
              
              # Generating closrues whit connected basics sets for each set in level i
             for j in nodes:
-                
                 # if node is semi-self-maintained (ssm), the it explore other possible 
                 # combinations to serch for ssm sets, if not search for basic that can 
                 # contibubte to be ssm
@@ -921,7 +1003,7 @@ class CRNS:
                      conn=self.bt_ind(contib)
                  
                 for k in conn:
-                     
+                     st+=1
                      # Closure result
                      cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),True)
                      cr_p=fbt(self.sp2p(cr_sp))
@@ -941,8 +1023,8 @@ class CRNS:
                         G.add_edge(j,cr_p,key=k,syn=False)
                 
         self.ssm_str=G
-        self.ssms=ssms
-    
+        self.ssm_ssms=ssms
+        return(st)
     
     # Semi-self-maintained structure calculation function, requires the gen_basics() 
     # function to be executed beforehand .It returns an directed multigraph
@@ -967,9 +1049,11 @@ class CRNS:
         G = nx.MultiDiGraph()
         # Initialization of the list of semi-self-maintaine sets
         ssms=[]
-        
+        # number of steps
+        st=0
         # The nodes corresponding to the basic sets are generated.
         for i in range(len(self.p_b)):
+            st+=1
             G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=self.is_ssm(self.sp_b[i]))
@@ -998,7 +1082,7 @@ class CRNS:
                      conn=self.bt_ind(contib)
                  
                 for k in conn:
-                     
+                     st+=1    
                      # Closure result
                      cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),True)
                      cr_p=fbt(self.sp2p(cr_sp))
@@ -1019,7 +1103,7 @@ class CRNS:
                 
         self.dyn_ssm_str=G
         self.dyn_ssms=ssms
-    
+        return(st)
     
             
     # Minimal generators generation function, to be started once the basic sets
@@ -1359,11 +1443,8 @@ class CRNS:
             f[p]=1 # production of p = 1 instead of 0, if it is possible with creation rate 0, then it is overproducible
             cost[p]=1  # cost for creation of p = 1 instead of 0
             
-            
-            
             # lineal programing calculation of existance of a solution to be 
             # self-mantainend
-            
             res = linprog(cost, A_eq=S, b_eq=f,method='highs')
             # The unknown is the process vector v. The equations are S v = f with the inequality constraint v>=0 (rates can be 0).
             # Only the creation reaction for p is penalized in Cost (the rate should be 0 if p is overproducible).
@@ -1632,8 +1713,21 @@ class CRNS:
         all_op=sp.copy()
         all_op.setall(0)
         
+        # steps count
+        st=0
+        
+        if len(op_b)==0:
+            st+=1
+            op=bt(len(sp))
+            op.all()
+            dcom=self.dcom(op, sp, self.sp2r(sp))
+            G.add_node(fbt(op),level=0,
+                        dcom=dcom)#,
+            return G, st
+        
         # The nodes corresponding to the overproduced base.
         for i in op_b:
+            st+=1
             dcom=self.dcom(i, sp, self.sp2r(sp))
             G.add_node(fbt(i),level=i.count(),
                         dcom=dcom)#,
@@ -1641,7 +1735,7 @@ class CRNS:
             all_op|=i
         
         
-        
+
         # print("total levels: ",all_op.count())  
         # Generation of the multigraph of overproduced hasse, by number of 
         # overproduced species
@@ -1652,34 +1746,34 @@ class CRNS:
              
             # union whit connected opverproduced bases for each set in level i
             for j in nodes:
-                 
+                
                 # generating connected nodes, nodes that are not containend in j
                 conn_nodes=[];
                 for l in op_b:
-                      if (not (l & bt(j)) == l) and (not fbt(bt(j)|l) in G):
-                          conn_nodes.append(l)
+                    if (not (l & bt(j)) == l) and (not fbt(bt(j)|l) in G):
+                        conn_nodes.append(l)
                 
                 for k in conn_nodes:
+                    op_new=fbt(bt(j)|k)
+                    st+=1
+                    # decomposition result
+                    dcom=self.dcom(op_new, sp, self.sp2r(sp))
                      
-                      op_new=fbt(bt(j)|k)
-                     
-                      # decomposition result
-                      dcom=self.dcom(op_new, sp, self.sp2r(sp))
-                     
-                      # node is added if si not in structrue
-                      if not (op_new in G):
-                          G.add_node(op_new,level=op_new.count(),
-                                    dcom=dcom)#,
-                                    # is_org=self.dcom_ssm(dcom))
-         
-                      # Adding edges corresponding to the hasse diagram
-                      if i>0:
-                          low_level = [x for x,y in G.nodes(data=True) if y['level']==i-1]
-                          for m in low_level:    
-                              if bt(m) & bt(op_new) == bt(m):  
-                                  G.add_edge(m,op_new)
-        
-        return(G)
+                    # node is added if si not in structrue
+                    if not (op_new in G):
+                        
+                        G.add_node(op_new,level=op_new.count(),
+                                  dcom=dcom)#,
+                                  # is_org=self.dcom_ssm(dcom))
+       
+                    # Adding edges corresponding to the hasse diagram
+                    if i>0:
+                        low_level = [x for x,y in G.nodes(data=True) if y['level']==i-1]
+                        for m in low_level:    
+                            if bt(m) & bt(op_new) == bt(m):  
+                                G.add_edge(m,op_new)
+      
+        return G, st
         
     # Function that generates a Hasse diagram from a set of species with all 
     # the combinations of the overproduced base, obtaining all the 
@@ -1810,7 +1904,9 @@ class CRNS:
         dcom=list(map(lambda x: self.dcom(self.sp[x], sp, self.sp2r(sp)),op_hasse))
         print("op_hasse2: ", len(op_hasse))
         return(op_hasse)
-        
+    
+    
+    
     # Function that generates the polyhedra and polytopes that the fragile and 
     # overproduced cycles of a decomposition. It takes as an increment the 
     # overproduced species opsp_set, the total species sp_set, and the present 

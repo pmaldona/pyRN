@@ -9,14 +9,21 @@ Created on Wed Oct  6 11:39:25 2021
 from CRNS import CRNS
 import time
 import networkx as nx
+import numpy as np
  
 # loading form a text file please refer to rn_test.txt to see example
 file="networks/rn_test.txt"
-RN = CRNS.form_txt(file)
+RN = CRNS.from_txt(file)
 
 # file="networks/PW000035.sbml"
 # file="networks/Farm_sbml.xml"
 # RN = CRNS.from_sbml(file,False)
+
+# Basic Variables
+print(RN.mp)
+print(RN.mr)
+print(RN.sp)
+print(RN.sp_n)
 
 
 start = time.time()
@@ -79,3 +86,29 @@ op_h_time=end-start
 
 steps=[b_steps,syn_steps,ssm_steps,dyn_steps,op_h_steps]
 times=[b_time,syn_time,ssm_time,dyn_time,op_h_time,all_orgs_time]
+
+# Network dynamic test 
+
+# loading mass action model
+RN.ma_model()
+# simulation fo 25 time steps
+print(RN.model.simulate(0,25,100))
+# plot of the dynamic
+RN.model.plot()
+
+# Loading sbml file
+# RN=CRNS.from_sbml("../networks/BIOMD0000000013.xml")
+RN=CRNS.from_sbml("../COT/networks/ReacNet/raw/BIOMD0000000013.xml")
+# loading mass action model
+RN.ma_model(i_sp=np.ones(RN.mp.shape[0]),rt=np.ones(RN.mp.shape[1]))
+# simulation fo 25 time steps
+print(RN.model.simulate(0,25,100))
+# plot of the dynamic
+RN.model.plot()
+
+#loading sbml model
+RN.sbml_model()
+# simulation fo 25 time steps
+print(RN.model.simulate(0,25,100))
+# plot of the dynamic
+RN.model.plot()
