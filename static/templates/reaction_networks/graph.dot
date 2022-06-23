@@ -1,8 +1,0 @@
-digraph {
-    a [label=12, entity_id=12, entity_class="truck", shape=box];
-    b [label=7, entity_id=7,entity_class="bike"];
-    c [label=3, entity_id=3, entity_class="car"];
-    a -> b[label="solid edge"];                     
-    a -> {b c} [label="dashed edge", style=dashed];
-    a -> c [label="dotted edge", style=dotted];      
-}

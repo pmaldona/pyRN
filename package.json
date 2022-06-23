@@ -1,6 +1,0 @@
-{
-    "main": "main.js",
-    "devDependencies": {
-        "electron": "^18.2.3"
-    }
-}

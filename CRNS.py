@@ -17,6 +17,7 @@ from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 from scipy.optimize import linprog
 import networkx as nx
+import pypoman as ph
 from itertools import chain, combinations
 from typing import List, Any, Iterable
 import random as rm
