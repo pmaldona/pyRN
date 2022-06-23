@@ -42,6 +42,8 @@ setup(
         'eel',
         'jinja2',
         'pyvis',
-        'pyinstaller'
+        'pyinstaller',
+        'tellurium',
+        'lxml'
     ]
 )
