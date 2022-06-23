@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}Reaction Network{% endblock %}
+{% block content %}
+<h3 style="margin-bottom: -40px;">Reaction Network</h3>
+
+{% include "reaction_networks/graph.html" ignore missing without context%}
+{% endblock %}
