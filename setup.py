@@ -5,16 +5,16 @@ from codecs import open
 from os import path
 
 setup(
-    name='CRNS',
+    name='CRNS-UI',
 
-    version='0.6',
+    version='0.1',
 
-    description='Closed Reaction Network Structure Library',
-    long_description='Closed Reaction Network Structure Library',
+    description='Graphical Interface for Closed Reaction Network Structure Library',
+    long_description='Graphical Interface for Closed Reaction Network Structure Library',
 
     url='https://github.com/pmaldona/CRNS',
 
-    author='Alejandro Bassi, Pedro Maldonado',
+    author='Alejandro Bassi, Pedro Maldonado, Fionn Daire Keogh',
     author_email='pmaldona@sax.cl',
 
     license='GNU v.3',
@@ -32,5 +32,16 @@ setup(
     packages=find_packages(exclude=['tests']),
 
     # run-time dependencies that will be installed by pip
-    install_requires=['numpy','pandas','beautifulsoup4', 'bitarray','scipy','networkx','tellurium','lxml']
+    install_requires=[
+        'numpy',
+        'pandas',
+        'beautifulsoup4',
+        'bitarray',
+        'scipy',
+        'networkx',
+        'eel',
+        'jinja2',
+        'pyvis',
+        'pyinstaller'
+    ]
 )
