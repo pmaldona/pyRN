@@ -20,6 +20,7 @@ def pick_file():
     root.withdraw()
 
     path = filedialog.askopenfilename()
+    print(path)
     root.destroy()
     root = None
     if os.path.exists(path):
@@ -39,12 +40,12 @@ def build_networkX_graph(path: str):
     reactions = []
     for line in file.readlines():
         reaction = line.replace(" ","").replace("\t", "").replace("\n", "").replace(";", "").split(":")
-        
-        reaction_body = reaction.pop()
-        reaction_node = reaction.pop()
-        reactions.append(reaction_body)
-        G.add_node(node_id_count, group = 2, label=reaction_node, size=20, title=reaction_node)
-        node_id_count += 1
+        if len(reaction) >= 2:
+            reaction_body = reaction.pop()
+            reaction_node = reaction.pop()
+            reactions.append(reaction_body)
+            G.add_node(node_id_count, group = 2, label=reaction_node, size=20, title=reaction_node)
+            node_id_count += 1
 
     #print(RN.mr)
     #print(RN.mp)
@@ -198,10 +199,16 @@ def build_hasse(sm, species_list):
         else :
             length_dict[str(len(semi_self))] = 1
 
+    c = 0
     for set in sm:
         _len = len(set)
         count = length_dict[str(_len)]
-        _x = 75*(count-1)-(75*(count-1)/2)
+        _x = 0
+        if count > 1:
+            _x = -(75*(count-1)/2) + c*(75*(count-1))
+            c += 1
+        else:
+            c = 0
         _y = -75*(_len-1)
         G.add_node(node_id_count, group = 1, label="O"+str(node_id_count), size=20, title=str(set), x = _x, y = _y, fixed = json.loads('{ "x":false, "y":true}'))
         node_id_count += 1
@@ -221,7 +228,7 @@ def build_hasse(sm, species_list):
                     _to = index
                     break
                 
-            G.add_edge(_from, _to, color="gray", smooth = True)
+            G.add_edge(_from, _to, color="gray", smooth = False)
 
 
     nodes = list(G.nodes.items())
