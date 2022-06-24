@@ -24,7 +24,7 @@ def pick_file():
     root = None
     if os.path.exists(path):
         #RN = RN.from_txt(path)
-        RN = CRNS.form_txt(path)
+        RN = CRNS.from_txt(path)
         create_reaction_network(path)
         return path
     else:
@@ -192,7 +192,7 @@ def build_hasse(sm, species_list):
     node_id_count = 0
     sm.sort(key=len)
     length_dict = {}
-    for semi_self in RN.ssms:
+    for semi_self in RN.ssm_ssms:
         if length_dict.get(str(len(semi_self)), False):
             length_dict[str(len(semi_self))] = length_dict[str(len(semi_self))] + 1
         else :
@@ -240,7 +240,7 @@ def calculate_orgs():
         #print(RN.ssms)
         self_maintained = []
         
-        for semi_self in RN.ssms:
+        for semi_self in RN.ssm_ssms:
             if RN.is_sm(semi_self):
                 self_maintained.append(semi_self)
         
