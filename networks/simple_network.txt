@@ -1,0 +1,8 @@
+R1: A + B => A + 2B
+R2: A + D => A + 2D
+R3: B => 
+R4: B + C => 2C
+R5: B + D => C
+R6: C => 
+R7: C => B
+R8: D => 
