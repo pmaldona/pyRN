@@ -56,100 +56,112 @@ class CRNS:
             rn[3] = rn[0].str.split("->|=>",expand=True)[1]
             rn[2] = rn[2].str.split("+",expand=False)
             rn[3] = rn[3].str.split("+",expand=False)
-            
-            # obtaining list of reactions separated as reactive part
-            er = list()
-            ep = list()
-            
-            for i in range(len(rn[0])):
-
-                psp = list()
-                pst = list()
-                ssp = list()
-                sst = list()
-               
-                
-                if len(rn[2][i])!=0:
-                    for j in range(len(rn[2][i])):
-                        st=re.search("[0-9]*",rn[2][i][j]).group()
-                        if st=='':
-                            sst.append(1.0)
-                        else:
-                            sst.append(float(st))
-                        ssp.append(re.search("[^0-9].*",rn[2][i][j]).group())
-                else:
-                    ssp.append([])
-                    sst.append([])
-                
-                er.append([ssp,sst])
-                
-                if len(rn[3][i])!=0:
-                    for j in range(len(rn[3][i])):
-                        st=re.search("[0-9]*",rn[3][i][j]).group()
-                        if st=='':
-                            pst.append(1.0)
-                        else:
-                            pst.append(float(st))
-                        psp.append(re.search("[^0-9].*",rn[3][i][j]).group())
-                else:
-                    psp.append([])
-                    pst.append([])
-                
-                ep.append([psp,pst])
-                
-                if(rn[1][i]):
-                    er.append([psp,pst])
-                    ep.append([ssp,sst])
-            
-            # creation of set of species
-            sp=set()
-            for i in range(len(er)):
-                sp=set.union(sp,set(er[i][0]),set(ep[i][0]))
-            
-            # creation of stoichmetric matrix for reactive and product part
-            mr=np.zeros([len(er),len(sp)])
-            mr=pd.DataFrame(mr,columns=sp)
-            mp=copy.copy(mr)
-            reac=list()
-            prod=list()
-            
-            for i in range(len(er)):
-                r_sp=bt(len(mr.columns))
-                r_sp.setall(0)
-                
-                if er[i][0][0]: 
-                    for j in range(len(er[i][0])):           
-                        ind=mr.columns.get_loc(er[i][0][j])
-                        mr.iloc[i][ind]=er[i][1][j]
-                        r_sp[ind]=1            
-                            
-                reac.append(r_sp)
-                
-                p_sp=bt(len(mr.columns))
-                p_sp.setall(0)
-                if ep[i][0][0]: 
-                    for j in range(len(ep[i][0])):
-                        ind=mp.columns.get_loc(ep[i][0][j])
-                        mp.iloc[i][ind]=ep[i][1][j]
-                        p_sp[ind]=1             
-     
-                   
-                prod.append(p_sp)              
-            # creating class object and retuning it
-            out =cls()
-            out.sp=mp.columns.values
-            out.sp_n=mr.columns.values
-            out.mr=mr.T
-            out.mp=mp.T
-            out.reac=reac
-            out.prod=prod
-            out.fname=file
-            out.txt=True
-            out.sbml=False
-            
-            return out
         except:
             print("error reading txt file")
+        
+        # obtaining list of reactions separated as reactive part
+        er = list()
+        ep = list()
+        
+        for i in range(len(rn[0])):
+
+            psp = list()
+            pst = list()
+            ssp = list()
+            sst = list()
+           
+            if rn[2][i]!=['']:
+                for j in range(len(rn[2][i])):
+                    st=re.search("[0-9]*",rn[2][i][j]).group()
+                    if st=='':
+                        sst.append(1.0)
+                    else:
+                        sst.append(float(st))
+                    ssp.append(re.search("[^0-9].*",rn[2][i][j]).group())
+            else:
+                ssp.append([])
+                sst.append([])
+            
+            er.append([ssp,sst])
+            
+            if rn[3][i]!=['']:
+                for j in range(len(rn[3][i])):
+                    st=re.search("[0-9]*",rn[3][i][j]).group()
+                    if st=='':
+                        pst.append(1.0)
+                    else:
+                        pst.append(float(st))
+                    psp.append(re.search("[^0-9].*",rn[3][i][j]).group())
+            else:
+                psp.append([])
+                pst.append([])
+            
+            ep.append([psp,pst])
+            
+            if(rn[1][i]):
+                er.append([psp,pst])
+                ep.append([ssp,sst])
+        
+        # creation of set of species
+        sp=set()
+        
+        for i in range(len(er)):
+           
+            if er[i][0][0]:
+               r_sp=set(er[i][0])  
+            else:
+                r_sp=set() 
+            
+            if ep[i][0][0]:
+                p_sp=set(ep[i][0])
+            else:
+                p_sp=set()
+                
+            sp=set.union(sp,set.union(r_sp,p_sp))               
+        
+        # creation of stoichmetric matrix for reactive and product part
+        mr=np.zeros([len(er),len(sp)])
+        mr=pd.DataFrame(mr,columns=sp)
+        mp=copy.copy(mr)
+        reac=list()
+        prod=list()
+        
+        for i in range(len(er)):
+            r_sp=bt(len(mr.columns))
+            r_sp.setall(0)
+            
+            if er[i][0][0]: 
+                for j in range(len(er[i][0])):           
+                    ind=mr.columns.get_loc(er[i][0][j])
+                    mr.iloc[i][ind]=er[i][1][j]
+                    r_sp[ind]=1            
+                        
+            reac.append(r_sp)
+            
+            p_sp=bt(len(mr.columns))
+            p_sp.setall(0)
+            if ep[i][0][0]: 
+                for j in range(len(ep[i][0])):
+                    ind=mp.columns.get_loc(ep[i][0][j])
+                    mp.iloc[i][ind]=ep[i][1][j]
+                    p_sp[ind]=1             
+ 
+               
+            prod.append(p_sp)              
+        # creating class object and retuning it
+        out =cls()
+        out.sp=mp.columns.values
+        out.sp_n=mr.columns.values
+        out.mr=mr.T
+        out.mp=mp.T
+        out.reac=reac
+        out.prod=prod
+        out.fname=file
+        out.txt=True
+        out.sbml=False
+        
+        return out
+
             
     # Initialization of the network from a smbl file, "file" corresponds 
     # to the path of the smbl file. 
@@ -315,6 +327,35 @@ class CRNS:
         except:
             print("error reading smbl file")
 
+    # Function that displays the reactions on the screen. It receives as
+    # input a list p of integers corresponding to the reactions to be displayed. 
+    # If p is not entered, the complete network is displayed.
+    def display(self,p=np.array([])):
+        # Creating the random initial rates if it's out of condition
+        if len(p)==0:  
+            p=self.mp.columns.values
+        
+        
+        for i in p:
+            p_text="R_"+str(i)+":   "
+            for j in np.where(self.mr.iloc[:,i]!=0)[0]:
+                if self.mr.iloc[j,i]==1.0:
+                    p_text+=self.mr.index[j]+" "
+                elif self.mr.iloc[j,i]==int(self.mr.iloc[j,i]):
+                    p_text+=str(int(self.mr.iloc[j,i]))+self.mr.index[j]+" "
+                else:
+                    p_text+=str(self.mr.iloc[j,i])+self.mr.index[j]+" "
+            p_text+="-> "
+            for j in np.where(self.mp.iloc[:,i]!=0)[0]:
+                if self.mp.iloc[j,i]==1.0:
+                    p_text+=self.mp.index[j]+" "
+                elif self.mp.iloc[j,i]==int(self.mp.iloc[j,i]):
+                    p_text+=str(int(self.mp.iloc[j,i]))+self.mp.index[j]+" "
+                else:
+                    p_text+=str(self.mp.iloc[j,i])+self.mp.index[j]+" "
+                
+            print(p_text)
+    
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
     # reaction network. It recives as input a vector of the initial concentration 
     # of species i_sp, the reactive constant vector rt and the concentration 
@@ -331,7 +372,7 @@ class CRNS:
         elif(len(i_sp) !=self.mp.shape[0]):
             i_sp=np.random.rand(self.mp.shape[0])
         
-        # Creating the random initial concetration if it's out of condition
+        # Creating the random initial rates if it's out of condition
         if (rt.size==0):  
             rt=np.random.rand(self.mp.shape[1])
         elif (len(rt) !=self.mp.shape[1]):
@@ -375,9 +416,58 @@ class CRNS:
             print("network do not correspond to an sbml file")
             return
         self.model = te.loadSBMLModel(self.fname)
+   
+    # Function that simulates the dynamics of the proposed model. It takes as 
+    # input the initial time ti and the final time tf, and the number of steps 
+    # to simulate by means of the variable steps. The function generates the 
+    # dataframes CRNS.with CRNS.rate, which correspond to concentrations and 
+    # processes of the simulation respectively.
+    def simulate(self,ti=0,tf=50,steps=100): 
         
+        if ti <= self.model.getCurrentTime():
+            t_step=(tf-ti)/steps
+            con=[[ti]+self.model.getFloatingSpeciesConcentrations().tolist()]
+            rate=[[ti]+self.model.getReactionRates().tolist()]
+            for i in range(steps):
+                t=t_step*i
+                self.model.oneStep(t,t_step)
+                con.append([t+t_step]+self.model.getFloatingSpeciesConcentrations().tolist())
+                rate.append([t+t_step]+self.model.getReactionRates().tolist())
+            
+            con=pd.DataFrame(con,columns=['time']+self.model.getFloatingSpeciesConcentrationIds())
+            con=con.set_index('time')
+            
+            rate=pd.DataFrame(rate,columns=['time']+self.model.getReactionIds())
+            rate=rate.set_index('time')
+            
+            self.con=con
+            self.rate=rate
+        else:
+            print("initial time not simulated yet")
     
     
+    # Function that modify parameters of a given model. It recives as input a 
+    # vector of the initial concentration of species i_sp, the reactive 
+    # constant vector rt and the concentration 
+    
+    # def param_model(self, i_sp=np.array([]) ,rt=np.array([])):
+    #     # Creating the random initial concetration if it's out of condition
+    #     if (i_sp.size==0): 
+    #         i_sp=np.random.rand(self.mp.shape[0])
+    #     elif(len(i_sp) !=self.mp.shape[0]):
+    #         i_sp=np.random.rand(self.mp.shape[0])
+        
+    #     # Creating the random initial concetration if it's out of condition
+    #     if (rt.size==0):  
+    #         rt=np.random.rand(self.mp.shape[1])
+    #     elif (len(rt) !=self.mp.shape[1]):
+    #         rt=np.random.rand(self.mp.shape[1])
+         
+    #     if self.sbml:
+    #         bc_sp=np.where(list(map(lambda x: x in self.model.getBoundarySpeciesIds(), self.mp.index.tolist())))[0]
+    #         f_sp=np.where(list(map(lambda x: x in self.model.getFloatingSpeciesIds(), self.mp.index.tolist())))[0]
+            
+        
     # Function that use a input the existing species and return, the reaction
     # that are be able to be trigered (R_X of X).
     def sp2r(self,sp_set):
