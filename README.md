@@ -3,11 +3,15 @@ Closed Reaction Network Structure Library
 
 ## Install
 
-CRNS can be installed from source. After downloading the repository, run
+CRNS can be installed from source. After downloading the repository, and and afterwards run:
 
-    $ python setup.py install --user
+    $ python pip install .
 
-CRNS requires bitarray, SciPy, NumPy, NetworkX and BeautifulSoup. Future releases will also require tellurium library 
+CRNS require the installation of the lxml library, in Debian/Ubuntu can be installed by:
+
+    $ sudo apt-get install libxml2-dev libxslt-dev python-dev
+
+Please refer to https://lxml.de/installation.html for other systems.
 
 ## Use
 
