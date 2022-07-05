@@ -22,6 +22,7 @@ from itertools import chain, combinations
 from typing import List, Any, Iterable
 import random as rm
 import tellurium as te
+import matplotlib.pyplot as plt
 
 
 #Class definition: It consist
@@ -359,7 +360,9 @@ class CRNS:
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
     # reaction network. It recives as input a vector of the initial concentration 
     # of species i_sp, the reactive constant vector rt and the concentration 
-    # thearshold where a species is condidered not present.
+    # thearshold where a species is condidered not present. if the variables 
+    # i_sp and rt are not given, they are randomly initialized by a uniform 
+    # distribution between 0 and 1
     def ma_model(self, i_sp=np.array([]) ,rt=np.array([]) ,th=0.1):
         
         # Creating the model
@@ -410,12 +413,12 @@ class CRNS:
 
             self.model.addReaction("r"+str(i), reac, prod, rate)
                     
-    # Function that load dynamical model directly form the sbml file     
-    def sbml_model(self):
-        if not self.sbml:
-            print("network do not correspond to an sbml file")
-            return
-        self.model = te.loadSBMLModel(self.fname)
+    # # Function that load dynamical model directly form the sbml file     
+    # def sbml_model(self):
+    #     if not self.sbml:
+    #         print("network do not correspond to an sbml file")
+    #         return
+    #     self.model = te.loadSBMLModel(self.fname)
    
     # Function that simulates the dynamics of the proposed model. It takes as 
     # input the initial time ti and the final time tf, and the number of steps 
@@ -450,22 +453,22 @@ class CRNS:
     # vector of the initial concentration of species i_sp, the reactive 
     # constant vector rt and the concentration 
     
-    # def param_model(self, i_sp=np.array([]) ,rt=np.array([])):
-    #     # Creating the random initial concetration if it's out of condition
-    #     if (i_sp.size==0): 
-    #         i_sp=np.random.rand(self.mp.shape[0])
-    #     elif(len(i_sp) !=self.mp.shape[0]):
-    #         i_sp=np.random.rand(self.mp.shape[0])
+    def param_model(self, i_sp=np.array([]) ,rt=np.array([])):
+        # Creating the random initial concetration if it's out of condition
+        if (i_sp.size==0): 
+            i_sp=np.random.rand(self.mp.shape[0])
+        elif(len(i_sp) !=self.mp.shape[0]):
+            i_sp=np.random.rand(self.mp.shape[0])
         
-    #     # Creating the random initial concetration if it's out of condition
-    #     if (rt.size==0):  
-    #         rt=np.random.rand(self.mp.shape[1])
-    #     elif (len(rt) !=self.mp.shape[1]):
-    #         rt=np.random.rand(self.mp.shape[1])
+        # Creating the random initial concetration if it's out of condition
+        if (rt.size==0):  
+            rt=np.random.rand(self.mp.shape[1])
+        elif (len(rt) !=self.mp.shape[1]):
+            rt=np.random.rand(self.mp.shape[1])
          
-    #     if self.sbml:
-    #         bc_sp=np.where(list(map(lambda x: x in self.model.getBoundarySpeciesIds(), self.mp.index.tolist())))[0]
-    #         f_sp=np.where(list(map(lambda x: x in self.model.getFloatingSpeciesIds(), self.mp.index.tolist())))[0]
+        if self.sbml:
+            bc_sp=np.where(list(map(lambda x: x in self.model.getBoundarySpeciesIds(), self.mp.index.tolist())))[0]
+            f_sp=np.where(list(map(lambda x: x in self.model.getFloatingSpeciesIds(), self.mp.index.tolist())))[0]
             
         
     # Function that use a input the existing species and return, the reaction
@@ -886,7 +889,143 @@ class CRNS:
         self.conn=conn
         self.dyn_conn=dyn_conn
         return(st)
+    
+    # Function that returns the number of basic sets in which each species of 
+    # the vector sp appears. The input vector sp can be a list of 
+    # strings or a bitarray.
+    def basic_sp_presence(self,sp_set):
+        # Checks if input is or not bitarray, if it's no, it make the 
+        # transmation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.mp.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.mp.index.values:
+                    ind=self.mp.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
         
+        sp_b_presc=np.zeros(len(sp))
+        sp_p_presc=np.zeros(len(sp))
+        for i in sp.itersearch(1):
+            for j in range(len(self.sp_b)):
+                if self.sp_b[j][i]==1:
+                    sp_b_presc[i]+=1
+            for j in range(len(self.sp_p)):
+                if self.sp_p[j][i]==1:
+                    sp_p_presc[i]+=1
+        sp_b_presc=sp_b_presc[self.bt_ind(sp)]
+        sp_p_presc=sp_p_presc[self.bt_ind(sp)]
+        
+        sp_b_presc=pd.DataFrame(sp_b_presc)
+        sp_b_presc=sp_b_presc.transpose()
+        sp_b_presc.columns=self.sp[self.bt_ind(sp)]
+        
+        sp_p_presc=pd.DataFrame(sp_p_presc)
+        sp_p_presc=sp_p_presc.transpose()
+        sp_p_presc.columns=self.sp[self.bt_ind(sp)]
+        
+        return([sp_b_presc,sp_p_presc])
+    
+    
+    # Function that returns the number of basic sets in which each reaction of 
+    # the vector r appears. The input vector v can be a list of 
+    # strings or a bitarray.
+    def basic_r_presence(self,r_set):
+        # Checks if input is or not bitarray, if it's no, it make the 
+        # transmation
+        if not (isinstance(r_set,bt)):
+            v=bt(self.mp.shape[1])
+            v.setall(0)
+            
+            for i in r_set:
+                v[i]=1
+        else:
+            v=r_set
+
+        
+        r_b_presc=np.zeros(len(v))
+        
+        for i in v.itersearch(1):
+            for j in range(len(self.r_b)):
+                if self.r_b[j][i]==1:
+                    r_b_presc[i]+=1
+
+        r_b_presc=r_b_presc[self.bt_ind(v)]
+        
+        r_b_presc=pd.DataFrame(r_b_presc)
+        r_b_presc=r_b_presc.transpose()
+        
+        names=[]
+        
+        for i in self.mp.columns:
+            names.append("r"+str(i))
+        
+        r_b_presc.columns=np.array(names)[self.bt_ind(v)]
+          
+        return(r_b_presc)
+    
+    # Function that returns the number of basic sets in which each species of 
+    # the vector sp appears. The input vector sp can be a list of 
+    # strings or a bitarray.
+    
+    def plot_basic_sp_presence(self,sp_set):
+        histo=self.basic_sp_presence(sp_set)
+        
+        names=histo[0].columns.to_list()
+        values=histo[0].iloc[0].tolist()
+    
+        fig = plt.figure(figsize = (10, 5))
+ 
+        # creating the bar plot
+        plt.bar(names, values, color ='maroon',
+                width = 0.4)
+         
+        plt.xlabel("Species")
+        plt.ylabel("Number of basics sets")
+        plt.title("Number of basic sets that contain the current species")
+        plt.show()
+        
+        histo=self.basic_sp_presence(sp_set)
+        
+        names=histo[1].columns.to_list()
+        values=histo[1].iloc[0].tolist()
+    
+        fig = plt.figure(figsize = (10, 5))
+ 
+        # creating the bar plot
+        plt.bar(names, values, color ='maroon',
+                width = 0.4)
+         
+        plt.xlabel("Species")
+        plt.ylabel("Number of partitions")
+        plt.title("Number of partitions sets that contain the current species")
+        plt.show()
+    
+    
+    # Function that plots the number of basic sets in which each reaction of 
+    # the vector r appears. The input vector v can be a list of 
+    # strings or a bitarray.
+    def plot_basic_r_presence(self,v):
+        
+        histo=self.basic_r_presence(v)
+        
+        names=histo.columns.to_list()
+        values=histo.iloc[0].tolist()
+    
+        fig = plt.figure(figsize = (10, 5))
+ 
+        # creating the bar plot
+        plt.bar(names, values, color ='maroon',
+                width = 0.4)
+         
+        plt.xlabel("Reactions")
+        plt.ylabel("Number of Basics")
+        plt.title("Number of Basic that contain the current reaction")
+        plt.show()
+    
     # Function of species that returns the partiton that contains the species
     def sp2p(self, sp):
         p=bt(len(self.sp_b))
@@ -985,7 +1124,7 @@ class CRNS:
     # basic with which the closure was performed and the attribute whether the closure 
     # is synergic or not. 
     # The function also retrun the list semi-self-mantained set (self.ssms)
-    def gen_syn_str(self):
+    def gen_syn_str(self,org_cal=False):
         if not hasattr(self, 'p_b'):
             print("The basic sets have not been initialized, please run the gen_basics() function.")
             return 
@@ -993,18 +1132,27 @@ class CRNS:
         G = nx.MultiDiGraph()
         # Initialization of the list of semi-self-maintaine sets
         ssms=[]
-        
+        org=[]
         #step mesurment
         st=0
         # The nodes corresponding to the basic sets are generated.
         for i in range(len(self.p_b)):
             st+=1
-            G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+            is_ssm=self.is_ssm(self.sp_b[i])
+            if is_ssm:
+                is_org=self.is_ssm(self.sp_b[i])
+                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
-                       is_ssm=self.is_ssm(self.sp_b[i]))
-            if self.is_ssm(self.sp_b[i]):
+                       is_ssm=is_ssm,is_org=is_org)
                 ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
-        
+                if is_org:
+                    org.append(self.sp[self.bt_ind(self.sp_b[i])])
+            else:           
+                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+                       sp=self.sp[self.bt_ind(self.sp_b[i])],
+                       is_ssm=False,is_org=False)
+
+                
         # Generation of the multigraph of the synergic structure by set level (contained basics)
         for i in range(len(self.sp_b)):
              
@@ -1021,12 +1169,20 @@ class CRNS:
                      
                      # node is added if si not in structrue
                      if not (cr_p in G):
-                         G.add_node(cr_p,level=cr_p.count(),
+                         is_ssm=self.is_ssm(cr_sp)
+                         if is_ssm:
+                             is_org=self.is_ssm(cr_sp)
+                             G.add_node(cr_p,level=cr_p.count(),
                                     sp=self.sp[self.bt_ind(cr_sp)],
-                                    is_ssm=self.is_ssm(cr_sp))
-                         if self.is_ssm(cr_sp):
+                                    is_ssm=is_ssm,is_org=is_org)
                              ssms.append(self.sp[self.bt_ind(cr_sp)])
-         
+                             if is_org:
+                                 org.append(self.sp[self.bt_ind(cr_sp)])
+                         else:           
+                             G.add_node(cr_p,level=cr_p.count(),
+                                    sp=self.sp[self.bt_ind(cr_sp)],
+                                    is_ssm=False,is_org=False)
+                         
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
                      if cr_p.count() > (bt(j)|self.p_b[k]).count():
                         G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=True)
@@ -1035,6 +1191,7 @@ class CRNS:
                 
         self.syn_str=G
         self.syn_ssms=ssms
+        self.syn_org=org
         return(st)
                     
 
@@ -1059,6 +1216,7 @@ class CRNS:
         G = nx.MultiDiGraph()
         # Initialization of the list of semi-self-maintaine sets
         ssms=[]
+        org=[]
         
         # step mesure
         st=0
@@ -1066,11 +1224,19 @@ class CRNS:
         # The nodes corresponding to the basic sets are generated.
         for i in range(len(self.p_b)):
             st+=1
-            G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+            is_ssm=self.is_ssm(self.sp_b[i])
+            if is_ssm:
+                is_org=self.is_ssm(self.sp_b[i])
+                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
-                       is_ssm=self.is_ssm(self.sp_b[i]))
-            if self.is_ssm(self.sp_b[i]):
+                       is_ssm=is_ssm,is_org=is_org)
                 ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
+                if is_org:
+                    org.append(self.sp[self.bt_ind(self.sp_b[i])])
+            else:           
+                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+                       sp=self.sp[self.bt_ind(self.sp_b[i])],
+                       is_ssm=False,is_org=False)
         
         # Generation of the multigraph of the synergic structure by set level (contained basics)
         for i in range(len(self.sp_b)):
@@ -1100,11 +1266,19 @@ class CRNS:
                      
                      # node is added if si not in structrue
                      if not (cr_p in G):
-                         G.add_node(cr_p,level=cr_p.count(),
-                                    sp=self.sp[self.bt_ind(cr_sp)],
-                                    is_ssm=self.is_ssm(cr_sp))
-                         if self.is_ssm(cr_sp):
-                             ssms.append(self.sp[self.bt_ind(cr_sp)])
+                         is_ssm=self.is_ssm(cr_sp)
+                         if is_ssm:
+                            is_org=self.is_ssm(cr_sp)
+                            G.add_node(cr_p,level=cr_p.count(),
+                                   sp=self.sp[self.bt_ind(cr_sp)],
+                                   is_ssm=is_ssm,is_org=is_org)
+                            ssms.append(self.sp[self.bt_ind(cr_sp)])
+                            if is_org:
+                                org.append(self.sp[self.bt_ind(cr_sp)])
+                         else:           
+                            G.add_node(cr_p,level=cr_p.count(),
+                                   sp=self.sp[self.bt_ind(cr_sp)],
+                                   is_ssm=False,is_org=False)
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
                      if cr_p.count() > (bt(j)|self.p_b[k]).count():
@@ -1114,6 +1288,7 @@ class CRNS:
                 
         self.ssm_str=G
         self.ssm_ssms=ssms
+        self.ssm_org=org
         return(st)
     
     # Semi-self-maintained structure calculation function, requires the gen_basics() 
@@ -1139,16 +1314,25 @@ class CRNS:
         G = nx.MultiDiGraph()
         # Initialization of the list of semi-self-maintaine sets
         ssms=[]
+        org=[]
         # number of steps
         st=0
         # The nodes corresponding to the basic sets are generated.
         for i in range(len(self.p_b)):
             st+=1
-            G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+            is_ssm=self.is_ssm(self.sp_b[i])
+            if is_ssm:
+                is_org=self.is_ssm(self.sp_b[i])
+                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
-                       is_ssm=self.is_ssm(self.sp_b[i]))
-            if self.is_ssm(self.sp_b[i]):
+                       is_ssm=is_ssm,is_org=is_org)
                 ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
+                if is_org:
+                    org.append(self.sp[self.bt_ind(self.sp_b[i])])
+            else:           
+                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+                       sp=self.sp[self.bt_ind(self.sp_b[i])],
+                       is_ssm=False,is_org=False)
         
         # Generation of the multigraph of the synergic structure by set level (contained basics)
         for i in range(len(self.sp_b)):
@@ -1179,11 +1363,19 @@ class CRNS:
                      
                      # node is added if si not in structrue
                      if not (cr_p in G):
-                         G.add_node(cr_p,level=cr_p.count(),
-                                    sp=self.sp[self.bt_ind(cr_sp)],
-                                    is_ssm=self.is_ssm(cr_sp))
-                         if self.is_ssm(cr_sp):
-                             ssms.append(self.sp[self.bt_ind(cr_sp)])
+                         is_ssm=self.is_ssm(cr_sp)
+                         if is_ssm:
+                            is_org=self.is_ssm(cr_sp)
+                            G.add_node(cr_p,level=cr_p.count(),
+                                   sp=self.sp[self.bt_ind(cr_sp)],
+                                   is_ssm=is_ssm,is_org=is_org)
+                            ssms.append(self.sp[self.bt_ind(cr_sp)])
+                            if is_org:
+                                org.append(self.sp[self.bt_ind(cr_sp)])
+                         else:           
+                            G.add_node(cr_p,level=cr_p.count(),
+                                   sp=self.sp[self.bt_ind(cr_sp)],
+                                   is_ssm=False,is_org=False)
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
                      if cr_p.count() > (bt(j)|self.p_b[k]).count():
@@ -1193,6 +1385,7 @@ class CRNS:
                 
         self.dyn_ssm_str=G
         self.dyn_ssms=ssms
+        self.dyn_org=org
         return(st)
     
             
@@ -1367,7 +1560,57 @@ class CRNS:
                             op[i]=1
                             self.syn_p.append(op.copy())
                     
-       
+    # Function that returns the closures that generate synergies with the 
+    # input set sp. The output corresponds to two lists in which the first 
+    # corresponds to the synergy formed and the second the respective close set 
+    # with which the union-closure whit sp set generates synergy.
+    def syn_sets(self,sp_set):
+        # Checks if input is or not bitarray, if it's no, it make the 
+        # transmation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.mp.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.mp.index.values:
+                    ind=self.mp.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+
+        # Only closed sets are considered, therefore sp is considered 
+        # as its generated closure
+        sp=self.closure(sp,True)
+        # partition that contain the species
+        p=self.sp2p(sp)
+
+        # Proto-synergies that can generate synergies with p, i.e. synergies 
+        # that do not contain p and but intersect p 
+        syn_part=[]
+        for i in self.syn:
+            if any(p&i):
+                syn_part.append(i)
+        
+        # list of closed set (coversion to bitarray from frozenbitarray), that 
+        # not contain sp
+        cl_sets=list(filter(lambda x: (not p&x==p) & (not any(p&x)),list(map(lambda x: bt(x),list(self.syn_str.nodes())))))
+
+        # generation of sinergies, syn_set are the results sinergies and syn_cand
+        # are the sets that generates the synergy
+        syn_sets=[]
+        syn_cand=[]
+        for i in cl_sets:
+            for j in syn_part:
+                syn_p=p|i
+                syn_set=self.closure(self.p2sp(p|i),True)
+                if ((syn_p)&j==j) & (sp!=syn_set):
+                    syn_sets.append(self.sp[self.bt_ind(syn_set)])
+                    syn_cand.append(self.sp[self.bt_ind(self.p2sp(i))])
+                    break
+                    
+        return [syn_sets,syn_cand]
+        
+    
     # Verifies which species of a reaction network (not necessarily an organization) 
     # are overproducible. Inputs are species sp_set and process vector pr, 
     # returns a list of overproducible species
@@ -1926,8 +2169,7 @@ class CRNS:
         return(op_hasse)
 
     # Flatten a list using generators comprehensions.
-    # Returns a flattened version of list lst.    
-    
+    # Returns a flattened version of list lst.
     def flatten(self,lst: List[Any]) -> Iterable[Any]:
 
 
