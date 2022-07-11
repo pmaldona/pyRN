@@ -1,13 +1,13 @@
-# CRNS
-Closed Reaction Network Structure Library
+# pyRN
+Reaction Network Structure and Simulation Library for Resilience
 
 ## Install
 
-CRNS can be installed from source. After downloading the repository, and and afterwards run:
+prRN can be installed from source. After downloading the repository, and and afterwards run:
 
     $ python pip install .
 
-CRNS require the installation of the lxml library, in Debian/Ubuntu can be installed by:
+pyRN require the installation of the lxml library, in Debian/Ubuntu can be installed by:
 
     $ sudo apt-get install libxml2-dev libxslt-dev python-dev
 
@@ -15,5 +15,5 @@ Please refer to https://lxml.de/installation.html for other systems.
 
 ## Use
 
-An descriptive test file can be find in `test_CRNS.py` and the library it self `CRNS.py` also has a description for each function.
-Cancel changes
+An descriptive test file can be find in `test_pyRN.py`. A description of each functions can be found in the directory `pyRN` in each module (`.py` files). A complete documentation will be release in the future. 
+

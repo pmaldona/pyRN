@@ -4,16 +4,16 @@ from codecs import open
 from os import path
 
 setup(
-    name='CRNS',
+    name='pyRN',
 
     version='0.6',
 
-    description='Closed Reaction Network Structure Library',
-    long_description='Closed Reaction Network Structure Library',
+    description='Reaction Network Structure and Simulation Library for Resilience',
+    long_description='Reaction Network Structure and Simulation Library for Resilience',
 
-    url='https://github.com/pmaldona/CRNS',
+    url='https://github.com/pmaldona/pyRN',
 
-    author='Alejandro Bassi, Pedro Maldonado',
+    author='Alejandro Bassi, Fionn Daire Keogh, Pedro Maldonado, Tomas Veloz',
     author_email='pmaldona@sax.cl',
 
     license='GNU v.3',
@@ -26,7 +26,7 @@ setup(
         'Programming Language :: Python :: 3.9',
     ],
 
-    keywords='chemical reaction networks, closed structure',
+    keywords='chemical reaction networks, closed structure, decomposition, simulation, random walk, random network generator',
 
     packages=find_packages(exclude=['tests']),
 
