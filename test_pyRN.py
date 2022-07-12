@@ -15,27 +15,27 @@ import numpy as np
 # loading form a text file please refer to rn_test.txt to see example,
 # textfiles preserve antimony general strucutre in terms of reaction and 
 # reaction arrows.
-file="networks/rn_test.txt"
+file="networks/rn_test0.txt"
 RN = pyRN.from_txt(file)
 
 # Alternative sbml files can be loaded. 
 # file="networks/PW000035.sbml"
 # RN = pyRN.from_sbml(file,False)
-
 # Basic Variables can easily obtain
+
 print("Vector of species")
 print(RN.sp)
 print("Vector of species names, in case of an initialization form an smbl file result can be different")
 print(RN.sp_n)
 print("List of reactions")
-print(RN.display())
+RN.display()
 print("Reactive stochiometric matrix")
 print(RN.mr)
 print("Productive stoichimetric matrix")
 print(RN.mp)
 print("Stoichiometric Matrix")
 print(RN.mp-RN.mr)
-
+RN.display_stoich()
 # Use of the CRNS module:
 
 start = time.time() 
@@ -92,16 +92,18 @@ print(syn_edges)
 # it is necessary to generate the minimal generator for each partition.
 mingen=RN.gen_mgen()
 print("minimal generators of the network")
-print(mingen)
+
+# After this all proto-synergies can be generated.   
+RN.all_syn()
+print("All synergies of the network")
+print(RN.syn)
+print(RN.syn_p)
 # After this all proto-synergies can be generated.   
 allsyn=RN.all_syn()
 print("All synergies of the network")
 print(allsyn)
+    
 
-
-
-
-print("new part of code, until here")
 # Both gen_mgen and all_syn, generates member lists of bitarrays related to the 
 # proto-synergies, for more details please refer to "./pyRN/CRNS.py module .
 
