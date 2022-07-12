@@ -345,9 +345,9 @@ class RNIRG:
             # Checks if input is or not a bitarray, If not, it make the 
             # transformation to it
             if isinstance(bit,bt): 
-                print("a bitarray alone detected, so we are dealing with one set of species will be printed!")
+               # print("a bitarray alone detected, so we are dealing with one set of species will be printed!")
                 bit_toList=bit.tolist()
-                res="species set ={"
+                res="{"
                 # Print the species with value 1 in the bit array (1 means present)
                 for i in range (len(bit_toList)):
                     if bit_toList[i]==1:
@@ -355,7 +355,7 @@ class RNIRG:
                 #Needed: Delete last ","
                 res=res+"}\n"
             elif isinstance(bit,list):
-                print("a bitarray list detected, so a list of sets of species will be printed")
+              #  print("a bitarray list detected, so a list of sets of species will be printed")
                 res=""
                 #Apply the process of printing each bitarray in the list
                 for i in range(len(bit)):
@@ -367,9 +367,9 @@ class RNIRG:
                     for j in range (len(bit_toList)):
                         if bit_toList[j]==1:
                             res=res+str(self.sp[j])+", "
-                    #Needed: Delete last ","
-                    res=res+"}\n"
-            return(res)
+                    res=res
+            #Needed: in order to delete last "," we return res[:-3]+"}"
+            return(res[:-4]+"}\n")
         except:
            print("input must be \n bitarray representing set of species or \n list of bitarrays representing set of sets of species")
            
@@ -392,7 +392,7 @@ class RNIRG:
                     p_text+=str(int(self.mr.iloc[j,i]))+self.mr.index[j]+" "
                 else:
                     p_text+=str(self.mr.iloc[j,i])+self.mr.index[j]+" "
-            p_text+="-> "
+            p_text+="=> "
             for j in np.where(self.mp.iloc[:,i]!=0)[0]:
                 if self.mp.iloc[j,i]==1.0:
                     p_text+=self.mp.index[j]+" "

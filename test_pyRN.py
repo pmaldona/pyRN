@@ -23,15 +23,18 @@ RN = pyRN.from_txt(file)
 # RN = pyRN.from_sbml(file,False)
 
 # Basic Variables can easily obtain
-# Productive stoichimetric matrix
-print(RN.mp)
-# Reactive stochiometric matrix|
-print(RN.mr)
-# Vector of species
+print("Vector of species")
 print(RN.sp)
-# Vector of species names,in case of an initialization form an smbl file
+print("Vector of species names, in case of an initialization form an smbl file result can be different")
 print(RN.sp_n)
-
+print("List of reactions")
+print(RN.display())
+print("Reactive stochiometric matrix")
+print(RN.mr)
+print("Productive stoichimetric matrix")
+print(RN.mp)
+print("Stoichiometric Matrix")
+print(RN.mp-RN.mr)
 
 # Use of the CRNS module:
 
@@ -50,15 +53,17 @@ b_time=end-start
 # visualization the function RN.bt_to_sp(). For example, the species of 
 # the first basics stored as RN.sp_b[0] variable. This species can be seen as 
 # proper species by use the following function:
+print("example of a basic set")
 print(RN.bt_to_sp(RN.sp_b[0]))
 
-# We can also obtain the triggering reactions for a set of species
+print("We can also obtain the triggering reactions for this set of species")
 print(RN.bt_ind(RN.sp2r(RN.sp_b[0])))
 
 # There are also functions that plot histogram of species and reactions 
 # related to basics and partitions in which they are contained 
-RN.plot_basic_sp_presence(RN.sp[[0,2,3]])
-RN.plot_basic_r_presence([0,2,3])
+RN.plot_basic_sp_presence(RN.sp[[0,2]])
+RN.plot_basic_r_presence([0,2])
+
 
 start = time.time()
 # Generation of the synergistic structure, this function create a networkx 
@@ -74,6 +79,7 @@ syn_time=end-start
 
 # the synergistic edges can be obtain by searching by the property
 syn_edges = [(u,v) for u,v,e in RN.syn_str.edges(data=True) if e['syn']]
+print("synergetic edges of the RN")
 print(syn_edges)
 
 # There is also two (gen_ssm_str and gen_syn_str) function that generate similar 
@@ -84,15 +90,26 @@ print(syn_edges)
 
 # Generation of all proto-synergies, to obtain all proto-synergies, in first instance
 # it is necessary to generate the minimal generator for each partition.
-RN.gen_mgen()
+mingen=RN.gen_mgen()
+print("minimal generators of the network")
+print(mingen)
 # After this all proto-synergies can be generated.   
-RN.all_syn()
+allsyn=RN.all_syn()
+print("All synergies of the network")
+print(allsyn)
+
+
+
+
+print("new part of code, until here")
 # Both gen_mgen and all_syn, generates member lists of bitarrays related to the 
 # proto-synergies, for more details please refer to "./pyRN/CRNS.py module .
 
 # There is also an function (RN.syn_sets) that for a given set, calculates all possibles 
 # synergies that can be done whit it. This function can only be run after generating all
 # proto-synergies, in the case considering the second organization this corresponds to:
+
+    
 print(RN.syn_sets(RN.syn_org[1]))
 
 
