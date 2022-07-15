@@ -11,8 +11,6 @@ import time
 import networkx as nx
 import numpy as np
 
-
-
 # loading form a text file please refer to rn_test.txt to see example,
 # textfiles preserve antimony general strucutre in terms of reaction and 
 # reaction arrows.
@@ -121,7 +119,6 @@ print("new part of code, until here")
     
 print(RN.syn_sets(RN.syn_org[1]))
 
-"""
 # Use of the RNDS module:
 
 # For a given set of species and set of reactions, the the optimal number of 
@@ -153,11 +150,11 @@ print(all_dcom)
 
 # Considering an initialized reaction network an mass action kinetics model
 # can be initialized for dynamical simulations proposes be use of the function:
-RN.ma_model()
+RN.set_model()
 # If the function receive an empty argument the initial values are randomly
 # initialized from a uniform distribution between [0,1] 
 # Then simulation fo 25 time steps can be easily run:
-RN.simulate(0,25,100)
+RN.run_model(0,25,100)
 # This create a two dataframes, one for the concentration of species and another
 # for the reaction rates 
 print(RN.con)
@@ -167,20 +164,19 @@ print(RN.rate)
 # as rection network object
 # RN=pyRN.from_sbml("../COT/networks/ReacNet/raw/BIOMD0000000013.xml")
 # And then as model
-RN.sbml_model()
+RN.set_sbml_model()
 #  Afterwards the simulation can be run.
-RN.simulate(0,25,100)
+RN.run_model(0,25,100)
 print(RN.con)
 print(RN.rate)
 
 # Other option is to initialize an MKA model from an sbml file whit initial concentrations
 # and rates.
-RN.ma_model(i_sp=np.ones(RN.mp.shape[0]),rt=np.ones(RN.mp.shape[1]))
-RN.simulate(0,25,100)
+RN.set_model(i_sp=np.ones(RN.mp.shape[0]),rt=np.ones(RN.mp.shape[1]))
+RN.run_model(0,25,100)
 print(RN.con)
 print(RN.rate)
 
 # For more details of use of this module please refer to the "./pyRN/RNSRW.py" 
 # file.
 
-"""
