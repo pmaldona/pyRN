@@ -5,6 +5,7 @@ echo [Python]: Installing dependencies
 pip install eel
 pip install pyinstaller
 pip install git+https://github.com/pmaldona/pyRN.git
+pip install pycddlib
 pip install pypoman
 
 echo [-]: Done
