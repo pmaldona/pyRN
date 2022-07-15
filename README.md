@@ -5,7 +5,7 @@ Closed Reaction Network Structure Library
 
 CRNS can be installed from source. After downloading the repository, and and afterwards run:
 
-    $ python pip install .
+    $ sh setup.sh
 
 CRNS require the installation of the lxml library, in Debian/Ubuntu can be installed by:
 
@@ -15,5 +15,7 @@ Please refer to https://lxml.de/installation.html for other systems.
 
 ## Use
 
-An descriptive test file can be find in `test_CRNS.py` and the library it self `CRNS.py` also has a description for each function.
-Cancel changes
+run 
+    $ npm run start
+
+This will first trigger a rebuild of the frontend, the start the Electron application. Electron will then start the python backend, which will, when finished load the UI (loadtimes for pyRN is a bit long 1~5 seconds).
