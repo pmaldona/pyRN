@@ -14,7 +14,7 @@ from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 import networkx as nx
 import matplotlib.pyplot as plt
-
+from pyvis.network import Network
 
 # Class that calculates the synergistic and organizational structure 
 # of the closed reactants of a reaction network. 
@@ -268,7 +268,7 @@ class CRNS(RNIRG):
          
         plt.xlabel("Species")
         plt.ylabel("Number of basics sets")
-        plt.title("Number of basic sets that contain the current species")
+        plt.title("Number of basic sets that contain each species")
         plt.show()
         
         histo=self.basic_sp_presence(sp_set)
@@ -284,7 +284,7 @@ class CRNS(RNIRG):
          
         plt.xlabel("Species")
         plt.ylabel("Number of partitions")
-        plt.title("Number of partitions sets that contain the current species")
+        plt.title("Number of partitions sets that contain each species")
         plt.show()
     
     
@@ -306,7 +306,7 @@ class CRNS(RNIRG):
          
         plt.xlabel("Reactions")
         plt.ylabel("Number of Basics")
-        plt.title("Number of Basic that contain the current reaction")
+        plt.title("Number of Basic that contain each reaction")
         plt.show()
     
     
@@ -434,14 +434,14 @@ class CRNS(RNIRG):
                 is_org=self.is_ssm(self.sp_b[i])
                 G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
-                       is_ssm=is_ssm,is_org=is_org)
+                       is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
                 ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
                 if is_org:
                     org.append(self.sp[self.bt_ind(self.sp_b[i])])
             else:           
                 G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
-                       is_ssm=False,is_org=False)
+                       is_ssm=False,is_org=False,is_basic=True,basic_id=i)
 
                 
         # Generation of the multigraph of the synergistic structure by set level (contained basics)
@@ -465,20 +465,24 @@ class CRNS(RNIRG):
                              is_org=self.is_ssm(cr_sp)
                              G.add_node(cr_p,level=cr_p.count(),
                                     sp=self.sp[self.bt_ind(cr_sp)],
-                                    is_ssm=is_ssm,is_org=is_org)
+                                    is_ssm=is_ssm,is_org=is_org,is_basic=False)
                              ssms.append(self.sp[self.bt_ind(cr_sp)])
                              if is_org:
                                  org.append(self.sp[self.bt_ind(cr_sp)])
                          else:           
                              G.add_node(cr_p,level=cr_p.count(),
                                     sp=self.sp[self.bt_ind(cr_sp)],
-                                    is_ssm=False,is_org=False)
+                                    is_ssm=False,is_org=False,is_basic=False)
                          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
                      if cr_p.count() > (bt(j)|self.p_b[k]).count():
-                        G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=True)
+                        G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=True,added_basic=k)
                      else:
-                        G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=False)
+                        G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=False,added_basic=k)
+                    # if cr_p.count() > (bt(j)|self.p_b[k]).count():
+                    #    G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=True,added_basic=k)
+                    # else:
+                    #    G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=False,added_basic=k)
                 
         self.syn_str=G
         self.syn_ssms=ssms
@@ -685,7 +689,61 @@ class CRNS(RNIRG):
         self.dyn_org=org
         return(st)
     
-            
+    # Function that generates a network of the structures. It receives as 
+    # input a synergic, semi-self-maintained or dynamically connected structure. 
+    # The output corresponds to a pyvis interactive visualization. The colors 
+    # red, blue and green correspond to whether the set in question is a only 
+    # reactive closed, only semi-self-maintained or an organization 
+    # respectively. The shape of the set is circular if it is a basic or 
+    # square if it is not. Finally, the green arrows correspond to synergies 
+    # and the blue arrows to spurious union.
+    def display_str(self,graph):
+        G = nx.relabel_nodes(graph, lambda x: str(self.bt_ind(bt(x))))
+        nt = Network('500px', '500px',directed=True)
+        # populates the nodes and edges data structures
+        
+        # Removing the sp array for pyvis ploting
+        for i in G.nodes:
+            G.nodes[i]['size']=len(G.nodes[i]['sp'])*3
+            G.nodes[i]['sp']=str(G.nodes[i]['sp'])
+        
+        nt.from_nx(G)
+        # nx.draw(G, with_labels=True, font_weight='bold')
+        
+        nt.toggle_physics(False)
+        for i in range(len(nt.nodes)):
+            # nt.nodes[i]['size']=20
+            # nt.nodes[i]['title']=nt.nodes[i]['id']
+            nt.nodes[i]['title']=str(nt.nodes[i]['sp'])
+            if nt.nodes[i]['is_org']:
+                nt.nodes[i]['color']='green'
+                # nt.nodes[i]['group']=2
+            elif nt.nodes[i]['is_ssm']:
+                nt.nodes[i]['color']='blue'
+                # nt.nodes[i]['group']=3
+            else:
+                nt.nodes[i]['color']='red'
+                # nt.nodes[i]['group']=1
+            if nt.nodes[i]['is_basic']:
+                # nt.nodes[i]['title']=str(nt.nodes[i]['basic_id'])
+                nt.nodes[i]['shape']='dot'
+            else:
+                nt.nodes[i]['shape']='square'
+                
+        for i in range(len(nt.edges)):
+            nt.edges[i]['arrowStrikethrough']=True
+            nt.edges[i]['label']=nt.edges[i]['added_basic']
+            nt.edges[i]['title']=nt.edges[i]['added_basic']
+            nt.edges[i]['smooth'] = True        
+            if nt.edges[i]['syn']==False:
+                nt.edges[i]['color']="blue"
+            else:
+                nt.edges[i]['color']="green"
+          
+        nt.directed =True  
+        nt.show('str.html')
+    
+        
     # Minimal generators generation function, to be started once the basic sets
     # have been generated by the gen_basics() function.  It returns a list
     # (mgen) of bitarray list of species that correspond to the sets so that 
@@ -907,3 +965,34 @@ class CRNS(RNIRG):
                     break
                     
         return [syn_sets,syn_cand]
+    
+    
+    def display_syn(self):
+        
+        all_part=bt(len(self.sp_b))
+        all_part.setall(0)
+
+        for i in range(len(self.syn)):
+            all_part|=self.syn[i]
+            all_part|=self.syn_p[i]
+
+        G = nx.MultiDiGraph()
+
+        for i in self.bt_ind(all_part):
+            sp=str(self.sp[self.bt_ind(self.sp_p[i])])
+            size=len(self.sp[self.bt_ind(self.sp_p[i])])*3
+            G.add_node(i, color = "blue", label=str(i), size=size, title=sp, shape="dot")
+            
+        for i in range(len(self.syn)):
+            G.add_node("p"+str(i), color = "green", label="p"+str(i), size=7, shape="square")
+            
+        for i in range(len(self.syn)):
+            for j in self.bt_ind(self.syn[i]):    
+                G.add_edge(j, "p"+str(i), color="gray")
+            for j in self.bt_ind(self.syn_p[i]):    
+                G.add_edge("p"+str(i), j, color="gray")
+            
+        nt = Network('500px', '500px',directed=True)
+        nt.from_nx(G)
+        nt.toggle_physics(False)
+        nt.show('proto.html')

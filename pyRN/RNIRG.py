@@ -16,6 +16,7 @@ import copy
 from bitarray import bitarray as bt
 from scipy.optimize import linprog
 import random as rm
+import matplotlib.pyplot as plt
 
 
 # Class definition: It consist to an object generates an stoichiometric matrix 
@@ -377,13 +378,25 @@ class RNIRG:
     # Function that displays the reactions on the screen. It receives as
     # input a list p of integers corresponding to the reactions to be displayed. 
     # If p is not entered, the complete network is displayed.
-    def display(self,p=np.array([])):
-        # Creating the random initial rates if it's out of condition
-        if len(p)==0:  
-            p=self.mp.columns.values
-        
-        
-        for i in p:
+    def sin_dis_r(self,r_set=np.array([])):
+
+        # Checks if input is or not a bitarray, If is, it make the 
+        # transformation to an numpy array
+        if (r_set.size==0):
+            r=self.mp.columns
+            r_i=range(len(r))
+        else:
+            if (isinstance(r_set,bt)):
+               r_i=self.bt_ind(r_set)
+               r=self.mp.columns[r_i]
+            else:
+                r_i=[]
+                for i in r_set:
+                    if i in self.mp.columns:
+                        r_i.append(i)
+                r=r_set
+             
+        for i in r_i:
             p_text="R_"+str(i)+":   "
             for j in np.where(self.mr.iloc[:,i]!=0)[0]:
                 if self.mr.iloc[j,i]==1.0:
@@ -403,7 +416,86 @@ class RNIRG:
                 
             print(p_text)
 
+
+    # Function that displays the rspecies on the screen. It receives as
+    # input a list p of integers or bitarray corresponding to the reactions to be displayed. 
+    # If p is not entered, all species is displayed.
+    def sin_dis_sp(self,sp_set=np.array([])):
+        # Checks if input is or not a bitarray, If is, it make the 
+        # transformation to an numpy array
+        if (sp_set.size==0):
+            sp=bt(len(self.sp))
+            sp.setall(1)
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.mp.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.mp.index.values:
+                    ind=self.mp.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set.copy()
+        # invoke display function for species
+        self.bt_to_sp(sp)
+                   
+        
+    #Function that plot the stochimetric matirx, it recives as imput a vector
+    # or bit arrar of species (sp_set) and reaction (r_set), and plot the stochimetric 
+    # matrix whit colors
     
+
+    def plot_S(self,sp_set=np.array([]) ,r_set=np.array([])):
+        # Checks if input is or not a bitarray, If is, it make the 
+        # transformation to an numpy array
+        if (sp_set.size==0):
+            sp=self.sp
+            sp_i=range(len(sp))
+        else:
+            if (isinstance(sp_set,bt)):
+               sp_i=self.bt_ind(sp_set)
+               sp=self.sp[sp_i]
+            else:
+                sp_i=[]
+                for i in sp_set:
+                    if i in self.mp.index.values:
+                        sp_i.append(self.mp.index.get_loc(i))
+                sp=sp_set
+            
+        # Same procedure for reactions
+        if (r_set.size==0):
+            r=self.mp.columns
+            r_i=range(len(r))
+        else:
+            if (isinstance(r_set,bt)):
+               r_i=self.bt_ind(r_set)
+               r=self.mp.columns[r_i]
+            else:
+                r_i=[]
+                for i in r_set:
+                    if i in self.mp.columns:
+                        r_i.append(i)
+                r=r_set
+            
+        # Generating the sotichiometrix sub-matrix        
+        S=self.mp.iloc[sp_i,r_i]-self.mr.iloc[sp_i,r_i]
+        print(S)
+        fig = plt.figure(figsize = (10, 5))
+        
+        #  Ploting
+        plt.matshow(S)
+        sp_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(sp_i)))))
+        r_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(r_i)))))
+        
+        print(sp_ticks)
+        print(r_ticks)
+
+        plt.yticks(sp_ticks,sp)
+        plt.xticks(r_ticks,r)
+        plt.colorbar()
+        plt.show()
+            
+
     # Function that use a input the existing species and return, the reaction
     # that are be able to be triggered (R_X of X).
     def sp2r(self,sp_set):
