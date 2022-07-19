@@ -27,9 +27,9 @@ print(RN.sp)
 print("Vector of species names, in case of an initialization form an smbl file result can be different")
 print(RN.sp_n)
 print("Display species")
-print(RN.sin_dis_sp())
+print(RN.sin_print_sp())
 print("Display reactions")
-print(RN.sin_dis_r())
+print(RN.sin_print_r())
 print("Reactive stochiometric matrix")
 print(RN.mr)
 print("Productive stoichimetric matrix")
@@ -37,6 +37,8 @@ print(RN.mp)
 print("Stoichiometric Matrix")
 print(RN.mp-RN.mr)
 RN.plot_S()
+nt=RN.display_RN()
+nt.show("RN.html")
 
 
 # Use of the CRNS module:
@@ -86,7 +88,8 @@ print("synergetic edges of the RN")
 print(syn_edges)
 
 # Also the synergetic structure can be display
-RN.display_str(RN.syn_str)
+nt=RN.display_str(RN.syn_str)
+nt.show("CStr.html")
 
 # There is also two (gen_ssm_str and gen_syn_str) function that generate similar 
 # structures. They don't give the complete synergistic structure, it's a reduce 
@@ -106,7 +109,8 @@ print(RN.syn)
 print(RN.syn_p)
 
 # Also the proto-synergies can be display
-RN.display_syn()
+nt=RN.display_pr_syn()
+nt.show("pr_syn.html")
 
 print("new part of code, until here")
 # Both gen_mgen and all_syn, generates member lists of bitarrays related to the 

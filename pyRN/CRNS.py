@@ -691,7 +691,7 @@ class CRNS(RNIRG):
     
     # Function that generates a network of the structures. It receives as 
     # input a synergic, semi-self-maintained or dynamically connected structure. 
-    # The output corresponds to a pyvis interactive visualization. The colors 
+    # The output corresponds to a pyvis object. The colors 
     # red, blue and green correspond to whether the set in question is a only 
     # reactive closed, only semi-self-maintained or an organization 
     # respectively. The shape of the set is circular if it is a basic or 
@@ -741,7 +741,8 @@ class CRNS(RNIRG):
                 nt.edges[i]['color']="green"
           
         nt.directed =True  
-        nt.show('str.html')
+        # nt.show('str.html')
+        return(nt)
     
         
     # Minimal generators generation function, to be started once the basic sets
@@ -966,8 +967,11 @@ class CRNS(RNIRG):
                     
         return [syn_sets,syn_cand]
     
-    
-    def display_syn(self):
+    # Function that generates the proto-synergiy interactive graph. It returns
+    # oyvis objecto. whre each proto-synergie is label as p, and in draw as a 
+    # green squere. The partitions are colored as blue circules, where the size 
+    # is proportinal to the number of contained species.
+    def display_pr_syn(self):
         
         all_part=bt(len(self.sp_b))
         all_part.setall(0)
@@ -995,4 +999,5 @@ class CRNS(RNIRG):
         nt = Network('500px', '500px',directed=True)
         nt.from_nx(G)
         nt.toggle_physics(False)
-        nt.show('proto.html')
+        # nt.show('RN.html')
+        return(nt)

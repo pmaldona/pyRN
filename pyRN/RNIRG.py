@@ -17,7 +17,8 @@ from bitarray import bitarray as bt
 from scipy.optimize import linprog
 import random as rm
 import matplotlib.pyplot as plt
-
+from pyvis.network import Network
+import networkx as nx
 
 # Class definition: It consist to an object generates an stoichiometric matrix 
 # for the reactants (RN.mr) as for the products (RN.mp). The default initialization
@@ -378,7 +379,7 @@ class RNIRG:
     # Function that displays the reactions on the screen. It receives as
     # input a list p of integers corresponding to the reactions to be displayed. 
     # If p is not entered, the complete network is displayed.
-    def sin_dis_r(self,r_set=np.array([])):
+    def sin_print_r(self,r_set=np.array([])):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
@@ -420,7 +421,7 @@ class RNIRG:
     # Function that displays the rspecies on the screen. It receives as
     # input a list p of integers or bitarray corresponding to the reactions to be displayed. 
     # If p is not entered, all species is displayed.
-    def sin_dis_sp(self,sp_set=np.array([])):
+    def sin_print_sp(self,sp_set=np.array([])):
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
         if (sp_set.size==0):
@@ -439,12 +440,63 @@ class RNIRG:
         # invoke display function for species
         self.bt_to_sp(sp)
                    
+    
+    def display_RN(self,r_set=np.array([])):
+
+        # Checks if input is or not a bitarray, If is, it make the 
+        # transformation to an numpy array
+        if (r_set.size==0):
+            r=self.mp.columns
+            r_i=range(len(r))
+        else:
+            if (isinstance(r_set,bt)):
+               r_i=self.bt_ind(r_set)
+               r=self.mp.columns[r_i]
+            else:
+                r_i=[]
+                for i in r_set:
+                    if i in self.mp.columns:
+                        r_i.append(i)
+                r=r_set
+                
+        G = nx.MultiDiGraph()
+        sp=set()
+        for i in r_i:
+            sp|=set(self.sp[self.bt_ind(self.reac[i])])|set(self.sp[self.bt_ind(self.reac[i])])
+            # size=len(self.sp[self.bt_ind(self.sp_p[i])])*3
+            G.add_node("r"+str(i), color = "red", label="r"+str(i), shape="square", size=7)
+            
+        for i in sp:
+            G.add_node(str(i), color = "green", label=str(i), size=14, shape="dot")
+            
+        for i in r_i:
+            
+            for j in self.bt_ind(self.reac[i]):
+                st_value=self.mr.iloc[j,i]
+                label=""
+                if st_value!=1:
+                    label=str(st_value)
+                G.add_edge(str(self.sp[j]), "r"+str(i), color="gray",
+                           label=label,title=label)
+            
+            for j in self.bt_ind(self.prod[i]):
+                st_value=self.mp.iloc[j,i]
+                label=""
+                if st_value!=1:
+                    label=str(st_value)
+                G.add_edge("r"+str(i), str(self.sp[j]), color="gray",
+                           label=label,title=label)
         
+        nt = Network('500px', '500px',directed=True)
+        nt.from_nx(G)
+        nt.toggle_physics(False)
+        # nt.show('proto.html')
+        return(nt)            
+    
+    
     #Function that plot the stochimetric matirx, it recives as imput a vector
     # or bit arrar of species (sp_set) and reaction (r_set), and plot the stochimetric 
     # matrix whit colors
-    
-
     def plot_S(self,sp_set=np.array([]) ,r_set=np.array([])):
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
@@ -479,20 +531,26 @@ class RNIRG:
             
         # Generating the sotichiometrix sub-matrix        
         S=self.mp.iloc[sp_i,r_i]-self.mr.iloc[sp_i,r_i]
-        print(S)
         fig = plt.figure(figsize = (10, 5))
         
         #  Ploting
-        plt.matshow(S)
+       
+        plt.matshow(S, cmap=plt.cm.viridis)
+       
+        
+        for i in range(len(sp_i)):
+            for j in range(len(r_i)):
+                c = S.iloc[i,j]               
+                plt.text(j, i, str(c), va='center', ha='center')
+        
         sp_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(sp_i)))))
         r_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(r_i)))))
         
         print(sp_ticks)
         print(r_ticks)
-
+       
         plt.yticks(sp_ticks,sp)
         plt.xticks(r_ticks,r)
-        plt.colorbar()
         plt.show()
             
 
