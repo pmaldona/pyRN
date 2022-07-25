@@ -36,6 +36,16 @@
 	const generateNetwork = async () => {
 		console.log("genNetwork");
 		let promise = eel.gen_network()();
+		let network = await promise.then(result => {
+			return result;
+		});
+		state.network_raw = network;
+		state.network = {};
+		state.network.nodes = new DataSet(network.nodes);
+		state.network.edges = new DataSet(network.edges);
+		//state.network.options = new DataSet(network.Options);
+
+		return network;
 	}
 </script>
 

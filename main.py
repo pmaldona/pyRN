@@ -30,8 +30,10 @@ def openFile(path):
 @eel.expose
 def gen_network():
     if RN:
-        print(RN.prod)
-        build_reaction_network(RN.mr, RN.mp)
+        network = RN.display_RN()
+        nodes, edges, heading, height, width, options = network.get_network_data()
+        return {"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options}
+        #return {"network": str(network)}
 
 @eel.expose
 def calculate_orgs():
@@ -56,8 +58,8 @@ def calculate_orgs():
         return {"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options}
     return None
 
-say_hello_py('Python World!')
-eel.say_hello_js('Python World!')   # Call a Javascript function
+#say_hello_py('Python World!')
+#eel.say_hello_js('Python World!')   # Call a Javascript function
 
 print("[eel]: Start");
 

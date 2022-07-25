@@ -20,7 +20,7 @@
 
     if(initialValues.name && nodes == undefined) {
         genHasse().then(result => {
-            console.log(result.nodes);
+            console.log(result);
             nodes = new DataSet(result.nodes);
             edges = new DataSet(result.edges);
             options = JSON.parse(result.options);
