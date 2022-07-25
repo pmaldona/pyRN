@@ -16,6 +16,6 @@ Please refer to https://lxml.de/installation.html for other systems.
 ## Use
 
 run 
-    $ npm run start
+`$ npm run start`
 
 This will first trigger a rebuild of the frontend, the start the Electron application. Electron will then start the python backend, which will, when finished load the UI (loadtimes for pyRN is a bit long 1~5 seconds).
