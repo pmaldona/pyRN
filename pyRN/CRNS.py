@@ -732,8 +732,8 @@ class CRNS(RNIRG):
                 
         for i in range(len(nt.edges)):
             nt.edges[i]['arrowStrikethrough']=True
-            nt.edges[i]['label']=nt.edges[i]['added_basic']
-            nt.edges[i]['title']=nt.edges[i]['added_basic']
+            nt.edges[i]['label']="'" + str(nt.edges[i]['added_basic']) + "'"
+            nt.edges[i]['title']="'" + str(nt.edges[i]['added_basic']) + "'"
             nt.edges[i]['smooth'] = True        
             if nt.edges[i]['syn']==False:
                 nt.edges[i]['color']="blue"
