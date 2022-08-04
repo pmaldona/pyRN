@@ -16,14 +16,13 @@ import pandas as pd
 
 
 class RNSRW(RNIRG):
-    
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
     # reaction network. It recives as input a vector of the initial concentration 
     # of species i_sp, the reactive constant vector rt and the concentration 
     # thearshold where a species is condidered not present. if the variables 
     # i_sp and rt are not given, they are randomly initialized by a uniform 
     # distribution between 0 and 1
-    def ma_model(self, i_sp=np.array([]) ,rt=np.array([]) ,th=0.1):
+    def set_model(self, i_sp=np.array([]) ,rt=np.array([]) ,th=0.1):
         
         # Creating the model
         self.model=te.loada("")
@@ -74,7 +73,7 @@ class RNSRW(RNIRG):
             self.model.addReaction("r"+str(i), reac, prod, rate)
                     
     # Function that load dynamical model directly form the sbml file     
-    def sbml_model(self):
+    def set_sbml_model(self):
         if not self.sbml:
             print("network do not correspond to an sbml file")
             return
@@ -85,7 +84,7 @@ class RNSRW(RNIRG):
     # to simulate by means of the variable steps. The function generates the 
     # dataframes CRNS.with CRNS.rate, which correspond to concentrations and 
     # processes of the simulation respectively.
-    def simulate(self,ti=0,tf=50,steps=100): 
+    def run_model(self,ti=0,tf=50,steps=100): 
         
         if ti <= self.model.getCurrentTime():
             t_step=(tf-ti)/steps
@@ -113,7 +112,7 @@ class RNSRW(RNIRG):
     # vector of the initial concentration of species i_sp, the reactive 
     # constant vector rt and the concentration 
     
-    def param_model(self, i_sp=np.array([]) ,rt=np.array([])):
+    def param_pert(self, i_sp=np.array([]) ,rt=np.array([])):
         # Creating the random initial concetration if it's out of condition
         if (i_sp.size==0): 
             i_sp=np.random.rand(self.mp.shape[0])

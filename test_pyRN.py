@@ -11,31 +11,36 @@ import time
 import networkx as nx
 import numpy as np
 
-
 # loading form a text file please refer to rn_test.txt to see example,
 # textfiles preserve antimony general strucutre in terms of reaction and 
 # reaction arrows.
-file="networks/rn_test0.txt"
+file="networks/rn_test.txt"
 RN = pyRN.from_txt(file)
 
 # Alternative sbml files can be loaded. 
 # file="networks/PW000035.sbml"
 # RN = pyRN.from_sbml(file,False)
-# Basic Variables can easily obtain
 
+# Basic Variables can easily obtain
 print("Vector of species")
 print(RN.sp)
 print("Vector of species names, in case of an initialization form an smbl file result can be different")
 print(RN.sp_n)
-print("List of reactions")
-RN.display()
+print("Display species")
+print(RN.sin_print_sp())
+print("Display reactions")
+print(RN.sin_print_r())
 print("Reactive stochiometric matrix")
 print(RN.mr)
 print("Productive stoichimetric matrix")
 print(RN.mp)
 print("Stoichiometric Matrix")
 print(RN.mp-RN.mr)
-RN.display_stoich()
+RN.plot_S()
+nt=RN.display_RN()
+nt.show("RN.html")
+
+
 # Use of the CRNS module:
 
 start = time.time() 
@@ -82,6 +87,10 @@ syn_edges = [(u,v) for u,v,e in RN.syn_str.edges(data=True) if e['syn']]
 print("synergetic edges of the RN")
 print(syn_edges)
 
+# Also the synergetic structure can be display
+nt=RN.display_str(RN.syn_str)
+nt.show("CStr.html")
+
 # There is also two (gen_ssm_str and gen_syn_str) function that generate similar 
 # structures. They don't give the complete synergistic structure, it's a reduce 
 # structure to aim a quicker calculation to obtain the organizations and the 
@@ -90,20 +99,20 @@ print(syn_edges)
 
 # Generation of all proto-synergies, to obtain all proto-synergies, in first instance
 # it is necessary to generate the minimal generator for each partition.
-mingen=RN.gen_mgen()
+RN.gen_mgen()
 print("minimal generators of the network")
-
+print(RN.mgen)
 # After this all proto-synergies can be generated.   
 RN.all_syn()
 print("All synergies of the network")
 print(RN.syn)
 print(RN.syn_p)
-# After this all proto-synergies can be generated.   
-allsyn=RN.all_syn()
-print("All synergies of the network")
-print(allsyn)
-    
 
+# Also the proto-synergies can be display
+nt=RN.display_pr_syn()
+nt.show("pr_syn.html")
+
+print("new part of code, until here")
 # Both gen_mgen and all_syn, generates member lists of bitarrays related to the 
 # proto-synergies, for more details please refer to "./pyRN/CRNS.py module .
 
@@ -113,7 +122,6 @@ print(allsyn)
 
     
 print(RN.syn_sets(RN.syn_org[1]))
-
 
 # Use of the RNDS module:
 
@@ -146,11 +154,11 @@ print(all_dcom)
 
 # Considering an initialized reaction network an mass action kinetics model
 # can be initialized for dynamical simulations proposes be use of the function:
-RN.ma_model()
+RN.set_model()
 # If the function receive an empty argument the initial values are randomly
 # initialized from a uniform distribution between [0,1] 
 # Then simulation fo 25 time steps can be easily run:
-RN.simulate(0,25,100)
+RN.run_model(0,25,100)
 # This create a two dataframes, one for the concentration of species and another
 # for the reaction rates 
 print(RN.con)
@@ -160,18 +168,19 @@ print(RN.rate)
 # as rection network object
 # RN=pyRN.from_sbml("../COT/networks/ReacNet/raw/BIOMD0000000013.xml")
 # And then as model
-RN.sbml_model()
+RN.set_sbml_model()
 #  Afterwards the simulation can be run.
-RN.simulate(0,25,100)
+RN.run_model(0,25,100)
 print(RN.con)
 print(RN.rate)
 
 # Other option is to initialize an MKA model from an sbml file whit initial concentrations
 # and rates.
-RN.ma_model(i_sp=np.ones(RN.mp.shape[0]),rt=np.ones(RN.mp.shape[1]))
-RN.simulate(0,25,100)
+RN.set_model(i_sp=np.ones(RN.mp.shape[0]),rt=np.ones(RN.mp.shape[1]))
+RN.run_model(0,25,100)
 print(RN.con)
 print(RN.rate)
 
 # For more details of use of this module please refer to the "./pyRN/RNSRW.py" 
 # file.
+
