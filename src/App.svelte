@@ -1,8 +1,11 @@
 <script>
+	import { filename } from './store/FileStore';
+	import { network } from './store/NetworkStore';
 	import { DataSet } from 'vis-data/peer';
 	import Base from './Base.svelte';
   	import Network from './Network.svelte';
 	import Hasse from './Hasse.svelte';
+	import { hasse } from './store/HasseStore';
 
   	const pages = [Base, Network, Hasse];
 
@@ -10,9 +13,11 @@
 
 	let state = {};
 
+	const unsub_network = network.subscribe();
+	const unsub_hasse = hasse.subscribe();
+
 	const setName = (name) => {
-		state.name = name;
-		state.hasse = {};
+		filename.open_file(name);
 	}
 
 	const openPage = (_p) => {
@@ -33,19 +38,23 @@
 		return hasse;
 	}
 
+	const setNetwork = (ntwrk) => {
+		console.log(ntwrk)
+	}
+
 	const generateNetwork = async () => {
 		console.log("genNetwork");
 		let promise = eel.gen_network()();
-		let network = await promise.then(result => {
+		let n = await promise.then(result => {
 			return result;
 		});
-		state.network_raw = network;
-		state.network = {};
-		state.network.nodes = new DataSet(network.nodes);
-		state.network.edges = new DataSet(network.edges);
-		//state.network.options = new DataSet(network.Options);
+		//state.network_raw = network;
+		// state.network = {};
+		// state.network.nodes =new DataSet(network.nodes);
+		// state.network.edges = new DataSet(network.edges);
+		// state.network.options = new DataSet(network.Options);
 
-		return network;
+		return n;
 	}
 </script>
 
@@ -65,11 +74,12 @@
 	{setName}
 	genHasse={generateHasse}
 	genNetwork={generateNetwork}
+	setNetwork={setNetwork}
   	initialValues={state}
 />
 
 <footer>
-	<p>{state.name || "No file opened."}</p>
+	<p>{ $filename || "No file opened."}</p>
 </footer>
 
 <style>

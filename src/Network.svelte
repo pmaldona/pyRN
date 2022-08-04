@@ -1,52 +1,42 @@
 <script>
     //import { Network } from 'vis-network';
     //import { DataSet } from 'vis-data/peer';
+    import { network } from './store/NetworkStore';
+    import { filename } from './store/FileStore';
     export let genNetwork;
-    export let initialValues;
 
-    let nodes = initialValues.nodes;
-    let edges = initialValues.edges;
-    let options = initialValues.hasse ? initialValues.hasse.options : {};
+    let nodes;
+    let edges;
+    let options = {};
 
-    function generateGraph() {
-        let container = document.getElementById("network");
-        let data = {
-            nodes: nodes ? nodes : [],
-            edges: edges ? edges : [],
-        };
-    
-        let network = new vis.Network(container, data, options);
-        console.log(options);
-        network.setOptions(options);
-        console.log(network)
-    }
-
-    if(initialValues.name && nodes == undefined) {
+    if($filename != "" && nodes == undefined) {
         genNetwork().then(result => {
             nodes = new vis.DataSet(result.nodes);
-            let e = [];
             for(let i = 0; i < result.edges.length; i++) {
                 let edge = result.edges[i];
-                console.log(edge);
+                //console.log(edge);
                 if(edge.title){
                     edge.label = edge.title;
                 }
                 
             }
-            console.log(result);
+            
             edges = new vis.DataSet(result.edges);
             options = JSON.parse(result.options);
             options.edges.font = {color:'#000000', strokeColor: '#000000', strokeWidth: 0.5};
-            generateGraph();
-        });
-        
+            network.set_network({nodes: nodes, edges: edges, options: options});
+        });   
     }
     
 </script>
 
 <main>
     <div id="network"></div>
-    {#if nodes == undefined}
+    {#if $filename == ""}
+        <h5 style="position: absolute; top: 55px; left: 10px;">
+            Please open a network file.
+        </h5>
+    {:else if nodes == undefined}
         <div id="loader">
             <div id="circle">
                 <div class="preloader-wrapper big active">
@@ -67,12 +57,7 @@
                 Creating Network
             </h5>
         </div>
-    {:else if initialValues.name == undefined}
-        <h5>
-            Please open a network file.
-        </h5>
     {/if}
-	
 </main>
 
 <style>
