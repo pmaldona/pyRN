@@ -45,7 +45,7 @@ class CRNS(RNIRG):
         c_reac=[]
           
         for i in self.reac:
-            c_reac.append(self.closure(i,True))
+            c_reac.append(self.closure(i,bt_type=True))
         
         # number of equivalence clases
         xeqc=0
@@ -455,7 +455,7 @@ class CRNS(RNIRG):
                  for k in self.bt_ind(self.conn_b(bt(j))):
                      st+=1    
                      # Closure result
-                     cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),True)
+                     cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),bt_type=True)
                      cr_p=fbt(self.sp2p(cr_sp))
                      
                      # node is added if is not in structrue
@@ -558,7 +558,7 @@ class CRNS(RNIRG):
                 for k in conn:
                      st+=1
                      # Closure result
-                     cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),True)
+                     cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),bt_type=True)
                      cr_p=fbt(self.sp2p(cr_sp))
                      
                      # node is added if is not in structrue
@@ -659,7 +659,7 @@ class CRNS(RNIRG):
                 for k in conn:
                      st+=1    
                      # Closure result
-                     cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),True)
+                     cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),bt_type=True)
                      cr_p=fbt(self.sp2p(cr_sp))
                      
                      # node is added if is not in structrue
@@ -937,7 +937,7 @@ class CRNS(RNIRG):
 
         # Only closed sets are considered, therefore sp is considered 
         # as its generated closure
-        sp=self.closure(sp,True)
+        sp=self.closure(sp,bt_type=True)
         # partition that contain the species
         p=self.sp2p(sp)
 
@@ -959,7 +959,7 @@ class CRNS(RNIRG):
         for i in cl_sets:
             for j in syn_part:
                 syn_p=p|i
-                syn_set=self.closure(self.p2sp(p|i),True)
+                syn_set=self.closure(self.p2sp(p|i),bt_type=True)
                 if ((syn_p)&j==j) & (sp!=syn_set):
                     syn_sets.append(self.sp[self.bt_ind(syn_set)])
                     syn_cand.append(self.sp[self.bt_ind(self.p2sp(i))])

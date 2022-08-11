@@ -462,7 +462,7 @@ class RNIRG:
         G = nx.MultiDiGraph()
         sp=set()
         for i in r_i:
-            sp|=set(self.sp[self.bt_ind(self.reac[i])])|set(self.sp[self.bt_ind(self.reac[i])])
+            sp|=set(self.sp[self.bt_ind(self.reac[i])])|set(self.sp[self.bt_ind(self.prod[i])])
             # size=len(self.sp[self.bt_ind(self.sp_p[i])])*3
             G.add_node("r"+str(i), color = "red", label="r"+str(i), shape="square", size=7)
             
@@ -545,9 +545,6 @@ class RNIRG:
         
         sp_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(sp_i)))))
         r_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(r_i)))))
-        
-        print(sp_ticks)
-        print(r_ticks)
        
         plt.yticks(sp_ticks,sp)
         plt.xticks(r_ticks,r)
@@ -586,11 +583,12 @@ class RNIRG:
     
     # Generated closure of a given set, in bitarray or spices set. "sp_set" 
     # argument can be an numpy.array of species or a bitarray of percent species. 
+    # Also as input it receives the rpresent eactions r_set as np.array or bitarray format.
     # The function  will return an bitarray if bt_type is True, otherwise will
     # return an numpy.array of species.
-    def closure(self,sp_set,bt_type=False):
+    def closure(self,sp_set,r_set=None,bt_type=False):
         
-        # Checks if input is or not a bitarray, If not, it make the 
+        # Checks if sp_set is or not a bitarray, If not, it make the 
         # transformation to it
         if not (isinstance(sp_set,bt)):
             sp=bt(self.mp.shape[0])
@@ -602,11 +600,26 @@ class RNIRG:
                     sp[ind]=1
         else:
             sp=sp_set.copy()
-        # creating a vector of reaction that can be triggered
-        n_reac = np.array(range(self.mp.shape[1]))
+            
+        # Checks if r_set is or not a bitarray, If not, it make the 
+        # transformation to it
+        if (r_set is None):
+            # creating a vector of reaction that can be triggered
+            n_reac = np.array(range(self.mp.shape[1]))
+        else:
+            if not (isinstance(r_set,bt)):
+                r=bt(self.mp.shape[1])
+                r.setall(0)
+                for i in r_set:
+                    r[i]=1
+            else:
+                r=r_set.copy()
+
+            # creating a vector of reaction that can be triggered
+            n_reac = self.bt_ind(r)
+        
         i=0
         flag=False
-        
         # Generates the closure until no reaction can be trigered
         while(len(n_reac)>0):
             if (sp & self.reac[n_reac[i]]) == self.reac[n_reac[i]]:
@@ -843,3 +856,200 @@ class RNIRG:
                 ind.append(i)
         
         return ind
+
+
+    # random generation of reaction networks
+
+    # the most simple random network generator, Nr reactions (>1), Ns species (>1)
+    # a minimal reaction network is randomly created where each reaction has one reactant and one product and each species
+    # is used at least once as reactant and once as product, extra assignments are carried out randomly over reactions
+    # there are no inflow or outflow reactions, redundant or null reactions may be generated (rn.merge will filter them out)
+    # dist is a log scaled distribution in the [-1,1] range representing locality
+    # pr and pp are a log scaled penalization for the repeated use of species as reactants or products
+    @classmethod
+    def rg_g1(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None):
+        
+        if Ns is None:
+            Ns=Nr
+        if pp is None:
+            pp=pr
+        
+        # (0) useful variables and functions
+        xr = np.array(list(map(lambda x: x/(Nr-1)*2-1,range(Nr))))  # x coordinates for reactions, range [-1,1]
+        xs = np.array(list(map(lambda x: x/(Ns-1)*2-1,range(Ns))))  # x coordinates for species, range [-1,1]
+        rnorm = lambda x: x + 2*(x < -1) - 2*(x > 1) # renormalization of coordinates in the range [-1,1]
+        norm =lambda x: x / np.sum(x) # Normalization function for probability vector
+        usr = np.zeros(Ns)
+        usp = usr.copy() # int vectors to count uses of species as reactants and products (initially the counts are 0)
+        # (1) creation of the reactants and products Ns X Nr matrices of the reaction network with no species assigned
+        sp=list(map(lambda x: "s"+str(x+1),range(Ns)))
+        mr=np.zeros([Nr,Ns])
+        mr=pd.DataFrame(mr,columns=sp)
+        mr=mr.T
+        mp=copy.copy(mr)
+        # (2) assignment of one random reactant and one random product (different from the reactant) to each reaction
+        for i in np.random.choice(range(Nr),Nr,False):
+            d=np.array(list(map(dist,list(map(lambda x: rnorm(x-xr[i]),xs)))))
+            dr = d - pr*usr; 
+            dr = np.exp(dr-np.max(dr))
+            sr = np.random.choice(range(Nr),1,p=norm(dr))
+            dp = d - pp*usp; 
+            dp[sr] = -np.inf 
+            dp = np.exp(dp-np.max(dp))
+            sp =np.random.choice(range(Ns),1,p=norm(dp)) 
+            mr.iloc[sr,i] = 1 
+            usr[sr] <- usr[sr]+1
+            mp.iloc[sp,i] = 1 
+            usp[sp] = usp[sp]+1
+        
+        # (3) assignment of species not used as reactants to a random reaction (eventually the same reaction)
+        i = np.where(usr==0)[0]
+        for s in np.random.choice(i,len(i)):
+          d=np.array(list(map(dist,list(map(lambda x: rnorm(x-xs[s]),xr)))))
+          r = np.random.choice(range(Nr),1,p=norm(np.exp(dr)))
+          mr.iloc[s,r] = mr.iloc[s,r] + 1
+        
+        # (4) assignment of species not used as products to a random reaction (eventually the same reaction)
+        i = np.where(usp==0)[0]
+        
+        for s in np.random.choice(i,len(i)):
+          d=np.array(list(map(dist,list(map(lambda x: rnorm(x-xs[s]),xr)))))
+          r = np.random.choice(range(Nr),1,p=norm(np.exp(dr)))
+          mp.iloc[s,r] = mp.iloc[s,r] + 1
+        
+        # (5) extra assignment of species at random
+        n = np.round(Nr*extra).astype(int) # extra assignments are proportional reactions
+        i = np.random.choice(Nr,n,True) # the selected reactions (with repetitions)
+        for r in i:
+          w = np.random.choice(range(2),2,False)
+          d = np.array(list(map(dist,list(map(lambda x: rnorm(x-xr[r]),xs))))) - w[0]*pr*usr - w[1]*pp*usp
+          s = np.random.choice(range(Ns),1,p=norm(np.exp(d-np.max(d)))) 
+          if w[0]==1: 
+              mr.iloc[s,r] = mr.iloc[s,r] + 1
+          else: 
+              mp.iloc[s,r] = mp.iloc[s,r] + 1
+          
+          reac=[]
+          prod=[]
+          for i in range(mp.shape[1]):
+              
+              r_sp=bt(mr.shape[0])
+              r_sp.setall(0)
+              p_sp=r_sp.copy()
+              
+              for j in np.where(mr.iloc[:,i]!=0)[0]:
+                  r_sp[j]=1
+              for j in np.where(mp.iloc[:,i]!=0)[0]:
+                  p_sp[j]=1
+              
+              reac.append(r_sp)
+              prod.append(p_sp)
+              
+              
+          out =cls()
+          out.mr=mr
+          out.mp=mp
+          out.sp=np.array(mr.index)
+          out.sp_n=out.sp.copy()
+          out.reac=reac
+          out.prod=prod
+          out.fname=None
+          out.txt=False
+          out.sbml=False
+          
+          return out
+
+    
+    def rg_extra1(self,p=.1,m=2,Nse=None,extra=None,l="x"):
+        
+        if Nse is None:
+            Nse=np.ceil(self.mr.shape[0]*p).astype(int)
+        if extra is None:
+            extra=np.round(2*Nse).astype(int)
+        
+        mr = self.mr
+        mp = self.mp
+        Ns = mr.shape[0]
+        Nr = mr.shape[1]
+        # (1) adding extra species
+        me=np.zeros((Nr,Nse))
+        me=pd.DataFrame(me,columns=list(map(lambda x: l+str(x+1),range(Nse))))
+        me=me.T
+        mr = pd.concat([mr, me])
+        mp = pd.concat([mp, me])
+        # (2) using extra species once as reactants and once as products
+        for s in range(Nse,(Ns+Nse)):
+            mr.iloc[s,np.random.choice(range(Nr),1)] = 1
+            mp.iloc[s,np.random.choice(range(Nr),1)] = 1
+      
+        # (3) extra assignment of species at random
+        i = np.random.choice(range(Nr),extra,replace=True) # the selected reactions (with repetitions)
+        for r in i:
+            s = np.random.choice(range(Nse,(Ns+Nse)),1)
+            if np.random.choice(range(2),1)==1: 
+                mr.iloc[s,r] = mr.iloc[s,r] + 1
+            else:
+                mp.iloc[s,r] = mp.iloc[s,r] + 1
+        # generation of the new reaction and product bitsets
+        reac=[]
+        prod=[]
+        for i in range(mp.shape[1]):
+            
+            r_sp=bt(mr.shape[0])
+            r_sp.setall(0)
+            p_sp=r_sp.copy()
+            
+            for j in np.where(mr.iloc[:,i]!=0)[0]:
+                r_sp[j]=1
+            for j in np.where(mp.iloc[:,i]!=0)[0]:
+                p_sp[j]=1
+            
+            reac.append(r_sp)
+            prod.append(p_sp)
+        
+        # Changing the variables of the vectors
+        self.mr=mr
+        self.mp=mp
+        self.sp=np.array(mr.index)
+        self.sp_n=self.sp.copy()
+        self.reac=reac
+        self.prod=prod
+        
+    def rn_clean(self):
+        i = np.where(self.mr.sum(axis=1)+self.mr.sum(axis=1)==0)[0]
+        if len(i)>0: 
+            mr = self.mr.drop(self.mr.index[i],axis=0,inplace=False)  # unused species are eliminated
+            mp = self.mp.drop(self.mp.index[i],axis=0,inplace=False)  # unused species are eliminated
+        i = np.where(list(map(lambda k: all(mr.iloc[:,k]==mp.iloc[:,k]), range(mr.shape[0]))))[0]
+        if len(i)>0:
+            mr = self.mr.drop(self.mr.index[i],axis=0,inplace=False)  # unused species are eliminated
+            mp = self.mp.drop(self.mp.index[i],axis=0,inplace=False)  # unused species are eliminated
+          
+        mr = mr.loc[:,~mr.columns.duplicated()].copy()
+        mp = mp.loc[:,~mp.columns.duplicated()].copy()
+
+        # generation of the new reaction and product bitsets
+        reac=[]
+        prod=[]
+        for i in range(mp.shape[1]):
+            
+            r_sp=bt(mr.shape[0])
+            r_sp.setall(0)
+            p_sp=r_sp.copy()
+            
+            for j in np.where(mr.iloc[:,i]!=0)[0]:
+                r_sp[j]=1
+            for j in np.where(mp.iloc[:,i]!=0)[0]:
+                p_sp[j]=1
+            
+            reac.append(r_sp)
+            prod.append(p_sp)
+        
+        # Changing the variables of the vectors
+        self.mr=mr
+        self.mp=mp
+        self.sp=np.array(mr.index)
+        self.sp_n=self.sp.copy()
+        self.reac=reac
+        self.prod=prod
+        

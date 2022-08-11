@@ -40,8 +40,23 @@ RN.plot_S()
 nt=RN.display_RN()
 nt.show("RN.html")
 
+# The library also contains random network generating functions 
+RN = pyRN.rg_g1()
+
+nt=RN.display_RN()
+nt.show("RN_1.html")
+
+# New random species can be added to the current reaction network 
+# to the existing reactions
+RN.rg_extra1()
+
+nt=RN.display_RN()
+nt.show("RN_2.html")
 
 # Use of the CRNS module:
+# Initi of the example network
+file="networks/rn_test.txt"
+RN = pyRN.from_txt(file)
 
 start = time.time() 
 # Generation of the basics sets, this function generates all basic set, 
@@ -154,32 +169,31 @@ print(all_dcom)
 
 # Considering an initialized reaction network an mass action kinetics model
 # can be initialized for dynamical simulations proposes be use of the function:
-RN.set_model()
+RN.set_model_ma()
 # If the function receive an empty argument the initial values are randomly
 # initialized from a uniform distribution between [0,1] 
 # Then simulation fo 25 time steps can be easily run:
 RN.run_model(0,25,100)
 # This create a two dataframes, one for the concentration of species and another
 # for the reaction rates 
-print(RN.con)
-print(RN.rate)
+RN.con.plot()
+RN.rate.plot()
 
-# Sbml files can be loaded for inlcuding specific dynamics definitions. Frist
-# as rection network object
-# RN=pyRN.from_sbml("../COT/networks/ReacNet/raw/BIOMD0000000013.xml")
-# And then as model
-RN.set_sbml_model()
-#  Afterwards the simulation can be run.
-RN.run_model(0,25,100)
-print(RN.con)
-print(RN.rate)
+# The parameters can be changed by means of the following function, 
+# where the new concentrations i_sp and kinetic constants of the model rt are 
+# entered. The time where the change occurs corresponds to the time at which 
+# the simulation was left, or it can be returned by the initial condition init=True.
+# At this time only mass action kinetics models can be parameterized.
+i_sp=np.random.uniform(size=RN.mr.shape[0])
+rt=np.random.uniform(size=RN.mr.shape[1])
+RN.param_change_ma(i_sp=i_sp,rt=rt,init=False)
+RN.run_model(25,50,100)
+RN.con.plot()
+RN.rate.plot()
 
-# Other option is to initialize an MKA model from an sbml file whit initial concentrations
-# and rates.
-RN.set_model(i_sp=np.ones(RN.mp.shape[0]),rt=np.ones(RN.mp.shape[1]))
-RN.run_model(0,25,100)
-print(RN.con)
-print(RN.rate)
+# It is also possible to generate random walks for mass action models. 
+RN.scr_gen_and_pert()
+print(RN.rw)
 
 # For more details of use of this module please refer to the "./pyRN/RNSRW.py" 
 # file.
