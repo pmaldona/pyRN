@@ -31,7 +31,6 @@ class RNSRW(RNIRG):
         except:
             self.model=re.RoadRunner()
         
-        
         self.model.addCompartment("C", 1,True)
         # Creating the random initial concetration if it's out of condition
         if i_sp is None: 
@@ -83,7 +82,7 @@ class RNSRW(RNIRG):
         
         self.model.regenerateModel()
         self.sbml=False
-                
+        
     # Function that load dynamical model directly form the sbml file     
     def set_sbml_model(self):
         if not self.sbml:
@@ -103,6 +102,7 @@ class RNSRW(RNIRG):
     # active species and active reaction. This dataframes will append another 
     # line if any of the species change their concentration below or over the cutoff  
     def run_model(self,ti=0,tf=50,steps=100,cutoff=0.1): 
+        
         
         # Generation of kinetic contstant vector
         k=[]
@@ -402,8 +402,9 @@ class RNSRW(RNIRG):
                     self.rw[i]['u'] = pd.concat([self.rw[i]['u'],self.a_r.iloc[-1]],axis=1) # a second abstraction is stored (used species)
                     self.rw[i]['t'].append(st) # the time elapsed in the dynamic simulation is stored in the random walk
         
-            self.rw[i]['f'].column=range(self.rw[i]['f'].shape[0])
-            self.rw[i]['p'].column=range(self.rw[i]['p'].shape[0])
-            self.rw[i]['c'].column=range(self.rw[i]['c'].shape[0])
-            self.rw[i]['a'].column=range(self.rw[i]['a'].shape[0])
-            self.rw[i]['u'].column=range(self.rw[i]['u'].shape[0])
+            self.rw[i]['f'].columns=range(self.rw[i]['f'].shape[1])
+            self.rw[i]['s'].columns=range(self.rw[i]['s'].shape[1])
+            self.rw[i]['p'].columns=range(self.rw[i]['p'].shape[1])
+            self.rw[i]['c'].columns=range(self.rw[i]['c'].shape[1])
+            self.rw[i]['a'].columns=range(self.rw[i]['a'].shape[1])
+            self.rw[i]['u'].columns=range(self.rw[i]['u'].shape[1])
