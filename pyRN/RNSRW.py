@@ -401,3 +401,9 @@ class RNSRW(RNIRG):
                     self.rw[i]['a'] = pd.concat([self.rw[i]['a'],self.abst.iloc[-1]],axis=1) # the abstraction is stored  
                     self.rw[i]['u'] = pd.concat([self.rw[i]['u'],self.a_r.iloc[-1]],axis=1) # a second abstraction is stored (used species)
                     self.rw[i]['t'].append(st) # the time elapsed in the dynamic simulation is stored in the random walk
+        
+            self.rw[i]['f'].column=range(self.rw[i]['f'].shape[0])
+            self.rw[i]['p'].column=range(self.rw[i]['p'].shape[0])
+            self.rw[i]['c'].column=range(self.rw[i]['c'].shape[0])
+            self.rw[i]['a'].column=range(self.rw[i]['a'].shape[0])
+            self.rw[i]['u'].column=range(self.rw[i]['u'].shape[0])
