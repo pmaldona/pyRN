@@ -10,6 +10,7 @@ from pyRN import pyRN
 import time
 import networkx as nx
 import numpy as np
+import matplotlib.pyplot as plt
 
 # loading form a text file please refer to rn_test.txt to see example,
 # textfiles preserve antimony general strucutre in terms of reaction and 
@@ -36,22 +37,45 @@ print("Productive stoichimetric matrix")
 print(RN.mp)
 print("Stoichiometric Matrix")
 print(RN.mp-RN.mr)
+print("Inflow species")
+print(RN.is_inflow(RN.sp,True))
+print("Outflow species")
+print(RN.is_outflow(RN.sp,True))
 RN.plot_S()
 nt=RN.display_RN()
 nt.show("RN.html")
 
+# fin del primero
+
+
 # The library also contains random network generating functions 
+# the most simple random network generator, Nr reactions (>1), Ns species (>1)
+# a minimal reaction network is randomly created where each reaction has one reactant and one product and each species
+# is used at least once as reactant and once as product, an extra proportion of assignments are carried out randomly
+# there are no inflow or outflow reactions, redundant or null reactions may be generated (rn.merge will filter them out)
+# dist is a log scaled distribution in the [-1,1] range representing locality
+# pr and pp are a log scaled penalization for the repeated use of species as reactants or products
 RN = pyRN.rg_g1()
 
 nt=RN.display_RN()
-nt.show("RN_1.html")
+nt.show("RG_0.html")
 
 # New random species can be added to the current reaction network 
 # to the existing reactions
 RN.rg_extra1()
-
 nt=RN.display_RN()
-nt.show("RN_2.html")
+nt.show("Rg_1.html")
+
+# Adding inflow and otflow reactions
+RN.rg_extra_inflow(extra=0.2)
+RN.rg_extra_outflow(extra=0.2)
+nt.show("RG_2.html")
+
+
+RN = pyRN.rg_g2()
+nt=RN.display_RN()
+nt.show("RG_2.html")
+
 
 # Use of the CRNS module:
 # Initi of the example network
@@ -134,35 +158,7 @@ print("new part of code, until here")
 # There is also an function (RN.syn_sets) that for a given set, calculates all possibles 
 # synergies that can be done whit it. This function can only be run after generating all
 # proto-synergies, in the case considering the second organization this corresponds to:
-
-    
 print(RN.syn_sets(RN.syn_org[1]))
-
-# Use of the RNDS module:
-
-# For a given set of species and set of reactions, the the optimal number of 
-# overproduced species can be obtained as follow:
-op_sp=RN.over_prod(RN.syn_org[0], RN.sp2r(RN.syn_org[0]))
-print(RN.bt_to_sp(op_sp))
-# Or the decomposition it self, considering an imput of overproduced species
-dcom=RN.dcom(op_sp, RN.syn_org[0], RN.sp2r(RN.syn_org[0]))
-print(dcom)
-# The value of the dcom vector is -1 it corresponds to an 
-# overproducible species, if it is -2 to a catalytic species and if it 
-# is 0 the species is not present. The integer values indicate belonging 
-# to the current fragile cycle.
-
-# Also all possible decomposition for a given set can be obtained, this is done
-# by use of the following function:
-G , op_h_st = RN.over_hasse(RN.syn_org[0])    
-
-# G corresponds to a networkx graph that is the Hasse diagram of the overproducible
-# species, each node has as attribute the decomposition, op_h_sp, are the number 
-# of steps to create the Hasse diagram. 
-all_dcom = list(nx.get_node_attributes(G,'dcom').values())
-print(all_dcom)
-# For more details of use of this module please refer to the "./pyRN/RNDS.py" 
-# file.
 
 
 # Use of the RNSRW module:
@@ -198,3 +194,29 @@ print(RN.rw)
 # For more details of use of this module please refer to the "./pyRN/RNSRW.py" 
 # file.
 
+
+# Use of the RNDS module:
+
+# For a given set of species and set of reactions, the the optimal number of 
+# overproduced species can be obtained as follow:
+op_sp=RN.over_prod(RN.syn_org[0], RN.sp2r(RN.syn_org[0]))
+print(RN.bt_to_sp(op_sp))
+# Or the decomposition it self, considering an imput of overproduced species
+dcom=RN.dcom(op_sp, RN.syn_org[0], RN.sp2r(RN.syn_org[0]))
+print(dcom)
+# The value of the dcom vector is -1 it corresponds to an 
+# overproducible species, if it is -2 to a catalytic species and if it 
+# is 0 the species is not present. The integer values indicate belonging 
+# to the current fragile cycle.
+
+# Also all possible decomposition for a given set can be obtained, this is done
+# by use of the following function:
+G , op_h_st = RN.over_hasse(RN.syn_org[0])    
+
+# G corresponds to a networkx graph that is the Hasse diagram of the overproducible
+# species, each node has as attribute the decomposition, op_h_sp, are the number 
+# of steps to create the Hasse diagram. 
+all_dcom = list(nx.get_node_attributes(G,'dcom').values())
+print(all_dcom)
+# For more details of use of this module please refer to the "./pyRN/RNDS.py" 
+# file.

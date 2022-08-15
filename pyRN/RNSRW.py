@@ -235,6 +235,12 @@ class RNSRW(RNIRG):
         v[k] = np.exp(np.random.normal(mu,sigma,len(k)))
         return v
     
+    # function that generates a random perturbation of eplison size with respect 
+    # v vector, only considering the mask species.
+    def state_pert(self,v,mask=None,epsilon=1):
+        v_p=self.pert_randomize(v,mask,0,0.5)
+        return v + epsilon*(v_p / np.linalg.norm(v_p))
+    
     # activation of components of v (changing values from 0 to 1 or from >0 to 0), mask (defaults to all components) 
     # n total active components required, up to p active components to be preserved (defaults to all active components)
     def pert_activation(self,v,mask=None,n=None,p=None):
@@ -287,6 +293,15 @@ class RNSRW(RNIRG):
         
         return v
 
+    # perturb a vector by adding or substracting components and randomizing the result
+    # v vector respect at his current position, d component gamma, at least nmin active components, 
+    # min_epsilon minimun random size perturmation, max_epsilon maximum random size pertubartion
+    def pert_delta_2(self,v,d=1,nmin=5,max_epsion=1,min_epsilon=0.1):
+        n = np.max([np.sum(v>0)+d,nmin])
+        v = self.pert_activation(v,n=n)
+        epsilon=np.random.uniform(min_epsilon,max_epsion)
+        v = self.state_pert(v,epsilon=epsilon)
+        return v    
 
     # creates a structure to study evolutive paths of a reaction network rn
     # result: the reaction network rn, a random walk list rw
@@ -370,12 +385,12 @@ class RNSRW(RNIRG):
                 # the current state is stored in the random walk
                 
                 if k==0:
-                    s = self.pert_delta(np.zeros(len(self.sp)),d=1,nmin=1,sigma=.5)
+                    s = self.pert_delta_2(np.zeros(len(self.sp)),d=1,nmin=1)
                     self.rw[i]['s']=pd.DataFrame(self.model.getFloatingSpeciesConcentrationsNamedArray(),columns=self.sp).T
                     self.param_change_ma(s)
                 else:
                     self.rw[i]['s'] = pd.concat([self.rw[i]['s'],self.con.iloc[-1]],axis=1)
-                    s = self.pert_delta(np.array(self.con.iloc[-1]),d=1,nmin=1,sigma=.5) # a delta perturbation is applied to current state
+                    s = self.pert_delta_2(np.array(self.con.iloc[-1]),d=1,nmin=1) # a delta perturbation is applied to current state
                     self.param_change_ma(s)
                 # end perturbations, start simulation:
                 start = time.time() 

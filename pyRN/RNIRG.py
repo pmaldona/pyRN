@@ -465,10 +465,18 @@ class RNIRG:
             sp|=set(self.sp[self.bt_ind(self.reac[i])])|set(self.sp[self.bt_ind(self.prod[i])])
             # size=len(self.sp[self.bt_ind(self.sp_p[i])])*3
             G.add_node("r"+str(i), color = "red", label="r"+str(i), shape="square", size=7)
-            
+        
+        inf=set(self.is_inflow(np.array(list(sp)),True))
+        out=set(self.is_outflow(np.array(list(sp)),True))
+        sp-=inf
+        sp-=out
+        
         for i in sp:
+            G.add_node(str(i), color = "blue", label=str(i), size=14, shape="dot")
+        for i in inf:
             G.add_node(str(i), color = "green", label=str(i), size=14, shape="dot")
-            
+        for i in out:
+            G.add_node(str(i), color = "red", label=str(i), size=14, shape="dot")
         for i in r_i:
             
             for j in self.bt_ind(self.reac[i]):
@@ -856,8 +864,66 @@ class RNIRG:
                 ind.append(i)
         
         return ind
-
-
+    
+    # Function that receives a set of species (sp_set) and returns 
+    # the idexes of which are inflow.
+    def is_inflow(self,sp_set,set_type=False):
+                
+        # Checks if input is or not bitarray, if it's no, it make the 
+        # transmation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.mp.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.mp.index.values:
+                    ind=self.mp.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+        
+        inf=sp.copy()
+        inf.setall(0)
+        for i in range(len(self.reac)):
+            if (self.reac[i].any()) and (not self.prod[i].any()):
+                inf |= self.reac[i]
+        
+        inf&=sp
+        
+        if set_type:
+            return self.sp[self.bt_ind(inf)]
+        
+        return self.bt_ind(inf)
+        
+    # Function that receives a set of species (sp_set) and returns 
+    # the idexes of which are inflow.
+    def is_outflow(self,sp_set,set_type=False):
+                
+        # Checks if input is or not bitarray, if it's no, it make the 
+        # transmation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.mp.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.mp.index.values:
+                    ind=self.mp.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+        
+        out=sp.copy()
+        out.setall(0)
+        for i in range(len(self.reac)):
+            if (self.prod[i].any()) and (not self.reac[i].any()):
+                out |= self.prod[i]
+        
+        out&=sp
+        if set_type:
+            return self.sp[self.bt_ind(out)]
+        
+        return self.bt_ind(out)
+    
     # random generation of reaction networks
 
     # the most simple random network generator, Nr reactions (>1), Ns species (>1)
@@ -1014,16 +1080,134 @@ class RNIRG:
         self.sp_n=self.sp.copy()
         self.reac=reac
         self.prod=prod
+    
+    # function that adds a percentage of additional (extra) inflow 
+    # reactions to an existing network 
+    def rg_extra_inflow(self,extra=0.2):
+        Ns = self.mr.shape[0]
         
+        # selection of species that will considere as inflow species
+        i = np.random.choice(range(Ns),np.round(extra*Ns).astype(int),replace=True)
+        
+        # generating reaction that will be added
+        mr=np.zeros((Ns,len(i)))
+        mp=mr.copy()
+        j=0
+        # colname=[]
+        for l in i:
+            mp[l,j]=1
+            # colname.append(Nr+j+1)
+            j+=1
+            
+        mr=pd.DataFrame(mr)
+        mr.index=self.mr.index.copy()
+        mp=pd.DataFrame(mp)
+        mp.index=self.mr.index.copy()
+        
+        # adding reaction to respective patices
+        self.mr = pd.concat([self.mr,mr],axis=1)
+        self.mr.columns=range(self.mr.shape[1])
+        self.mp = pd.concat([self.mp,mp],axis=1)
+        self.mp.columns=range(self.mp.shape[1])
+        
+        # creating extra bitset variables for the support and products
+        reac=[]
+        prod=[]
+        for i in range(self.mp.shape[1]):
+            
+            r_sp=bt(self.mr.shape[0])
+            r_sp.setall(0)
+            p_sp=r_sp.copy()
+            
+            for j in np.where(self.mr.iloc[:,i]!=0)[0]:
+                r_sp[j]=1
+            for j in np.where(self.mp.iloc[:,i]!=0)[0]:
+                p_sp[j]=1
+            
+            reac.append(r_sp)
+            prod.append(p_sp)       
+        
+        self.reac=reac
+        self.prod=prod
+    
+    # function that adds a percentage of additional (extra) inflow 
+    # reactions to an existing network
+    def rg_extra_outflow(self,extra=0.2):
+        Ns = self.mr.shape[0]
+        
+        # selection of species that will considere as outflow species
+        i = np.random.choice(range(Ns),np.round(extra*Ns).astype(int),replace=True)
+        
+        # generating reaction that will be added
+        mr=np.zeros((Ns,len(i)))
+        mp=mr.copy()
+        j=0
+        # colname=[]
+        for l in i:
+            mr[l,j]=1
+            # colname.append(Nr+j+1)
+            j+=1
+            
+        mr=pd.DataFrame(mr)
+        mr.index=self.mr.index.copy()
+        mp=pd.DataFrame(mp)
+        mp.index=self.mr.index.copy()
+        
+        # adding reaction to respective patices
+        self.mr = pd.concat([self.mr,mr],axis=1)
+        self.mr.columns=range(self.mr.shape[1])
+        self.mp = pd.concat([self.mp,mp],axis=1)
+        self.mp.columns=range(self.mp.shape[1])
+        
+        # creating extra bitset variables for the support and products
+        reac=[]
+        prod=[]
+        for i in range(self.mp.shape[1]):
+            
+            r_sp=bt(self.mr.shape[0])
+            r_sp.setall(0)
+            p_sp=r_sp.copy()
+            
+            for j in np.where(self.mr.iloc[:,i]!=0)[0]:
+                r_sp[j]=1
+            for j in np.where(self.mp.iloc[:,i]!=0)[0]:
+                p_sp[j]=1
+            
+            reac.append(r_sp)
+            prod.append(p_sp)       
+        
+        self.reac=reac
+        self.prod=prod
+
+    
+    # A wrapper of function rg_g1, but adding percentage of input inflow 
+    # and input outflow reactions.
+    @classmethod
+    def rg_g2(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None, inflow=0.2, outflow=0.2):
+        
+        # inizialization of 
+        out=cls.rg_g1(Nr,Ns,extra, dist, pr, pp)
+        out.rg_extra_inflow(inflow)
+        out.rg_extra_outflow(outflow)
+        out.rn_clean()
+        
+        return out
+            
+    # Function that cleans up reaccion redundancies and unsed species.
     def rn_clean(self):
-        i = np.where(self.mr.sum(axis=1)+self.mr.sum(axis=1)==0)[0]
+        
+        mr=self.mr.copy()
+        mp=self.mp.copy()
+        
+        i = np.where(mr.sum(axis=1)+mr.sum(axis=1)==0)[0]
         if len(i)>0: 
-            mr = self.mr.drop(self.mr.index[i],axis=0,inplace=False)  # unused species are eliminated
-            mp = self.mp.drop(self.mp.index[i],axis=0,inplace=False)  # unused species are eliminated
+            mr = mr.drop(mr.index[i],axis=0,inplace=False)  # unused species are eliminated
+            mp = mp.drop(mp.index[i],axis=0,inplace=False)  # unused species are eliminated
+            
         i = np.where(list(map(lambda k: all(mr.iloc[:,k]==mp.iloc[:,k]), range(mr.shape[0]))))[0]
         if len(i)>0:
-            mr = self.mr.drop(self.mr.index[i],axis=0,inplace=False)  # unused species are eliminated
-            mp = self.mp.drop(self.mp.index[i],axis=0,inplace=False)  # unused species are eliminated
+            mr = mr.drop(mr.index[i],axis=0,inplace=False)  # unused species are eliminated
+            mp = mp.drop(mp.index[i],axis=0,inplace=False)  # unused species are eliminated
           
         mr = mr.loc[:,~mr.columns.duplicated()].copy()
         mp = mp.loc[:,~mp.columns.duplicated()].copy()
@@ -1052,4 +1236,3 @@ class RNIRG:
         self.sp_n=self.sp.copy()
         self.reac=reac
         self.prod=prod
-        
