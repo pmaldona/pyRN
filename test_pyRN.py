@@ -71,7 +71,7 @@ RN.rg_extra_inflow(extra=0.2)
 RN.rg_extra_outflow(extra=0.2)
 nt.show("RG_2.html")
 
-
+# Second random generation function which considers the extra_inflow and extra_outflow functions
 RN = pyRN.rg_g2()
 nt=RN.display_RN()
 nt.show("RG_2.html")
@@ -163,6 +163,8 @@ print(RN.syn_sets(RN.syn_org[1]))
 
 # Use of the RNSRW module:
 
+#  Generation of new random model
+RN = pyRN.rg_g2()
 # Considering an initialized reaction network an mass action kinetics model
 # can be initialized for dynamical simulations proposes be use of the function:
 RN.set_model_ma()
