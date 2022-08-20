@@ -1,0 +1,10 @@
+numpy
+pandas
+beautifulsoup4
+bitarray
+scipy
+networkx
+libroadrunner
+lxml
+pyvis
+pypoman
