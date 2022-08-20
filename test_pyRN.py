@@ -45,8 +45,6 @@ RN.plot_S()
 nt=RN.display_RN()
 nt.show("RN.html")
 
-# fin del primero
-
 
 # The library also contains random network generating functions 
 # the most simple random network generator, Nr reactions (>1), Ns species (>1)
@@ -74,7 +72,7 @@ nt.show("RG_2.html")
 # Second random generation function which considers the extra_inflow and extra_outflow functions
 RN = pyRN.rg_g2()
 nt=RN.display_RN()
-nt.show("RG_2.html")
+nt.show("RG_3.html")
 
 
 # Use of the CRNS module:

@@ -12,7 +12,8 @@ import numpy as np
 import roadrunner as re
 import pandas as pd
 import time
-
+import json
+import copy
 
 class RNSRW(RNIRG):
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
@@ -30,7 +31,9 @@ class RNSRW(RNIRG):
             self.model.clearModel()
         except:
             self.model=re.RoadRunner()
-        
+        # self.model.setIntegrator('rk45') # set integrator first
+        # self.model.integrator.epsilon = 1e-10
+        # self.model.getIntegrator().setValue("absolute_tolerance",[1E-18,1E-18,1E-18,1E-18])
         self.model.addCompartment("C", 1,True)
         # Creating the random initial concetration if it's out of condition
         if i_sp is None: 
@@ -90,7 +93,59 @@ class RNSRW(RNIRG):
             return
         # self.model = te.loadSBMLModel(self.fname)
         self.model = re.RoadRunner(self.fname)
+    
         
+    # Function that return concentration species in right order and cosidering a cutoff
+    def sp_con(self):
+        con=[]
+        for i in self.sp:
+            con.append(self.model.getValue(i))
+        return np.array(con)
+        
+    # Function that return concentration reaction rates in right order and cosidering a cutoff
+    def r_con(self):
+        con=[]
+        for i in range(self.mr.shape[1]):
+            con.append(self.model.getValue('r'+str(i)))
+        return np.array(con)
+        
+    # returns the boolean abstract state (closure) for a given reaction network rn
+    # species concentrations vector s and flow constants vector f
+    def abstract_sp(self,s,f,cutoff=.1):
+        k = self.bt_ind(self.closure(sp_set=self.sp[np.where(s>=cutoff)[0]],r_set=np.where(f>0)[0],bt_type=True))
+        v = np.repeat(False,len(s))
+        v[k] = True
+        return v
+    
+    # returns the boolean active reaction
+    # species concentrations vector s
+    def active_reac(self,s,cutoff=.1):
+        sp = np.where(s>cutoff)[0]        
+        def ac_reac(reac):
+            return all(np.isin(np.where(reac)[0],sp))
+        
+        k=np.where(np.apply_along_axis(ac_reac, 0, self.mr))[0]
+        v = np.repeat(False,self.mr.shape[1])
+        v[k] = True
+        return v
+
+
+    # returns the boolean active species 
+    # species concentrations vector s
+    def active_sp(self,s,cutoff=.1):
+        sp = np.where(s>cutoff)[0]
+        def ac_reac(reac):
+            return all(np.isin(np.where(reac)[0],sp))
+        
+        v = np.repeat(False,len(s))
+        reac = np.where(np.apply_along_axis(ac_reac, 0, self.mr))[0]
+        if len(reac)>0:
+            sp = np.where((self.mr.iloc[:,reac].sum(axis=1)+self.mp.iloc[:,reac].sum(axis=1))>0)[0]
+            v[sp] = True
+            
+        return v
+
+    
     
     # Function that simulates the dynamics of the proposed model. It takes as 
     # input the initial time ti and the final time tf, and the number of steps 
@@ -102,8 +157,7 @@ class RNSRW(RNIRG):
     # active species and active reaction. This dataframes will append another 
     # line if any of the species change their concentration below or over the cutoff  
     def run_model(self,ti=0,tf=50,steps=100,cutoff=0.1): 
-        
-        
+
         # Generation of kinetic contstant vector
         k=[]
         rate_name=[]
@@ -115,46 +169,56 @@ class RNSRW(RNIRG):
         
         # Considering if the simulation has benn aready run, and generation of
         # output variables
-        
-
         t_step=(tf-ti)/steps
-        c_st=self.model.getFloatingSpeciesConcentrationsNamedArray()[0].copy()
+        c_st=self.model.getFloatingSpeciesAmountsNamedArray()[0]
+        sp_names=self.model.getFloatingSpeciesAmountsNamedArray().colnames
         c_st[c_st<cutoff]=0
         con=[[ti]+c_st.tolist()]
-        rate=[[ti]+self.model.getReactionRates().tolist()]
-        abst=[[ti]+self.abstract_sp(self.model.getFloatingSpeciesConcentrationsNamedArray()[0],k).tolist()]
-        a_sp=[[ti]+self.active_sp(self.model.getFloatingSpeciesConcentrationsNamedArray()[0]).tolist()]
-        a_r=[[ti]+self.active_reac(self.model.getFloatingSpeciesConcentrationsNamedArray()[0]).tolist()]
-        ac_reac=self.active_reac(self.model.getFloatingSpeciesConcentrationsNamedArray()[0])
+        reac=self.model.getReactionRates()
+        ac_reac=self.active_reac(c_st,cutoff)
+        reac[ac_reac==False]=0
+        rate=[[ti]+ac_reac]
+        
+        # Check if the abstraction has changed, if remain the same, no data is added.
+        try:
+            if any(self.RN.abst[-1]!=(c_st>0)):
+                abst=[[ti]+self.abstract_sp(c_st,k,cutoff).tolist()]
+                a_sp=[[ti]+self.active_sp(c_st,cutoff).tolist()]
+                a_r=[[ti]+self.active_reac(c_st,cutoff).tolist()]
+        # Exception is generated if the RN.abst variable is not initialized beforehand.
+        except:
+            abst=[[ti]+self.abstract_sp(c_st,k,cutoff).tolist()]
+            a_sp=[[ti]+self.active_sp(c_st,cutoff).tolist()]
+            a_r=[[ti]+self.active_reac(c_st,cutoff).tolist()]
+        
         # Running the simulation
         for i in range(steps):
             t=t_step*i+ti
-            self.model.oneStep(t,t_step)
-            n_st=self.model.getFloatingSpeciesConcentrationsNamedArray()[0].copy()
+            self.model.simulate(start=t,end=t+t_step,points=2)
+            n_st=self.model.getFloatingSpeciesAmountsNamedArray()[0]
             n_st[n_st<cutoff]=0
             con.append([t+t_step]+n_st.tolist())
             reac=self.model.getReactionRates()
+            ac_reac=self.active_reac(n_st,cutoff)
             reac[ac_reac==False]=0
             rate.append([t+t_step]+reac.tolist())
-            # rate.append([t+t_step]+self.model.getReactionRates().tolist())
             # appending data if the active species changes
             if not all((c_st<cutoff)==(n_st<cutoff)):
-                abst.append([t+t_step]+self.abstract_sp(self.model.getFloatingSpeciesConcentrationsNamedArray()[0],k).tolist())
-                a_sp.append([t+t_step]+self.active_sp(self.model.getFloatingSpeciesConcentrationsNamedArray()[0]).tolist())
-                ac_reac=self.active_reac(self.model.getFloatingSpeciesConcentrationsNamedArray()[0])
+                abst.append([t+t_step]+self.abstract_sp(n_st,k,cutoff).tolist())
+                a_sp.append([t+t_step]+self.active_sp(n_st,cutoff).tolist())
                 a_r.append([t+t_step]+ac_reac.tolist())
             c_st=n_st.copy()
             c_st[c_st<cutoff]=0
         
         
         # Generating output
-        con=pd.DataFrame(con,columns=['time']+self.sp.tolist())
+        con=pd.DataFrame(con,columns=['time']+sp_names)
         con=con.set_index('time')
         
-        abst=pd.DataFrame(abst,columns=['time']+self.sp.tolist())
+        abst=pd.DataFrame(abst,columns=['time']+sp_names)
         abst=abst.set_index('time')
         
-        a_sp=pd.DataFrame(a_sp,columns=['time']+self.sp.tolist())
+        a_sp=pd.DataFrame(a_sp,columns=['time']+sp_names)
         a_sp=a_sp.set_index('time')
         
         
@@ -179,7 +243,6 @@ class RNSRW(RNIRG):
             self.a_sp=a_sp
             self.a_r=a_r
 
-    
     
     # Function that modify parameters of a given model. It recives as input a 
     # vector of the initial concentration of species i_sp, the reactive 
@@ -226,32 +289,40 @@ class RNSRW(RNIRG):
     # randomize components of a state or flow vector using a log normal distribution
     # v vector, mask of affected components (defaults to active ones), mu and sigma parameters of the distribution
     def pert_randomize(self,v,mask=None,mu=0,sigma=.5):
+        v_out=v.copy()
         if mask is None:
-            mask=(v!=0)
-        mask = np.repeat(True,len(v)) & mask
+            mask=(v_out!=0)
+        mask = np.repeat(True,len(v_out)) & mask
         k = np.where(mask)[0]
         if (len(k)==0): 
-            return(v)
-        v[k] = np.exp(np.random.normal(mu,sigma,len(k)))
-        return v
+            return(v_out)
+        v_out[k] = np.exp(np.random.normal(mu,sigma,len(k)))
+        return v_out
     
     # function that generates a random perturbation of eplison size with respect 
     # v vector, only considering the mask species.
     def state_pert(self,v,mask=None,epsilon=1):
-        v_p=self.pert_randomize(v,mask,0,0.5)
-        return v + epsilon*(v_p / np.linalg.norm(v_p))
+        if mask is None:
+            mask=(v!=0)
+        mask = np.repeat(True,len(v)) & mask
+        v_p=np.random.normal(0,0.5,len(v))
+        v_p[~mask]=0
+        v_p = v + epsilon*(v_p / np.linalg.norm(v_p))
+        v_p[v_p<0]=0
+        return v_p
     
     # activation of components of v (changing values from 0 to 1 or from >0 to 0), mask (defaults to all components) 
     # n total active components required, up to p active components to be preserved (defaults to all active components)
     def pert_activation(self,v,mask=None,n=None,p=None):
+        v_out=v.copy()
         if mask is None:
-            mask=np.repeat(True,len(v))
+            mask=np.repeat(True,len(v_out))
         if n is None:
             n = np.sum(mask)
         if p is None:
-            p = np.sum(v[mask]>0)
+            p = np.sum(v_out[mask]>0)
         
-        w = v[mask]
+        w = v_out[mask]
         l = len(w)
         a = np.sum(w>0)
         n = np.max([np.min([n,l]),0])
@@ -281,27 +352,27 @@ class RNSRW(RNIRG):
             k <- j[k-1]-1
             w[k[w[k-1]==0]-1] = 1
   
-        v[mask] = w
-        return v
+        v_out[mask] = w
+        return v_out
 
     # perturb a vector by adding or substracting components and randomizing the result
     # v vector, d component delta, at least nmin active components, sigma random dispersion
     def pert_delta(self,v,d=1,nmin=5,sigma=.5):
         n = np.max([np.sum(v>0)+d,nmin])
-        v = self.pert_activation(v,n=n)
-        v = self.pert_randomize(v,sigma=sigma)
+        v_out = self.pert_activation(v,n=n)
+        v_out = self.pert_randomize(v_out,sigma=sigma)
         
-        return v
+        return v_out
 
     # perturb a vector by adding or substracting components and randomizing the result
     # v vector respect at his current position, d component gamma, at least nmin active components, 
     # min_epsilon minimun random size perturmation, max_epsilon maximum random size pertubartion
     def pert_delta_2(self,v,d=1,nmin=5,max_epsion=1,min_epsilon=0.1):
         n = np.max([np.sum(v>0)+d,nmin])
-        v = self.pert_activation(v,n=n)
+        v_out = self.pert_activation(v,n=n)
         epsilon=np.random.uniform(min_epsilon,max_epsion)
-        v = self.state_pert(v,epsilon=epsilon)
-        return v    
+        v_out = self.state_pert(v_out,epsilon=epsilon)
+        return v_out    
 
     # creates a structure to study evolutive paths of a reaction network rn
     # result: the reaction network rn, a random walk list rw
@@ -310,68 +381,56 @@ class RNSRW(RNIRG):
     # for each perturbation and simulation step applied
     def rw_start(self):
       self.rw=[]
-      self.rw.append(dict(f=None,s=None,p=None,c=None,a=None,u=None))
+      self.rw.append(dict(sim=None,f=None,s=None,p=None,c=None,a=None,u=None))
     
     
-    # returns the boolean abstract state (closure) for a given reaction network rn
-    # species concentrations vector s and flow constants vector f
-    def abstract_sp(self,s,f,cutoff=.1):
-        k = self.bt_ind(self.closure(sp_set=self.sp[np.where(s>=cutoff)[0]],r_set=np.where(f>0)[0],bt_type=True))
-        v = np.repeat(False,len(s))
-        v[k] = True
-        return v
-    
-    # returns the boolean active reaction
-    # species concentrations vector s
-    def active_reac(self,s,cutoff=.1):
-        sp = np.where(s>cutoff)[0]        
-        def ac_reac(reac):
-            return all(np.isin(np.where(reac)[0],sp))
-        
-        k=np.where(np.apply_along_axis(ac_reac, 0, self.mr))[0]
-        v = np.repeat(False,self.mr.shape[1])
-        v[k] = True
-        return v
-
-
-    # returns the boolean active species 
-    # species concentrations vector s
-    def active_sp(self,s,cutoff=.1):
-        sp = np.where(s>cutoff)[0]
-        def ac_reac(reac):
-            return all(np.isin(np.where(reac)[0],sp))
-        
-        v = np.repeat(False,len(s))
-        reac = np.where(np.apply_along_axis(ac_reac, 0, self.mr))[0]
-        if len(reac)>0:
-            sp = np.where((self.mr.iloc[:,reac].sum(axis=1)+self.mp.iloc[:,reac].sum(axis=1))>0)[0]
-            v[sp] = True
-            
-        return v
-    
+       
     
     # working script to generate a random reaction network and perturbation/simulation random walks
     # if e is provided new random walks or steps are added to e
     # if rn is provided that reaction network is used instead of generating a random one
     # the random walks to be created or completed are defined by range w, by default 1:10
     # by default the number of perturbation and simulation steps l is set to 10
-    # cutoff is the concentration threshold for a species to be reactive and n is the number of simulation steps 
-    # the result is available in global variable e (the value is also returned by the function)
-    def scr_gen_and_pert(self,w=range(10),l=10,cutoff=.1,n=5000):
+    # cutoff is the concentration threshold for a species to be reactive and n is the number of simulation steps
+    # trys are the number of perturbations done if the integrator have covergence problems.
+    # sim_save if the simulation (con, rate, abst, a_sp and a_r) of each simulation is stored
+    # fname is the json filename where the results are stored.
+    # the result is available in global variable e (the value is also returned by the function)    
+    # t the time elapsed in the dynamic simulation is stored in the random walk
+    # f a dataframe of the flow vectors in the random walk
+    # p a dataframe the perturbed states before the simulation starts in the random walk
+    # s a dataframe of the states before the perturbation
+    # c a dataframe of the convergent states in the random walk
+    # a a dataframe of the abstractions of the convergent state (closure)
+    # u a dataframe of the active species in the random walk (used species)
+    # sim a list of dataframe whit the simulation data (con, rate, abst, a_sp and a_r dataframes)
+    def scr_gen_and_pert(self,w=range(10),l=10,cutoff=.1,n=5000,trys=10,sim_save=True,fname="rand_walk.json"):
                 
         try:
             self.rw
-        except:        
+        except:
             self.rw_start() # the starting structure to store the random walks to be generated
-                
+        
+        if w==None or w==1 or w==0:
+            w=range(0,1)
+            
         for i in w:  # for each random walk
+            
             if i>len(self.rw)-1: # this is a new random walk
                     self.rw.append(dict(f=None,s=None,p=None,c=None,a=None,u=None,t=None)) # matrices are created to store the steps in columns
             if self.rw[i]['f'] is None: # this is a void random walk (0 steps)
                 s = np.zeros(len(self.sp)) # the current state is zeroed
                 f = self.pert_randomize(np.ones(self.mr.shape[1])) # the flow vector is randomized (each random walk has a different f)
                 if i==0:
-                    self.set_model_ma(i_sp=s ,rt=f ,cutoff=cutoff) # initialization of the model
+                    try:
+                        del(self.con)
+                        del(self.rate)
+                        del(self.abst)
+                        del(self.a_sp)
+                        del(self.a_r)
+                        self.set_model_ma(i_sp=s ,rt=f ,cutoff=cutoff) # initialization of the model
+                    except:
+                        self.set_model_ma(i_sp=s ,rt=f ,cutoff=cutoff) # initialization of the model
                 else:
                     self.param_change_ma(i_sp=s ,rt=f,init=True)
                     
@@ -380,46 +439,81 @@ class RNSRW(RNIRG):
               s = self.rw[i]['c'][:,j] # the exploration continues from the last convergence state in the random walk
               f = self.rw[i]['f'][:,j] # the last flow vector is conserved
             
+            fail=False
             for k in range(l):  # for each j step in random walk i
                 print("walk: "+str(i+1)+", step: "+str(k+1))
                 # the current state is stored in the random walk
                 
+                for m in range(trys):
+                    try:
+                        if k==0:
+                            s = self.pert_delta_2(np.zeros(len(self.sp)),d=1,nmin=1)
+                            c_st=pd.DataFrame(self.model.getFloatingSpeciesConcentrationsNamedArray(),
+                                                         columns=self.model.getFloatingSpeciesConcentrationsNamedArray().colnames).T
+                        else:
+                            s = self.pert_delta_2(np.array(self.con.iloc[-1]),d=1,nmin=1) # a delta perturbation is applied to current state
+                            c_st = self.con.iloc[-1]
+                        
+                        # end perturbations, start simulation: 
+                        self.param_change_ma(s)
+                        start = time.time() 
+                        self.run_model(n*k,n*(k+1),n,cutoff) # the perturbed state is simulated reaching a convergence state
+                        end = time.time()
+                        st=end-start 
+                            # end simulation
+                        break
+                        
+                    except:
+                        print("Convergence faliure, try number: ",m+1)
+                
+                iter_steps=k
+                if (m+1)>=trys:
+                    fail=True
+                    break
+                        
                 if k==0:
-                    s = self.pert_delta_2(np.zeros(len(self.sp)),d=1,nmin=1)
-                    self.rw[i]['s']=pd.DataFrame(self.model.getFloatingSpeciesConcentrationsNamedArray(),columns=self.sp).T
-                    self.param_change_ma(s)
-                else:
-                    self.rw[i]['s'] = pd.concat([self.rw[i]['s'],self.con.iloc[-1]],axis=1)
-                    s = self.pert_delta_2(np.array(self.con.iloc[-1]),d=1,nmin=1) # a delta perturbation is applied to current state
-                    self.param_change_ma(s)
-                # end perturbations, start simulation:
-                start = time.time() 
-                self.run_model(n*k,n*(k+1),n,cutoff) # the perturbed state is simulated reaching a convergence state
-                end = time.time()
-                st=end-start
-
-
-                # end simulation
-                if k==0:
+                    self.rw[i]['s']=c_st
                     self.rw[i]['f'] = self.rate.iloc[-1].copy() # the flow vector is stored in the random walk
                     self.rw[i]['p'] = pd.DataFrame(s,index=self.sp)  # the perturbed current state is stored in the random walk
-            # if (is.null(cs)) cs <- s # if something went wrong with the simulation, we just keep the initial current estate
                     self.rw[i]['c'] = self.con.iloc[-1].copy() # the convergent state is stored in the random walk
                     self.rw[i]['a'] = self.abst.iloc[-1].copy() # the abstraction is stored  
                     self.rw[i]['u'] = self.a_r.iloc[-1].copy() # a second abstraction is stored (used species)
                     self.rw[i]['t'] = [st] # the time elapsed in the dynamic simulation is stored in the random walk
                 else:
+                    self.rw[i]['s'] = pd.concat([self.rw[i]['s'],self.con.iloc[-1]],axis=1)
                     self.rw[i]['f'] = pd.concat([self.rw[i]['f'],self.rate.iloc[-1]],axis=1) # the flow vector is stored in the random walk
                     self.rw[i]['p'] = pd.concat([self.rw[i]['p'],pd.DataFrame(s,index=self.sp)],axis=1)  # the perturbed current state is stored in the random walk
-              # if (is.null(cs)) cs <- s # if something went wrong with the simulation, we just keep the initial current estate
                     self.rw[i]['c'] = pd.concat([self.rw[i]['c'],self.con.iloc[-1]],axis=1) # the convergent state is stored in the random walk
                     self.rw[i]['a'] = pd.concat([self.rw[i]['a'],self.abst.iloc[-1]],axis=1) # the abstraction is stored  
                     self.rw[i]['u'] = pd.concat([self.rw[i]['u'],self.a_r.iloc[-1]],axis=1) # a second abstraction is stored (used species)
                     self.rw[i]['t'].append(st) # the time elapsed in the dynamic simulation is stored in the random walk
-        
-            self.rw[i]['f'].columns=range(self.rw[i]['f'].shape[1])
-            self.rw[i]['s'].columns=range(self.rw[i]['s'].shape[1])
-            self.rw[i]['p'].columns=range(self.rw[i]['p'].shape[1])
-            self.rw[i]['c'].columns=range(self.rw[i]['c'].shape[1])
-            self.rw[i]['a'].columns=range(self.rw[i]['a'].shape[1])
-            self.rw[i]['u'].columns=range(self.rw[i]['u'].shape[1])
+
+            if fail:
+                if iter_steps != 0:
+                    iter_steps-=1
+                    
+            self.rw[i]['f'].columns=range(iter_steps+1)
+            self.rw[i]['s'].columns=range(iter_steps+1)
+            self.rw[i]['p'].columns=range(iter_steps+1)
+            self.rw[i]['c'].columns=range(iter_steps+1)
+            self.rw[i]['a'].columns=range(iter_steps+1)
+            self.rw[i]['u'].columns=range(iter_steps+1)
+            if sim_save:
+                self.rw[i]['sim']=dict(con=self.con,rate=self.rate,abst=self.abst,a_sp=self.a_sp,a_r=self.a_r)
+            
+        out=copy.deepcopy(self.rw)
+        for i in out:
+            
+            i['s']=i['s'].to_json()
+            i['f']=i['f'].to_json()
+            i['p']=i['p'].to_json()
+            i['c']=i['c'].to_json()
+            i['a']=i['a'].to_json()
+            i['u']=i['u'].to_json()
+            for j in i['sim']:
+                i['sim'][j].reset_index(inplace=True)
+                i['sim'][j]=i['sim'][j].to_json()
+
+        with open(fname, "w") as outfile:
+            json.dump(out, outfile)
+            

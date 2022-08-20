@@ -406,6 +406,8 @@ class RNIRG:
                     p_text+=str(int(self.mr.iloc[j,i]))+self.mr.index[j]+" "
                 else:
                     p_text+=str(self.mr.iloc[j,i])+self.mr.index[j]+" "
+                p_text+="+ "
+            p_text=p_text[:-2]
             p_text+="=> "
             for j in np.where(self.mp.iloc[:,i]!=0)[0]:
                 if self.mp.iloc[j,i]==1.0:
@@ -414,7 +416,8 @@ class RNIRG:
                     p_text+=str(int(self.mp.iloc[j,i]))+self.mp.index[j]+" "
                 else:
                     p_text+=str(self.mp.iloc[j,i])+self.mp.index[j]+" "
-                
+                p_text+="+ "
+            p_text=p_text[:-2]    
             print(p_text)
 
 
@@ -1031,7 +1034,7 @@ class RNIRG:
         if Nse is None:
             Nse=np.ceil(self.mr.shape[0]*p).astype(int)
         if extra is None:
-            extra=np.round(2*Nse).astype(int)
+            extra=np.round(m*Nse).astype(int)
         
         mr = self.mr
         mp = self.mp
@@ -1083,7 +1086,7 @@ class RNIRG:
     
     # function that adds a percentage of additional (extra) inflow 
     # reactions to an existing network 
-    def rg_extra_inflow(self,extra=0.2):
+    def rg_extra_inflow(self,extra=0.1):
         Ns = self.mr.shape[0]
         
         # selection of species that will considere as inflow species
@@ -1132,7 +1135,7 @@ class RNIRG:
     
     # function that adds a percentage of additional (extra) inflow 
     # reactions to an existing network
-    def rg_extra_outflow(self,extra=0.2):
+    def rg_extra_outflow(self,extra=0.1):
         Ns = self.mr.shape[0]
         
         # selection of species that will considere as outflow species
@@ -1183,7 +1186,7 @@ class RNIRG:
     # A wrapper of function rg_g1, but adding percentage of input inflow 
     # and input outflow reactions.
     @classmethod
-    def rg_g2(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None, inflow=0.2, outflow=0.2):
+    def rg_g2(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None, inflow=0.1, outflow=0.1):
         
         # inizialization of 
         out=cls.rg_g1(Nr,Ns,extra, dist, pr, pp)
