@@ -8,3 +8,4 @@ libroadrunner
 lxml
 pyvis
 pypoman
+matplotlib
