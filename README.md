@@ -22,6 +22,6 @@ for more detail please refer to the [Installation notebook](https://github.com/p
 ## Use
 
 A descriptive use of each modlue of the library can be found in [notebook folder](https://github.com/pmaldona/pyRN/tree/main/networks). 
-There is also a link for interactive use of the notebooks in use, it can be found at folowing binder link here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pmaldona/pyRN/HEAD?labpath=notebooks)
+There is also a link for interactive use of the notebooks in use, it can be found at following binder link here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pmaldona/pyRN/HEAD?labpath=notebooks)
 
 Each functions of the library is documented, the descripton for each can be found in the directory `pyRN` in each module (`.py` files). A complete documentation will be release in the future. 
