@@ -18,15 +18,8 @@ It also require some packages to run the pypoman library, in Debian/Ubuntu can b
     $ sudo apt-get install cython libglpk-dev 
 
 for more detail please refer to the [Installation notebook](https://github.com/pmaldona/pyRN/blob/main/notebooks/General%20description%20and%20installation.ipynb)
-<<<<<<< HEAD
 
 ## Use
-=======
-
-## Use
-
-A descriptive use of each modlue of the library can be found in [notebook folder](https://github.com/pmaldona/pyRN/tree/main/networks).  Each functions is documented, they can be found in the directory `pyRN` in each module (`.py` files). A complete documentation will be release in the future. 
->>>>>>> refs/remotes/origin/main
 
 A descriptive use of each modlue of the library can be found in [notebook folder](https://github.com/pmaldona/pyRN/tree/main/networks). 
 There is also a link for interactive use of the notebooks in use, it can be found at [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pmaldona/pyRN/HEAD?labpath=notebooks)
