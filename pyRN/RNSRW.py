@@ -367,7 +367,7 @@ class RNSRW(RNIRG):
     # perturb a vector by adding or substracting components and randomizing the result
     # v vector respect at his current position, d component gamma, at least nmin active components, 
     # min_epsilon minimun random size perturmation, max_epsilon maximum random size pertubartion
-    def pert_delta_2(self,v,d=1,nmin=5,max_epsion=1,min_epsilon=0.1):
+    def pert_add_and_state(self,v,d=1,nmin=5,max_epsion=1,min_epsilon=0.1):
         n = np.max([np.sum(v>0)+d,nmin])
         v_out = self.pert_activation(v,n=n)
         epsilon=np.random.uniform(min_epsilon,max_epsion)
@@ -447,11 +447,11 @@ class RNSRW(RNIRG):
                 for m in range(trys):
                     try:
                         if k==0:
-                            s = self.pert_delta_2(np.zeros(len(self.sp)),d=1,nmin=1)
+                            s = self.pert_add_and_state(np.zeros(len(self.sp)),d=1,nmin=1)
                             c_st=pd.DataFrame(self.model.getFloatingSpeciesConcentrationsNamedArray(),
                                                          columns=self.model.getFloatingSpeciesConcentrationsNamedArray().colnames).T
                         else:
-                            s = self.pert_delta_2(np.array(self.con.iloc[-1]),d=1,nmin=1) # a delta perturbation is applied to current state
+                            s = self.pert_add_and_state(np.array(self.con.iloc[-1]),d=1,nmin=1) # a delta perturbation is applied to current state
                             c_st = self.con.iloc[-1]
                         
                         # end perturbations, start simulation: 

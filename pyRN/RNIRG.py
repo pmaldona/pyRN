@@ -409,6 +409,7 @@ class RNIRG:
                 p_text+="+ "
             p_text=p_text[:-2]
             p_text+="=> "
+            
             for j in np.where(self.mp.iloc[:,i]!=0)[0]:
                 if self.mp.iloc[j,i]==1.0:
                     p_text+=self.mp.index[j]+" "
@@ -417,19 +418,21 @@ class RNIRG:
                 else:
                     p_text+=str(self.mp.iloc[j,i])+self.mp.index[j]+" "
                 p_text+="+ "
-            p_text=p_text[:-2]    
+            if len(np.where(self.mp.iloc[:,i]!=0)[0])>0:
+                p_text=p_text[:-2]    
             print(p_text)
 
 
     # Function that displays the rspecies on the screen. It receives as
     # input a list p of integers or bitarray corresponding to the reactions to be displayed. 
     # If p is not entered, all species is displayed.
-    def sin_print_sp(self,sp_set=np.array([])):
+    def sin_print_sp(self,sp_set=None):
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
-        if (sp_set.size==0):
-            sp=bt(len(self.sp))
-            sp.setall(1)
+        if sp_set is None:
+            sp_set=bt(len(self.sp))
+            sp_set.setall(1)
+            
         if not (isinstance(sp_set,bt)):
             sp=bt(self.mp.shape[0])
             sp.setall(0)
@@ -441,7 +444,8 @@ class RNIRG:
         else:
             sp=sp_set.copy()
         # invoke display function for species
-        self.bt_to_sp(sp)
+        print("Species: ",self.bt_to_sp(sp))
+        
                    
     
     def display_RN(self,r_set=np.array([])):
@@ -936,7 +940,7 @@ class RNIRG:
     # dist is a log scaled distribution in the [-1,1] range representing locality
     # pr and pp are a log scaled penalization for the repeated use of species as reactants or products
     @classmethod
-    def rg_g1(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None):
+    def rand_gen_no_inflow(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None):
         
         if Ns is None:
             Ns=Nr
@@ -1029,17 +1033,18 @@ class RNIRG:
           return out
 
     
-    def rg_extra1(self,p=.1,m=2,Nse=None,extra=None,l="x"):
-        
-        if Nse is None:
-            Nse=np.ceil(self.mr.shape[0]*p).astype(int)
-        if extra is None:
-            extra=np.round(m*Nse).astype(int)
+    def rand_gen_extra(self,p=.1,m=2,Nse=None,extra=None,l="x"):
         
         mr = self.mr
         mp = self.mp
         Ns = mr.shape[0]
         Nr = mr.shape[1]
+        
+        if Nse is None:
+            Nse=np.ceil(Ns*p).astype(int)
+        if extra is None:
+            extra=np.round(m*Nr).astype(int)
+
         # (1) adding extra species
         me=np.zeros((Nr,Nse))
         me=pd.DataFrame(me,columns=list(map(lambda x: l+str(x+1),range(Nse))))
@@ -1086,7 +1091,7 @@ class RNIRG:
     
     # function that adds a percentage of additional (extra) inflow 
     # reactions to an existing network 
-    def rg_extra_inflow(self,extra=0.1):
+    def rand_gen_extra_inflow(self,extra=0.1):
         Ns = self.mr.shape[0]
         
         # selection of species that will considere as inflow species
@@ -1135,7 +1140,7 @@ class RNIRG:
     
     # function that adds a percentage of additional (extra) inflow 
     # reactions to an existing network
-    def rg_extra_outflow(self,extra=0.1):
+    def rand_gen_extra_outflow(self,extra=0.1):
         Ns = self.mr.shape[0]
         
         # selection of species that will considere as outflow species
@@ -1183,15 +1188,15 @@ class RNIRG:
         self.prod=prod
 
     
-    # A wrapper of function rg_g1, but adding percentage of input inflow 
+    # A wrapper of function rand_gen_no_inflow, but adding percentage of input inflow 
     # and input outflow reactions.
     @classmethod
-    def rg_g2(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None, inflow=0.1, outflow=0.1):
+    def rand_gen_whit_inflow(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None, inflow=0.1, outflow=0.1):
         
         # inizialization of 
-        out=cls.rg_g1(Nr,Ns,extra, dist, pr, pp)
-        out.rg_extra_inflow(inflow)
-        out.rg_extra_outflow(outflow)
+        out=cls.rand_gen_no_inflow(Nr,Ns,extra, dist, pr, pp)
+        out.rand_gen_extra_inflow(inflow)
+        out.rand_gen_extra_outflow(outflow)
         out.rn_clean()
         
         return out
