@@ -163,7 +163,7 @@ class RNSRW(RNIRG):
         rate_name=[]
         for i in range(self.mr.shape[1]):
             k.append(self.model.getGlobalParameterByName('k'+str(i)))
-            rate_name.append('r'+str(i+1))
+            rate_name.append('r'+str(i))
         
         k=np.array(k)
         
@@ -177,7 +177,7 @@ class RNSRW(RNIRG):
         reac=self.model.getReactionRates()
         ac_reac=self.active_reac(c_st,cutoff)
         reac[ac_reac==False]=0
-        rate=[[ti]+ac_reac]
+        rate=[[ti]+reac.tolist()]
         
         # Check if the abstraction has changed, if remain the same, no data is added.
         try:
@@ -199,6 +199,7 @@ class RNSRW(RNIRG):
             n_st[n_st<cutoff]=0
             con.append([t+t_step]+n_st.tolist())
             reac=self.model.getReactionRates()
+            
             ac_reac=self.active_reac(n_st,cutoff)
             reac[ac_reac==False]=0
             rate.append([t+t_step]+reac.tolist())

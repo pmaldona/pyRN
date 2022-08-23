@@ -23,24 +23,24 @@ class CRNS(RNIRG):
     # Function that generates the basic sets of a reaction network. When 
     # executed, it generates the following members of the class, which 
     # correspond to a list of bitarrays, where each element of the list 
-    # corresponds to a basic set or partition as the case may be:
+    # corresponds to a basic set or atom as the case may be:
     
     # sp_b: species contained in each basic set
     # r_b: reactions contained in each basic set 
-    # sp_p: species contained in each partition
-    # r_p: reactions contained in each partition 
+    # sp_a: species contained in each atom
+    # r_a: reactions contained in each atom 
     # rsp_b: species of reactants contained in each basic 
     # psp_b: species of products contained in each basic
-    # sp_sp_b: positive stoichiometric species contained in the closure of each partition
-    # sn_sp_b: negative stoichiometric species contained in the closure of each partition
-    # p_b: partitions contained in each basic set
+    # sp_sp_b: positive stoichiometric species contained in the closure of each atom
+    # sn_sp_b: negative stoichiometric species contained in the closure of each atom
+    # a_b: atoms contained in each basic set
     # dyn_conn: basic sets that are connected (whose has a non empty intersection 
     # between the support and the products o viceversa).
             
-    # The variable x_r_p corresponds to a vector of integers, of the length 
+    # The variable x_r_a corresponds to a vector of integers, of the length 
     # of the number of reactions, where the integer indicates to which 
-    # partition the reaction belongs.
-    def gen_basics(self):
+    # atom the reaction belongs.
+    def gen_atoms(self):
         # creating all closed set for closure of reactant part
         c_reac=[]
           
@@ -50,8 +50,8 @@ class CRNS(RNIRG):
         # number of equivalence clases
         xeqc=0
         # class equivalence vector
-        x_r_p=-np.ones(self.mp.shape[1])
-        x_r_p=x_r_p.tolist()
+        x_r_a=-np.ones(self.mp.shape[1])
+        x_r_a=x_r_a.tolist()
         # list of basic sets
         sp_b=[]
         
@@ -59,83 +59,83 @@ class CRNS(RNIRG):
         st=0
         # creating equivalence classes for each reaction that generate the same
         # closure and so each basic can be created
-        for i in range(len(x_r_p)):
+        for i in range(len(x_r_a)):
             st+=1
             # reaction already assigned to equivalnce class
-            if x_r_p[i]>=0:
+            if x_r_a[i]>=0:
                continue
            
-            x_r_p[i]=xeqc
+            x_r_a[i]=xeqc
             sp_b.append(c_reac[i])
             
             for j in range(i,self.mp.shape[1]):
                 st+=1
                 if c_reac[i]==c_reac[j]:
-                    x_r_p[j]=xeqc
+                    x_r_a[j]=xeqc
                     
             xeqc+=1
         
         self.sp_b=sp_b
-        self.x_r_p=x_r_p
+        self.x_r_a=x_r_a
         
-        # assingnig species contained each partition
-        sp_p=[]
+        # assingnig species contained each atom
+        sp_a=[]
         
         b_sp=bt(self.mp.shape[0])
         b_sp.setall(0)
         
         for i in range(xeqc):
-            sp_p.append(b_sp.copy())
+            sp_a.append(b_sp.copy())
             
         for i in range(self.mp.shape[1]):
-            sp_p[x_r_p[i]]|= self.reac[i]|self.prod[i] 
+            sp_a[x_r_a[i]]|= self.reac[i]|self.prod[i] 
         
         
-        self.sp_p=sp_p
+        self.sp_a=sp_a
         
         
-        # assigning reaction contained each partition
-        r_p=[]
+        # assigning reaction contained each atom
+        r_a=[]
         b_r=bt(self.mp.shape[1])
         b_r.setall(0)
         
         for i in range(xeqc):
-            for j in np.where(np.array(x_r_p)==i)[0]:
+            for j in np.where(np.array(x_r_a)==i)[0]:
                 b_r[j]=1   
             
-            r_p.append(b_r.copy())
+            r_a.append(b_r.copy())
             b_r.setall(0)
             
             
-        self.r_p=r_p
+        self.r_a=r_a
         
         # Creation of other related variables:
-        p_b=[] # partitions (equivalence classes) contained in each closure
+        a_b=[] # atoms (equivalence classes) contained in each closure
         r_b=[] # reactions supported by each basic (equivalence class)
         rsp_b=[] # reactants species contained each basic (equivalence class)
         psp_b=[] # product species contained each basic (equivalence class)
-        sp_sp_b=[] # stoichiometric positive species contained in the closure of each partition
-        sn_sp_b=[] # stoichiometric negative species contained in the closure of each partition
+        sp_sp_b=[] # stoichiometric positive species contained in the closure of each atom
+        sn_sp_b=[] # stoichiometric negative species contained in the closure of each atom
         
         # Assignation of other related variables:
         for i in range(len(self.sp_b)):
             
-            p_b.append(self.sp2p(self.sp_b[i]))
+            a_b.append(self.sp2a(self.sp_b[i]))
             r_b.append(b_r.copy())
             rsp_b.append(b_sp.copy())
             psp_b.append(b_sp.copy())
             sp_sp_b.append(b_sp.copy())
             sn_sp_b.append(b_sp.copy())
             
-            for j in self.bt_ind(p_b[i]):
-                r_b[i]|=r_p[j]
-                for k in self.bt_ind(r_p[j]): 
+            for j in self.bt_ind(a_b[i]):
+                r_b[i]|=r_a[j]
+                for k in self.bt_ind(r_a[j]): 
                     rsp_b[i]|=self.reac[k]
                     psp_b[i]|=self.prod[k]
                     sp_sp_b[i]|=bt(self.mr.iloc[:,k] < self.mp.iloc[:,k])
                     sn_sp_b[i]|=bt(self.mr.iloc[:,k] > self.mp.iloc[:,k])
             
-        self.p_b=p_b
+        self.a_b=a_b
         self.r_b=r_b
         self.rsp_b=rsp_b
         self.psp_b=psp_b
@@ -161,12 +161,12 @@ class CRNS(RNIRG):
         for i in range(len(conn)):
             for j in range(len(conn)):
                 # connectivity conditions
-                if (not j==i) and p_b[i][j]==0 and (rsp_b[i] & psp_b[j]).any():
+                if (not j==i) and a_b[i][j]==0 and (rsp_b[i] & psp_b[j]).any():
                     dyn_conn[i][j]=1
-                if (not j==i) and p_b[i][j]==0 and (psp_b[i] & rsp_b[j]).any():
+                if (not j==i) and a_b[i][j]==0 and (psp_b[i] & rsp_b[j]).any():
                     dyn_conn[j][i]=1
                 # Hasse condition (all conected)
-                if (not j==i) and p_b[i][j]==0:
+                if (not j==i) and a_b[i][j]==0:
                     conn[i][j]=1
                     conn[j][i]=1
         
@@ -192,26 +192,26 @@ class CRNS(RNIRG):
             sp=sp_set
         
         sp_b_presc=np.zeros(len(sp))
-        sp_p_presc=np.zeros(len(sp))
+        sp_a_presc=np.zeros(len(sp))
         for i in sp.itersearch(1):
             for j in range(len(self.sp_b)):
                 if self.sp_b[j][i]==1:
                     sp_b_presc[i]+=1
-            for j in range(len(self.sp_p)):
-                if self.sp_p[j][i]==1:
-                    sp_p_presc[i]+=1
+            for j in range(len(self.sp_a)):
+                if self.sp_a[j][i]==1:
+                    sp_a_presc[i]+=1
         sp_b_presc=sp_b_presc[self.bt_ind(sp)]
-        sp_p_presc=sp_p_presc[self.bt_ind(sp)]
+        sp_a_presc=sp_a_presc[self.bt_ind(sp)]
         
         sp_b_presc=pd.DataFrame(sp_b_presc)
         sp_b_presc=sp_b_presc.transpose()
         sp_b_presc.columns=self.sp[self.bt_ind(sp)]
         
-        sp_p_presc=pd.DataFrame(sp_p_presc)
-        sp_p_presc=sp_p_presc.transpose()
-        sp_p_presc.columns=self.sp[self.bt_ind(sp)]
+        sp_a_presc=pd.DataFrame(sp_a_presc)
+        sp_a_presc=sp_a_presc.transpose()
+        sp_a_presc.columns=self.sp[self.bt_ind(sp)]
         
-        return([sp_b_presc,sp_p_presc])
+        return([sp_b_presc,sp_a_presc])
     
     
     # Function that returns the number of basic sets in which each reaction of 
@@ -283,8 +283,8 @@ class CRNS(RNIRG):
                 width = 0.4)
          
         plt.xlabel("Species")
-        plt.ylabel("Number of partitions")
-        plt.title("Number of partitions sets that contain each species")
+        plt.ylabel("Number of atoms")
+        plt.title("Number of atoms sets that contain each species")
         plt.show()
     
     
@@ -310,8 +310,8 @@ class CRNS(RNIRG):
         plt.show()
     
     
-    # Function of species that returns the partition that contains the species
-    def sp2p(self, sp):
+    # Function of species that returns the atom that contains the species
+    def sp2a(self, sp):
         p=bt(len(self.sp_b))
         p.setall(0)
         for i in range(len(self.sp_b)):
@@ -321,8 +321,8 @@ class CRNS(RNIRG):
         return p
     
     
-    # Function of partition that returns the contains the species
-    def p2sp(self, p):
+    # Function of atom that returns the contains the species
+    def a2sp(self, p):
         sp=bt(len(self.sp))
         sp.setall(0)
         for i in self.bt_ind(p):
@@ -402,7 +402,7 @@ class CRNS(RNIRG):
             return c
         
     
-    # Synergistic structure calculation function, requires the gen_basics() 
+    # Synergistic structure calculation function, requires the gen_atoms() 
     # function to be executed beforehand .It returns an directed multi-graph
     # type networkx (syn_str), where each node correspond to hashed bitarray of 
     # contained basic basic sets. Each node also contain attributes such as level (level), 
@@ -416,8 +416,8 @@ class CRNS(RNIRG):
     # corresponds to a list of the closed semi-self-maintained set and 
     # organizations respectively
     def gen_syn_str(self,org_cal=False):
-        if not hasattr(self, 'p_b'):
-            print("The basic sets have not been initialized, please run the gen_basics() function.")
+        if not hasattr(self, 'a_b'):
+            print("The basic sets have not been initialized, please run the gen_atoms() function.")
             return 
         # Initialization of the synergistic structure as a multigraph object
         G = nx.MultiDiGraph()
@@ -427,19 +427,19 @@ class CRNS(RNIRG):
         # step measure
         st=0
         # The nodes corresponding to the basic sets are generated.
-        for i in range(len(self.p_b)):
+        for i in range(len(self.a_b)):
             st+=1
             is_ssm=self.is_ssm(self.sp_b[i])
             if is_ssm:
                 is_org=self.is_ssm(self.sp_b[i])
-                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
                 ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
                 if is_org:
                     org.append(self.sp[self.bt_ind(self.sp_b[i])])
             else:           
-                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=False,is_org=False,is_basic=True,basic_id=i)
 
@@ -455,34 +455,34 @@ class CRNS(RNIRG):
                  for k in self.bt_ind(self.conn_b(bt(j))):
                      st+=1    
                      # Closure result
-                     cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),bt_type=True)
-                     cr_p=fbt(self.sp2p(cr_sp))
+                     cr_sp=self.closure(self.a2sp(bt(j) | self.a_b[k]),bt_type=True)
+                     cr_a=fbt(self.sp2a(cr_sp))
                      
                      # node is added if is not in structrue
-                     if not (cr_p in G):
+                     if not (cr_a in G):
                          is_ssm=self.is_ssm(cr_sp)
                          if is_ssm:
                              is_org=self.is_ssm(cr_sp)
-                             G.add_node(cr_p,level=cr_p.count(),
+                             G.add_node(cr_a,level=cr_a.count(),
                                     sp=self.sp[self.bt_ind(cr_sp)],
                                     is_ssm=is_ssm,is_org=is_org,is_basic=False)
                              ssms.append(self.sp[self.bt_ind(cr_sp)])
                              if is_org:
                                  org.append(self.sp[self.bt_ind(cr_sp)])
                          else:           
-                             G.add_node(cr_p,level=cr_p.count(),
+                             G.add_node(cr_a,level=cr_a.count(),
                                     sp=self.sp[self.bt_ind(cr_sp)],
                                     is_ssm=False,is_org=False,is_basic=False)
                          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
-                     if cr_p.count() > (bt(j)|self.p_b[k]).count():
-                        G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=True,added_basic=k)
+                     if cr_a.count() > (bt(j)|self.a_b[k]).count():
+                        G.add_edge(j,cr_a,key=fbt(self.a_b[k]),syn=True,added_basic=k)
                      else:
-                        G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=False,added_basic=k)
-                    # if cr_p.count() > (bt(j)|self.p_b[k]).count():
-                    #    G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=True,added_basic=k)
+                        G.add_edge(j,cr_a,key=fbt(self.a_b[k]),syn=False,added_basic=k)
+                    # if cr_a.count() > (bt(j)|self.a_b[k]).count():
+                    #    G.add_edge(j,cr_a,key=fbt(self.a_b[k]),syn=True,added_basic=k)
                     # else:
-                    #    G.add_edge(j,cr_p,key=fbt(self.p_b[k]),syn=False,added_basic=k)
+                    #    G.add_edge(j,cr_a,key=fbt(self.a_b[k]),syn=False,added_basic=k)
                 
         self.syn_str=G
         self.syn_ssms=ssms
@@ -490,7 +490,7 @@ class CRNS(RNIRG):
         return(st)
                     
 
-    # Synergistic structure calculation function, requires the gen_basics() 
+    # Synergistic structure calculation function, requires the gen_atoms() 
     # function to be executed beforehand .It returns an directed multi-graph
     # type networkx (ssm_str), where each node correspond to hashed bitarray of 
     # contained basic basic sets. Each node also contain attributes such as level (level), 
@@ -507,8 +507,8 @@ class CRNS(RNIRG):
     # be conjugated which can contribute to be semi-self maintained by use of 
     # the contrib_b() function.
     def gen_ssm_str(self):
-        if not hasattr(self, 'p_b'):
-            print("The basic sets have not been initialized, please run the gen_basics() function.")
+        if not hasattr(self, 'a_b'):
+            print("The basic sets have not been initialized, please run the gen_atoms() function.")
             return 
         # Initialization of the synergistic structure as a multigraph object
         G = nx.MultiDiGraph()
@@ -519,19 +519,19 @@ class CRNS(RNIRG):
         st=0
         
         # The nodes corresponding to the basic sets are generated.
-        for i in range(len(self.p_b)):
+        for i in range(len(self.a_b)):
             st+=1
             is_ssm=self.is_ssm(self.sp_b[i])
             if is_ssm:
                 is_org=self.is_ssm(self.sp_b[i])
-                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=is_ssm,is_org=is_org)
                 ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
                 if is_org:
                     org.append(self.sp[self.bt_ind(self.sp_b[i])])
             else:           
-                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=False,is_org=False)
         
@@ -558,30 +558,30 @@ class CRNS(RNIRG):
                 for k in conn:
                      st+=1
                      # Closure result
-                     cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),bt_type=True)
-                     cr_p=fbt(self.sp2p(cr_sp))
+                     cr_sp=self.closure(self.a2sp(bt(j) | self.a_b[k]),bt_type=True)
+                     cr_a=fbt(self.sp2a(cr_sp))
                      
                      # node is added if is not in structrue
-                     if not (cr_p in G):
+                     if not (cr_a in G):
                          is_ssm=self.is_ssm(cr_sp)
                          if is_ssm:
                             is_org=self.is_ssm(cr_sp)
-                            G.add_node(cr_p,level=cr_p.count(),
+                            G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.sp[self.bt_ind(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org)
                             ssms.append(self.sp[self.bt_ind(cr_sp)])
                             if is_org:
                                 org.append(self.sp[self.bt_ind(cr_sp)])
                          else:           
-                            G.add_node(cr_p,level=cr_p.count(),
+                            G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.sp[self.bt_ind(cr_sp)],
                                    is_ssm=False,is_org=False)
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
-                     if cr_p.count() > (bt(j)|self.p_b[k]).count():
-                        G.add_edge(j,cr_p,key=k,syn=True)
+                     if cr_a.count() > (bt(j)|self.a_b[k]).count():
+                        G.add_edge(j,cr_a,key=k,syn=True)
                      else:
-                        G.add_edge(j,cr_p,key=k,syn=False)
+                        G.add_edge(j,cr_a,key=k,syn=False)
                 
         self.ssm_str=G
         self.ssm_ssms=ssms
@@ -589,7 +589,7 @@ class CRNS(RNIRG):
         return(st)
     
     
-    # Synergistic structure calculation function, requires the gen_basics() 
+    # Synergistic structure calculation function, requires the gen_atoms() 
     # function to be executed beforehand .It returns an directed multi-graph
     # type networkx (ssm_str), where each node correspond to hashed bitarray of 
     # contained basic basic sets. Each node also contain attributes such as level (level), 
@@ -608,8 +608,8 @@ class CRNS(RNIRG):
     # only connect to basics if there are reactively connected. The result is a structrure 
     # where the nodes are semi-self-mantianed and only dynamically connected.
     def gen_dyn_str(self):
-        if not hasattr(self, 'p_b'):
-            print("The basic sets have not been initialized, please run the gen_basics() function.")
+        if not hasattr(self, 'a_b'):
+            print("The basic sets have not been initialized, please run the gen_atoms() function.")
             return 
         # Initialization of the synergistic structure as a multigraph object
         G = nx.MultiDiGraph()
@@ -619,19 +619,19 @@ class CRNS(RNIRG):
         # number of steps
         st=0
         # The nodes corresponding to the basic sets are generated.
-        for i in range(len(self.p_b)):
+        for i in range(len(self.a_b)):
             st+=1
             is_ssm=self.is_ssm(self.sp_b[i])
             if is_ssm:
                 is_org=self.is_ssm(self.sp_b[i])
-                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=is_ssm,is_org=is_org)
                 ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
                 if is_org:
                     org.append(self.sp[self.bt_ind(self.sp_b[i])])
             else:           
-                G.add_node(fbt(self.p_b[i]),level=self.p_b[i].count(),
+                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=False,is_org=False)
         
@@ -659,30 +659,30 @@ class CRNS(RNIRG):
                 for k in conn:
                      st+=1    
                      # Closure result
-                     cr_sp=self.closure(self.p2sp(bt(j) | self.p_b[k]),bt_type=True)
-                     cr_p=fbt(self.sp2p(cr_sp))
+                     cr_sp=self.closure(self.a2sp(bt(j) | self.a_b[k]),bt_type=True)
+                     cr_a=fbt(self.sp2a(cr_sp))
                      
                      # node is added if is not in structrue
-                     if not (cr_p in G):
+                     if not (cr_a in G):
                          is_ssm=self.is_ssm(cr_sp)
                          if is_ssm:
                             is_org=self.is_ssm(cr_sp)
-                            G.add_node(cr_p,level=cr_p.count(),
+                            G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.sp[self.bt_ind(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org)
                             ssms.append(self.sp[self.bt_ind(cr_sp)])
                             if is_org:
                                 org.append(self.sp[self.bt_ind(cr_sp)])
                          else:           
-                            G.add_node(cr_p,level=cr_p.count(),
+                            G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.sp[self.bt_ind(cr_sp)],
                                    is_ssm=False,is_org=False)
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
-                     if cr_p.count() > (bt(j)|self.p_b[k]).count():
-                        G.add_edge(j,cr_p,key=k,syn=True)
+                     if cr_a.count() > (bt(j)|self.a_b[k]).count():
+                        G.add_edge(j,cr_a,key=k,syn=True)
                      else:
-                        G.add_edge(j,cr_p,key=k,syn=False)
+                        G.add_edge(j,cr_a,key=k,syn=False)
                 
         self.dyn_ssm_str=G
         self.dyn_ssms=ssms
@@ -746,22 +746,22 @@ class CRNS(RNIRG):
     
         
     # Minimal generators generation function, to be started once the basic sets
-    # have been generated by the gen_basics() function.  It returns a list
+    # have been generated by the gen_atoms() function.  It returns a list
     # (mgen) of bitarray list of species that correspond to the sets so that 
     # by means of the closure they generate the basic set.
     def gen_mgen(self):
-        if not hasattr(self, 'p_b'):
-            print("The basic sets have not been initialized, please run the gen_basics() function.")
+        if not hasattr(self, 'a_b'):
+            print("The basic sets have not been initialized, please run the gen_atoms() function.")
             return 
         
         
         mgen=[]
         
-        # Generating a list of the support of each reaction contained in each partition
-        for i in range(len(self.r_p)):
+        # Generating a list of the support of each reaction contained in each atom
+        for i in range(len(self.r_a)):
             
             v=[]
-            for j in self.bt_ind(self.r_p[i]):
+            for j in self.bt_ind(self.r_a[i]):
                 v.append(self.reac[j])
             
             v.sort(key=lambda x: x.count())
@@ -792,55 +792,55 @@ class CRNS(RNIRG):
         self.mgen=mgen
     
 
-    # Proto-synergy generation function. it takes as input a minimum generator (sp)
-    # and (pi) the index of the objective partition. 
-    # The function verifies which combinations of partitions can 
+    # Synergy generation function. it takes as input a minimum generator (sp)
+    # and (pi) the index of the objective atom. 
+    # The function verifies which combinations of atoms can 
     # generate such a generator.        
     def syn_gen(self,sp,pi):
 
-        # list of partition that intersects sp 
+        # list of atom that intersects sp 
         xp=[]     
         
-        # union of partition species to see if synergy can be fulfill
+        # union of atom species to see if synergy can be fulfill
         ps=bt(len(self.sp))
         ps.setall(0)
-        # adding partition that will overlap sp
+        # adding atom that will overlap sp
         for i in range(len(self.sp_b)):
-               if (self.sp_p[i] & sp).any():
+               if (self.sp_a[i] & sp).any():
                    if(i!=pi):
                        xp.append(i)
-                       ps|=self.sp_p[i]
-        # Verifying if the partitions contain the minimum sp generator 
-        # and trigger the proto synergy.
+                       ps|=self.sp_a[i]
+        # Verifying if the atoms contain the minimum sp generator 
+        # and trigger the synergy.
         
         if not ((ps & sp) == sp):
             return
         
-        # Bitarray for partition combinations.
+        # Bitarray for atom combinations.
         p=bt(len(xp))
         p.setall(0)
         
-        # Recursive search of all proto synergies
+        # Recursive search of all synergies
         for i in range(len(xp)):
             self.r_syn_gen(p,i,sp,xp,pi)
         
             
-    # Recursive proto synergy generation function, requires as inputs (p) the 
-    # existing partitions to combine, o the next level to add to the scan, 
-    # xp list of indexes of the corresponding partitions, (sp) minimum 
-    # generator to reach and pi the index of the objective partition. 
+    # Recursive synergy generation function, requires as inputs (p) the 
+    # existing atoms to combine, o the next level to add to the scan, 
+    # xp list of indexes of the corresponding atoms, (sp) minimum 
+    # generator to reach and pi the index of the objective atom. 
     # Function recursively explores the possible 
-    # combinations to reach a proto synergy. If this is reached, the branch 
-    # to be explored will be cut. The proto synergies are stored in a list (syn).
+    # combinations to reach a synergy. If this is reached, the branch 
+    # to be explored will be cut. The synergies are stored in a list (syn).
     def r_syn_gen(self,p,o,sp,xp,pi):
         
-        # Species bitarray result of the proto sinergy
+        # Species bitarray result of the sinergy
         u=bt(len(self.sp))
         u.setall(0)
-        # Adding partitionn as candiadate to combinate
+        # Adding atom as candiadate to combinate
         p[o]=1;
         
-         # Eliminating redundant partitions that are already in account.
+         # Eliminating redundant atoms that are already in account.
         if(p.count()>1):
             ind=self.bt_ind(p).copy()
             for i in ind:
@@ -848,20 +848,20 @@ class CRNS(RNIRG):
                 u.setall(0)
                 for j in self.bt_ind(p):
 
-                    u|=self.sp_p[xp[j]]
+                    u|=self.sp_a[xp[j]]
                 p[i]=1
             
-                if ((self.sp_p[xp[i]] & u & sp) == (self.sp_p[xp[i]] & sp)):
+                if ((self.sp_a[xp[i]] & u & sp) == (self.sp_a[xp[i]] & sp)):
                     p[o]=0
                     return
         
-        # Verfing if added partition fulfill triggering the minimal generator
-        u|=self.sp_p[xp[o]]
+        # Verfing if added atom fulfill triggering the minimal generator
+        u|=self.sp_a[xp[o]]
         
         # If it a new synergy, it will be appned and recusrion will stop
         if ((u & sp) == sp):
 
-            c_syn = bt(len(self.p_b))
+            c_syn = bt(len(self.a_b))
             c_syn.setall(0)
             
             for i in self.bt_ind(p):
@@ -870,7 +870,7 @@ class CRNS(RNIRG):
             
             if not c_syn in self.syn:
                 self.syn.append(c_syn)
-                op=bt(len(self.p_b))
+                op=bt(len(self.a_b))
                 op.setall(0)
                 op[pi]=1
                 self.syn_p.append(op)
@@ -886,11 +886,11 @@ class CRNS(RNIRG):
         p[o]=0
                 
             
-    # Function that generates all the proto synergies from the minimum 
+    # Function that generates all the synergies from the minimum 
     # generators. This is achieved through the use of the function gen_syn()
     # and the recursive function r_gen_syn(). The output consists of list syn 
-    # which contains all the proto synergies and list (syn_p) which contains 
-    # all the triggered partitions.   
+    # which contains all the synergies and list (syn_p) which contains 
+    # all the triggered atoms.   
     def all_syn(self):
         if not hasattr(self, 'mgen'):
             print("The minimal genetators have not been initialized, please run the gen_mgen() function.")
@@ -900,7 +900,7 @@ class CRNS(RNIRG):
         self.syn=[]
         self.syn_p=[]
         
-        # Generation of all proto synergies from all minimum generators
+        # Generation of all synergies from all minimum generators
         for i in range(len(self.mgen)):
             for j in self.mgen[i]:
                 if j.count()>0:
@@ -908,7 +908,7 @@ class CRNS(RNIRG):
                 else:
                     for k in range(len(self.mgen)):
                         if k!=i:
-                            op=bt(len(self.p_b))
+                            op=bt(len(self.a_b))
                             op.setall(0)
                             op[k]=1
                             self.syn.append(op.copy())
@@ -938,10 +938,10 @@ class CRNS(RNIRG):
         # Only closed sets are considered, therefore sp is considered 
         # as its generated closure
         sp=self.closure(sp,bt_type=True)
-        # partition that contain the species
-        p=self.sp2p(sp)
+        # atom that contain the species
+        p=self.sp2a(sp)
 
-        # Proto-synergies that can generate synergies with p, i.e. synergies 
+        # synergies that can generate synergies with p, i.e. synergies 
         # that do not contain p and but intersect p 
         syn_part=[]
         for i in self.syn:
@@ -959,19 +959,19 @@ class CRNS(RNIRG):
         for i in cl_sets:
             for j in syn_part:
                 syn_p=p|i
-                syn_set=self.closure(self.p2sp(p|i),bt_type=True)
+                syn_set=self.closure(self.a2sp(p|i),bt_type=True)
                 if ((syn_p)&j==j) & (sp!=syn_set):
                     syn_sets.append(self.sp[self.bt_ind(syn_set)])
-                    syn_cand.append(self.sp[self.bt_ind(self.p2sp(i))])
+                    syn_cand.append(self.sp[self.bt_ind(self.a2sp(i))])
                     break
                     
         return [syn_sets,syn_cand]
     
-    # Function that generates the proto-synergiy interactive graph. It returns
-    # oyvis objecto. whre each proto-synergie is label as p, and in draw as a 
-    # green squere. The partitions are colored as blue circules, where the size 
+    # Function that generates the synergiy interactive graph. It returns
+    # oyvis objecto. whre each synergie is label as p, and in draw as a 
+    # green squere. The atoms are colored as blue circules, where the size 
     # is proportinal to the number of contained species.
-    def display_pr_syn(self):
+    def display_syn(self):
         
         all_part=bt(len(self.sp_b))
         all_part.setall(0)
@@ -983,8 +983,8 @@ class CRNS(RNIRG):
         G = nx.MultiDiGraph()
 
         for i in self.bt_ind(all_part):
-            sp=str(self.sp[self.bt_ind(self.sp_p[i])])
-            size=len(self.sp[self.bt_ind(self.sp_p[i])])*3
+            sp=str(self.sp[self.bt_ind(self.sp_a[i])])
+            size=len(self.sp[self.bt_ind(self.sp_a[i])])*3
             G.add_node(i, color = "blue", label=str(i), size=size, title=sp, shape="dot")
             
         for i in range(len(self.syn)):
