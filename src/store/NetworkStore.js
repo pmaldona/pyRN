@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 import { generateGraph } from './../actions/drawNetwork';
 
 function createNetwork() {
-    const { subscribe, set, update } = writable({nodes: [], edges: [], options: {}});
+    const { subscribe, set, update } = writable({nodes: [], edges: [], options: {}, species_count: 0, reaction_count: 0});
 
     return {
 		subscribe: () => subscribe(n => {
@@ -12,7 +12,8 @@ function createNetwork() {
                 }
                 
             }
-            console.log(n);
+            console.log("SUBSCRIBE1")
+            return n;
         }),
 		set_network: (ntwrk) => set(ntwrk),
         update_nodes: (nodes) => update(n => {

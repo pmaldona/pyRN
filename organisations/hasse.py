@@ -1,4 +1,5 @@
 import json
+from typing import Set
 import networkx as nx
 
 def isSubset(set, subset) -> bool:
@@ -50,7 +51,10 @@ def getOrgsSmallerContaining(organizations, sm, speciesList):
     return result
 
 
-def build_hasse(sm, ssm_ssms, species_list):
+def build_hasse(sm, RN):
+
+    ssm_ssms = RN.ssm_ssms
+    species_list = RN.sp
 
     orgs = list()
     for org in sm:
@@ -73,8 +77,23 @@ def build_hasse(sm, ssm_ssms, species_list):
             length_dict[str(len(semi_self))] = 1
 
     c = 0
-    for set in sm:
-        _len = len(set)
+    species_count = 0
+    reaction_count = 0
+    for _set in sm:
+        _len = len(_set)
+        species_count = species_count + _len
+        reactions = set()
+        for spcs in _set:
+            row = RN.mr.loc[spcs]
+            for i in range(len(row)):
+                if row[i] >= 1:
+                    reactions.add(i)
+            row = RN.mp.loc[spcs]
+            for i in range(len(row)):
+                if row[i] >= 1:
+                    reactions.add(i)
+        reaction_count = reaction_count + len(reactions)
+
         count = length_dict[str(_len)]
         _x = 0
         if count > 1:
@@ -83,9 +102,12 @@ def build_hasse(sm, ssm_ssms, species_list):
         else:
             c = 0
         _y = -75*(_len-1)
-        G.add_node(node_id_count, group = 1, label="O"+str(node_id_count), size=20, title=str(set), x = _x, y = _y, fixed = json.loads('{ "x":false, "y":true}'))
+        G.add_node(node_id_count, group = 1, label="O"+str(node_id_count), size=20, title=str(_set), x = _x, y = _y, fixed = json.loads('{ "x":false, "y":true}'))
         node_id_count += 1
     
+    avg_species = species_count/len(sm)
+    avg_reactions = reaction_count/len(sm)
+
     edges = getOrgsSmallerContaining(orgs, sm, species_list)
     
     for edgeList in edges:
@@ -109,4 +131,4 @@ def build_hasse(sm, ssm_ssms, species_list):
     _range = list(range(len(nodes)))
     _range.reverse()
     
-    return G
+    return G, avg_species, avg_reactions

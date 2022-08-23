@@ -6,8 +6,11 @@
   	import Network from './Network.svelte';
 	import Hasse from './Hasse.svelte';
 	import { hasse } from './store/HasseStore';
+    import { synStr } from './store/SynStrStore'; 
+	import { protoSyn } from './store/ProtoSynStrStore';
+	import Simulation from './Simulation.svelte';
 
-  	const pages = [Base, Network, Hasse];
+  	const pages = [Base, Network, Hasse, Simulation];
 
 	let page = 0;
 
@@ -15,6 +18,8 @@
 
 	const unsub_network = network.subscribe();
 	const unsub_hasse = hasse.subscribe();
+	const unsub_syn_str = synStr.subscribe();
+	const unsub_proto_str = protoSyn.subscribe();
 
 	const setName = (name) => {
 		filename.open_file(name);
@@ -31,10 +36,6 @@
 			//console.log(result);
 			return result;
 		});
-		state.hasse = {};
-		state.hasse.nodes = new DataSet(hasse.nodes);
-		state.hasse.edges = new DataSet(hasse.edges);
-		state.hasse.options = new DataSet(hasse.options);
 		return hasse;
 	}
 
@@ -48,13 +49,53 @@
 		let n = await promise.then(result => {
 			return result;
 		});
-		//state.network_raw = network;
-		// state.network = {};
-		// state.network.nodes =new DataSet(network.nodes);
-		// state.network.edges = new DataSet(network.edges);
-		// state.network.options = new DataSet(network.Options);
 
 		return n;
+	}
+
+	const generateSynergeticStructure = async () => {
+		let promise = eel.gen_synergetic()();
+		let s = await promise.then(result => {
+			return result;
+		});
+
+		return s;
+	}
+
+	const generateProtoSynergeticStructure = async () => {
+		let promise = eel.gen_protosynergetic()();
+		let s = await promise.then(result => {
+			return result;
+		});
+
+		return s;
+	}
+
+	const generateBasicsSpeciesPlot = async () => {
+		let promise = eel.plot_basics_sp()();
+		let s = await promise.then(result => {
+			return result;
+		});
+
+		return s;
+	}
+
+	const generateBasicsReactionPlot = async () => {
+		let promise = eel.plot_basics_r()();
+		let s = await promise.then(result => {
+			return result;
+		});
+
+		return s;
+	}
+
+	const generateStoichiometryPlot = async () => {
+		let promise = eel.plot_stoichiometry()();
+		let s = await promise.then(result => {
+			return result;
+		});
+
+		return s;
 	}
 </script>
 
@@ -73,8 +114,13 @@
   	this={pages[page]}
 	{setName}
 	genHasse={generateHasse}
+	genSynergeticStructure={generateSynergeticStructure}
 	genNetwork={generateNetwork}
+	genProtoSyn={generateProtoSynergeticStructure}
 	setNetwork={setNetwork}
+	genBasicsSp={generateBasicsSpeciesPlot}
+	genBasicsR={generateBasicsReactionPlot}
+	genStoich={generateStoichiometryPlot}
   	initialValues={state}
 />
 
