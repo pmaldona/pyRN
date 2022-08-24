@@ -431,7 +431,7 @@ class CRNS(RNIRG):
             st+=1
             is_ssm=self.is_ssm(self.sp_b[i])
             if is_ssm:
-                is_org=self.is_ssm(self.sp_b[i])
+                is_org=self.is_sm(self.sp_b[i])
                 G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
@@ -462,7 +462,7 @@ class CRNS(RNIRG):
                      if not (cr_a in G):
                          is_ssm=self.is_ssm(cr_sp)
                          if is_ssm:
-                             is_org=self.is_ssm(cr_sp)
+                             is_org=self.is_sm(cr_sp)
                              G.add_node(cr_a,level=cr_a.count(),
                                     sp=self.sp[self.bt_ind(cr_sp)],
                                     is_ssm=is_ssm,is_org=is_org,is_basic=False)
@@ -523,7 +523,7 @@ class CRNS(RNIRG):
             st+=1
             is_ssm=self.is_ssm(self.sp_b[i])
             if is_ssm:
-                is_org=self.is_ssm(self.sp_b[i])
+                is_org=self.is_sm(self.sp_b[i])
                 G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=is_ssm,is_org=is_org)
@@ -565,7 +565,7 @@ class CRNS(RNIRG):
                      if not (cr_a in G):
                          is_ssm=self.is_ssm(cr_sp)
                          if is_ssm:
-                            is_org=self.is_ssm(cr_sp)
+                            is_org=self.is_sm(cr_sp)
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.sp[self.bt_ind(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org)
@@ -623,7 +623,7 @@ class CRNS(RNIRG):
             st+=1
             is_ssm=self.is_ssm(self.sp_b[i])
             if is_ssm:
-                is_org=self.is_ssm(self.sp_b[i])
+                is_org=self.is_sm(self.sp_b[i])
                 G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
                        sp=self.sp[self.bt_ind(self.sp_b[i])],
                        is_ssm=is_ssm,is_org=is_org)
@@ -666,7 +666,7 @@ class CRNS(RNIRG):
                      if not (cr_a in G):
                          is_ssm=self.is_ssm(cr_sp)
                          if is_ssm:
-                            is_org=self.is_ssm(cr_sp)
+                            is_org=self.is_sm(cr_sp)
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.sp[self.bt_ind(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org)
