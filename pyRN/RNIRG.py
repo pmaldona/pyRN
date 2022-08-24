@@ -355,7 +355,7 @@ class RNIRG:
                     if bit_toList[i]==1:
                         res=res+str(self.sp[i])+", "
                 #Needed: Delete last ","
-                res=res+"}\n"
+                res=res[:-1]+"}"
             elif isinstance(bit,list):
               #  print("a bitarray list detected, so a list of sets of species will be printed")
                 res=""
@@ -369,9 +369,10 @@ class RNIRG:
                     for j in range (len(bit_toList)):
                         if bit_toList[j]==1:
                             res=res+str(self.sp[j])+", "
-                    res=res
+                    res=res[:-2]
+                    res=res+"} "
             #Needed: in order to delete last "," we return res[:-3]+"}"
-            return(res[:-4]+"}\n")
+            return(res)
         except:
            print("input must be \n bitarray representing set of species or \n list of bitarrays representing set of sets of species")
            
