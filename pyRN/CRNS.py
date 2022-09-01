@@ -23,34 +23,35 @@ class CRNS(RNIRG):
     # Function that generates the basic sets of a reaction network. When 
     # executed, it generates the following members of the class, which 
     # correspond to a list of bitarrays, where each element of the list 
-    # corresponds to a basic set or atom as the case may be:
+    # corresponds to a basic set or generator as the case may be:
     
-    # sp_b: species contained in each basic set
-    # r_b: reactions contained in each basic set 
-    # sp_a: species contained in each atom
-    # r_a: reactions contained in each atom 
-    # rsp_b: species of reactants contained in each basic 
-    # psp_b: species of products contained in each basic
-    # sp_sp_b: positive stoichiometric species contained in the closure of each atom
-    # sn_sp_b: negative stoichiometric species contained in the closure of each atom
-    # a_b: atoms contained in each basic set
-    # dyn_conn: basic sets that are connected (whose has a non empty intersection 
+    # BSpListBt: species contained in each basic molecule set
+    # BRpListBt: reactions contained in each basic molecule set
+    # GSpListBt: species contained in each generator
+    # GRpListBt: reactions contained in each generator 
+    # BReacSpListBt: species of reactants contained in each basic molecule set 
+    # BProdSpListBt: species of products contained in each basic molecule set
+    # BStoichioPositiveSpListBt: positive stoichiometric species contained in basic molecule set
+    # BStoichioNegativeSpListBt: negative stoichiometric species contained in basic molecule set
+    # GInBListBt: generator contained in each basic molecule set
+    # ConnenctedBListBt: basic molecule sets that are connected (whose has a non empty intersection 
     # between the support and the products o viceversa).
-            
-    # The variable x_r_a corresponds to a vector of integers, of the length 
+    # NotContainedBListBt: basic molecule sets that are not contained (whose has a non empty intersection 
+    # between the support and the products o viceversa).      
+    # RpInWhichGArray: corresponds to a array of integers, of the length 
     # of the number of reactions, where the integer indicates to which 
-    # atom the reaction belongs.
-    def gen_atoms(self):
+    # generator the reaction belongs.
+    def setGenerators(self):
         # creating all closed set for closure of reactant part
         c_reac=[]
           
-        for i in self.reac:
-            c_reac.append(self.closure(i,bt_type=True))
+        for i in self.ReacListBt:
+            c_reac.append(self.getClosureFromSp(i,bt_type=True))
         
         # number of equivalence clases
         xeqc=0
         # class equivalence vector
-        x_r_a=-np.ones(self.mp.shape[1])
+        x_r_a=-np.ones(self.MpDf.shape[1])
         x_r_a=x_r_a.tolist()
         # list of basic sets
         sp_b=[]
@@ -68,35 +69,35 @@ class CRNS(RNIRG):
             x_r_a[i]=xeqc
             sp_b.append(c_reac[i])
             
-            for j in range(i,self.mp.shape[1]):
+            for j in range(i,self.MpDf.shape[1]):
                 st+=1
                 if c_reac[i]==c_reac[j]:
                     x_r_a[j]=xeqc
                     
             xeqc+=1
         
-        self.sp_b=sp_b
-        self.x_r_a=x_r_a
+        self.BSpListBt=sp_b
+        self.RpInWhichGArray=x_r_a
         
-        # assingnig species contained each atom
+        # assingnig species contained each generator
         sp_a=[]
         
-        b_sp=bt(self.mp.shape[0])
+        b_sp=bt(self.MpDf.shape[0])
         b_sp.setall(0)
         
         for i in range(xeqc):
             sp_a.append(b_sp.copy())
             
-        for i in range(self.mp.shape[1]):
-            sp_a[x_r_a[i]]|= self.reac[i]|self.prod[i] 
+        for i in range(self.MpDf.shape[1]):
+            sp_a[x_r_a[i]]|= self.ReacListBt[i]|self.ProdListBt[i] 
         
         
-        self.sp_a=sp_a
+        self.GSpListBt=sp_a
         
         
-        # assigning reaction contained each atom
+        # assigning reaction contained each generator
         r_a=[]
-        b_r=bt(self.mp.shape[1])
+        b_r=bt(self.MpDf.shape[1])
         b_r.setall(0)
         
         for i in range(xeqc):
@@ -107,40 +108,40 @@ class CRNS(RNIRG):
             b_r.setall(0)
             
             
-        self.r_a=r_a
+        self.GRpListBt=r_a
         
         # Creation of other related variables:
-        a_b=[] # atoms (equivalence classes) contained in each closure
+        a_b=[] # generators (equivalence classes) contained in each closure
         r_b=[] # reactions supported by each basic (equivalence class)
         rsp_b=[] # reactants species contained each basic (equivalence class)
         psp_b=[] # product species contained each basic (equivalence class)
-        sp_sp_b=[] # stoichiometric positive species contained in the closure of each atom
-        sn_sp_b=[] # stoichiometric negative species contained in the closure of each atom
+        sp_sp_b=[] # stoichiometric positive species contained in the closure of each generator
+        sn_sp_b=[] # stoichiometric negative species contained in the closure of each generator
         
         # Assignation of other related variables:
-        for i in range(len(self.sp_b)):
+        for i in range(len(self.BSpListBt)):
             
-            a_b.append(self.sp2a(self.sp_b[i]))
+            a_b.append(self.getGBtInSpBt(self.BSpListBt[i]))
             r_b.append(b_r.copy())
             rsp_b.append(b_sp.copy())
             psp_b.append(b_sp.copy())
             sp_sp_b.append(b_sp.copy())
             sn_sp_b.append(b_sp.copy())
             
-            for j in self.bt_ind(a_b[i]):
+            for j in self.getIndArrayFromBt(a_b[i]):
                 r_b[i]|=r_a[j]
-                for k in self.bt_ind(r_a[j]): 
-                    rsp_b[i]|=self.reac[k]
-                    psp_b[i]|=self.prod[k]
-                    sp_sp_b[i]|=bt(self.mr.iloc[:,k] < self.mp.iloc[:,k])
-                    sn_sp_b[i]|=bt(self.mr.iloc[:,k] > self.mp.iloc[:,k])
+                for k in self.getIndArrayFromBt(r_a[j]): 
+                    rsp_b[i]|=self.ReacListBt[k]
+                    psp_b[i]|=self.ProdListBt[k]
+                    sp_sp_b[i]|=bt(self.MrDf.iloc[:,k] < self.MpDf.iloc[:,k])
+                    sn_sp_b[i]|=bt(self.MrDf.iloc[:,k] > self.MpDf.iloc[:,k])
             
-        self.a_b=a_b
-        self.r_b=r_b
-        self.rsp_b=rsp_b
-        self.psp_b=psp_b
-        self.sp_sp_b=sp_sp_b
-        self.sn_sp_b=sn_sp_b
+        self.GInBListBt=a_b
+        self.BRpListBt=r_b
+        self.BReacSpListBt=rsp_b
+        self.BProdSpListBt=psp_b
+        self.BStoichioPositiveSpListBt=sp_sp_b
+        self.BStoichioNegativeSpListBt=sn_sp_b
        
         # Creating connecting basics and dynamically connected basics sets
         conn=[]
@@ -150,10 +151,10 @@ class CRNS(RNIRG):
         conn=[]
         dyn_conn=[]
         
-        b_c=bt(len(self.sp_b))
+        b_c=bt(len(self.BSpListBt))
         b_c.setall(0)
         
-        for i in range(len(self.sp_b)):
+        for i in range(len(self.BSpListBt)):
             
             conn.append(b_c.copy())
             dyn_conn.append(b_c.copy())
@@ -165,28 +166,28 @@ class CRNS(RNIRG):
                     dyn_conn[i][j]=1
                 if (not j==i) and a_b[i][j]==0 and (psp_b[i] & rsp_b[j]).any():
                     dyn_conn[j][i]=1
-                # Hasse condition (all conected)
+                # Hasse condition (all connected)
                 if (not j==i) and a_b[i][j]==0:
                     conn[i][j]=1
                     conn[j][i]=1
         
-        self.conn=conn
-        self.dyn_conn=dyn_conn
+        self.NotContainedBListBt=conn
+        self.ConnenctedBListBt=dyn_conn
         return(st)
     
     # Function that returns the number of basic sets in which each species of 
     # the vector sp appears. The input vector sp can be a list of 
     # strings or a bitarray.
-    def basic_sp_presence(self,sp_set):
+    def getSpPresenceInBGArray(self,sp_set):
         # Checks if input is or not bitarray, if it's no, it make the 
         # transformation
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set
@@ -194,22 +195,22 @@ class CRNS(RNIRG):
         sp_b_presc=np.zeros(len(sp))
         sp_a_presc=np.zeros(len(sp))
         for i in sp.itersearch(1):
-            for j in range(len(self.sp_b)):
-                if self.sp_b[j][i]==1:
+            for j in range(len(self.BSpListBt)):
+                if self.BSpListBt[j][i]==1:
                     sp_b_presc[i]+=1
-            for j in range(len(self.sp_a)):
-                if self.sp_a[j][i]==1:
+            for j in range(len(self.GSpListBt)):
+                if self.GSpListBt[j][i]==1:
                     sp_a_presc[i]+=1
-        sp_b_presc=sp_b_presc[self.bt_ind(sp)]
-        sp_a_presc=sp_a_presc[self.bt_ind(sp)]
+        sp_b_presc=sp_b_presc[self.getIndArrayFromBt(sp)]
+        sp_a_presc=sp_a_presc[self.getIndArrayFromBt(sp)]
         
         sp_b_presc=pd.DataFrame(sp_b_presc)
         sp_b_presc=sp_b_presc.transpose()
-        sp_b_presc.columns=self.sp[self.bt_ind(sp)]
+        sp_b_presc.columns=self.SpIdStrArray[self.getIndArrayFromBt(sp)]
         
         sp_a_presc=pd.DataFrame(sp_a_presc)
         sp_a_presc=sp_a_presc.transpose()
-        sp_a_presc.columns=self.sp[self.bt_ind(sp)]
+        sp_a_presc.columns=self.SpIdStrArray[self.getIndArrayFromBt(sp)]
         
         return([sp_b_presc,sp_a_presc])
     
@@ -217,11 +218,11 @@ class CRNS(RNIRG):
     # Function that returns the number of basic sets in which each reaction of 
     # the vector r appears. The input vector v can be a list of 
     # strings or a bitarray.
-    def basic_r_presence(self,r_set):
+    def getRpPresenceInBArray(self,r_set):
         # Checks if input is or not bitarray, if it's no, it make the 
         # transformation
         if not (isinstance(r_set,bt)):
-            v=bt(self.mp.shape[1])
+            v=bt(self.MpDf.shape[1])
             v.setall(0)
             
             for i in r_set:
@@ -233,29 +234,29 @@ class CRNS(RNIRG):
         r_b_presc=np.zeros(len(v))
         
         for i in v.itersearch(1):
-            for j in range(len(self.r_b)):
-                if self.r_b[j][i]==1:
+            for j in range(len(self.BRpListBt)):
+                if self.BRpListBt[j][i]==1:
                     r_b_presc[i]+=1
 
-        r_b_presc=r_b_presc[self.bt_ind(v)]
+        r_b_presc=r_b_presc[self.getIndArrayFromBt(v)]
         
         r_b_presc=pd.DataFrame(r_b_presc)
         r_b_presc=r_b_presc.transpose()
         
         names=[]
         
-        for i in self.mp.columns:
+        for i in self.MpDf.columns:
             names.append("r"+str(i))
         
-        r_b_presc.columns=np.array(names)[self.bt_ind(v)]
+        r_b_presc.columns=np.array(names)[self.getIndArrayFromBt(v)]
           
         return(r_b_presc)
     
     # Function that returns the number of basic sets in which each species of 
     # the vector sp appears. The input vector sp can be a list of 
     # strings or a bitarray.
-    def plot_basic_sp_presence(self,sp_set):
-        histo=self.basic_sp_presence(sp_set)
+    def plotSpPresenceInBG(self,sp_set):
+        histo=self.getSpPresenceInBGArray(sp_set)
         
         names=histo[0].columns.to_list()
         values=histo[0].iloc[0].tolist()
@@ -271,7 +272,7 @@ class CRNS(RNIRG):
         plt.title("Number of basic sets that contain each species")
         plt.show()
         
-        histo=self.basic_sp_presence(sp_set)
+        histo=self.getSpPresenceInBGArray(sp_set)
         
         names=histo[1].columns.to_list()
         values=histo[1].iloc[0].tolist()
@@ -283,17 +284,17 @@ class CRNS(RNIRG):
                 width = 0.4)
          
         plt.xlabel("Species")
-        plt.ylabel("Number of atoms")
-        plt.title("Number of atoms sets that contain each species")
+        plt.ylabel("Number of generators")
+        plt.title("Number of generators sets that contain each species")
         plt.show()
     
     
     # Function that plots the number of basic sets in which each reaction of 
     # the vector r appears. The input vector v can be a list of 
     # strings or a bitarray.
-    def plot_basic_r_presence(self,v):
+    def plotRpPresenceInB(self,v):
         
-        histo=self.basic_r_presence(v)
+        histo=self.getRpPresenceInBArray(v)
         
         names=histo.columns.to_list()
         values=histo.iloc[0].tolist()
@@ -310,37 +311,37 @@ class CRNS(RNIRG):
         plt.show()
     
     
-    # Function of species that returns the atom that contains the species
-    def sp2a(self, sp):
-        p=bt(len(self.sp_b))
+    # Function of species that returns the generator that contains the species
+    def getGBtInSpBt(self, sp):
+        p=bt(len(self.BSpListBt))
         p.setall(0)
-        for i in range(len(self.sp_b)):
-            if (sp & self.sp_b[i]) == self.sp_b[i]:
+        for i in range(len(self.BSpListBt)):
+            if (sp & self.BSpListBt[i]) == self.BSpListBt[i]:
                 p[i]=1
         
         return p
     
     
-    # Function of atom that returns the contains the species
-    def a2sp(self, p):
-        sp=bt(len(self.sp))
+    # Function of generator that returns the contains the species
+    def getSpBtInGBt(self, p):
+        sp=bt(len(self.SpIdStrArray))
         sp.setall(0)
-        for i in self.bt_ind(p):
+        for i in self.getIndArrayFromBt(p):
             
-                sp|=self.sp_b[i]
+                sp|=self.BSpListBt[i]
         
         return sp
     
     
     # For a given bitarray of contained basic set, return the connected basics 
     # (basics that are not contained)
-    def conn_b(self,s):
+    def getGBtNotInBBt(self,s):
         
-        c=bt(len(self.sp_b))
+        c=bt(len(self.BSpListBt))
         c.setall(0)
         
-        for i in self.bt_ind(s):
-            c|=self.conn[i]
+        for i in self.getIndArrayFromBt(s):
+            c|=self.NotContainedBListBt[i]
             
         c= c & ~s
         return c
@@ -348,12 +349,12 @@ class CRNS(RNIRG):
     
     # For a given bitarray of contained basic set, return the dynamically 
     # connected basics sets to it
-    def dyn_conn_b(self,s):
-        c=bt(len(self.sp_b))
+    def getGBtConnectedToBBt(self,s):
+        c=bt(len(self.BSpListBt))
         c.setall(0)
         
-        for i in self.bt_ind(s):
-            c|=self.dyn_conn[i]
+        for i in self.getIndArrayFromBt(s):
+            c|=self.ConnenctedBListBt[i]
             
         c= c & ~s
         return c
@@ -361,18 +362,18 @@ class CRNS(RNIRG):
     
     # For a given bitarray of contained basic set, return the basic sets that 
     # can contribute for the current set to be semi-self-maintained 
-    def contrib_b(self,s):
+    def getGBtContribBBt(self,s):
         
         # negative sotichiometric species
         
-        n=bt(self.mp.shape[0])
+        n=bt(self.MpDf.shape[0])
         n.setall(0)
         p=n.copy()
         pp=n.copy()
         
-        for i in self.bt_ind(s):
-            p|=self.sp_sp_b[i]
-            n|=self.sn_sp_b[i]
+        for i in self.getIndArrayFromBt(s):
+            p|=self.BStoichioPositiveSpListBt[i]
+            n|=self.BStoichioNegativeSpListBt[i]
                        
         # p correspond to bitarray whit positive stoichiometry
         n= n & ~p
@@ -386,11 +387,11 @@ class CRNS(RNIRG):
         c = ~c
         
         # eliminating basics form c that no will contribute
-        for i in self.bt_ind(c):
-            if not (self.sp_sp_b[i] & n).any():
+        for i in self.getIndArrayFromBt(c):
+            if not (self.BStoichioPositiveSpListBt[i] & n).any():
                 c[i]=0
             else:
-                pp|=self.sp_sp_b[i]
+                pp|=self.BStoichioPositiveSpListBt[i]
         
         # pp are possible produces species if they do not fulfill consumed 
         # species, then there is no contribution to be a semi-self-maintained
@@ -402,9 +403,9 @@ class CRNS(RNIRG):
             return c
         
     
-    # Synergistic structure calculation function, requires the gen_atoms() 
+    # Synergistic structure calculation function, requires the setGenerators() 
     # function to be executed beforehand .It returns an directed multi-graph
-    # type networkx (syn_str), where each node correspond to hashed bitarray of 
+    # type networkx (SynStrNx), where each node correspond to hashed bitarray of 
     # contained basic basic sets. Each node also contain attributes such as level (level), 
     # set of contained species (sp) and if the set is semi-self-maintained (ssm)
     # and an organization (is_org). 
@@ -412,12 +413,12 @@ class CRNS(RNIRG):
     # the arrival set corresponds to the closure, the key to the 
     # basic with which the closure was performed and the attribute whether the closure 
     # is synergistic or not. 
-    # The function also creates the class member (syn_ssm) and (syn_org) which 
+    # The function also creates the class member (SynStrSsmListSpArray) and (SynStrOrgListSpArray) which 
     # corresponds to a list of the closed semi-self-maintained set and 
     # organizations respectively
-    def gen_syn_str(self,org_cal=False):
-        if not hasattr(self, 'a_b'):
-            print("The basic sets have not been initialized, please run the gen_atoms() function.")
+    def setSynStr(self,org_cal=False):
+        if not hasattr(self, 'GInBListBt'):
+            print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
         # Initialization of the synergistic structure as a multigraph object
         G = nx.MultiDiGraph()
@@ -427,72 +428,72 @@ class CRNS(RNIRG):
         # step measure
         st=0
         # The nodes corresponding to the basic sets are generated.
-        for i in range(len(self.a_b)):
+        for i in range(len(self.GInBListBt)):
             st+=1
-            is_ssm=self.is_ssm(self.sp_b[i])
+            is_ssm=self.isSsmFromSp(self.BSpListBt[i])
             if is_ssm:
-                is_org=self.is_sm(self.sp_b[i])
-                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
-                       sp=self.sp[self.bt_ind(self.sp_b[i])],
+                is_org=self.isSmFromSp(self.BSpListBt[i])
+                G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
+                       sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
-                ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
+                ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
                 if is_org:
-                    org.append(self.sp[self.bt_ind(self.sp_b[i])])
+                    org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
             else:           
-                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
-                       sp=self.sp[self.bt_ind(self.sp_b[i])],
+                G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
+                       sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=False,is_org=False,is_basic=True,basic_id=i)
 
                 
         # Generation of the multigraph of the synergistic structure by set level (contained basics)
-        for i in range(len(self.sp_b)):
+        for i in range(len(self.BSpListBt)):
              
             # Closed set (nodes) at level i
             nodes = [x for x,y in G.nodes(data=True) if y['level']==i+1]
              
              # Generating closures whit connected basics sets for each set in level i
             for j in nodes:
-                 for k in self.bt_ind(self.conn_b(bt(j))):
+                 for k in self.getIndArrayFromBt(self.getGBtNotInBBt(bt(j))):
                      st+=1    
                      # Closure result
-                     cr_sp=self.closure(self.a2sp(bt(j) | self.a_b[k]),bt_type=True)
-                     cr_a=fbt(self.sp2a(cr_sp))
+                     cr_sp=self.getClosureFromSp(self.getSpBtInGBt(bt(j) | self.GInBListBt[k]),bt_type=True)
+                     cr_a=fbt(self.getGBtInSpBt(cr_sp))
                      
                      # node is added if is not in structrue
                      if not (cr_a in G):
-                         is_ssm=self.is_ssm(cr_sp)
+                         is_ssm=self.isSsmFromSp(cr_sp)
                          if is_ssm:
-                             is_org=self.is_sm(cr_sp)
+                             is_org=self.isSmFromSp(cr_sp)
                              G.add_node(cr_a,level=cr_a.count(),
-                                    sp=self.sp[self.bt_ind(cr_sp)],
+                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                     is_ssm=is_ssm,is_org=is_org,is_basic=False)
-                             ssms.append(self.sp[self.bt_ind(cr_sp)])
+                             ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                              if is_org:
-                                 org.append(self.sp[self.bt_ind(cr_sp)])
+                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                          else:           
                              G.add_node(cr_a,level=cr_a.count(),
-                                    sp=self.sp[self.bt_ind(cr_sp)],
+                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                     is_ssm=False,is_org=False,is_basic=False)
                          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
-                     if cr_a.count() > (bt(j)|self.a_b[k]).count():
-                        G.add_edge(j,cr_a,key=fbt(self.a_b[k]),syn=True,added_basic=k)
+                     if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
+                        G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=True,added_basic=k)
                      else:
-                        G.add_edge(j,cr_a,key=fbt(self.a_b[k]),syn=False,added_basic=k)
-                    # if cr_a.count() > (bt(j)|self.a_b[k]).count():
-                    #    G.add_edge(j,cr_a,key=fbt(self.a_b[k]),syn=True,added_basic=k)
+                        G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=False,added_basic=k)
+                    # if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
+                    #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=True,added_basic=k)
                     # else:
-                    #    G.add_edge(j,cr_a,key=fbt(self.a_b[k]),syn=False,added_basic=k)
+                    #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=False,added_basic=k)
                 
-        self.syn_str=G
-        self.syn_ssms=ssms
-        self.syn_org=org
+        self.SynStrNx=G
+        self.SynStrSsmListSpArray=ssms
+        self.SynStrOrgListSpArray=org
         return(st)
                     
 
-    # Synergistic structure calculation function, requires the gen_atoms() 
+    # Synergistic structure calculation function, requires the setGenerators() 
     # function to be executed beforehand .It returns an directed multi-graph
-    # type networkx (ssm_str), where each node correspond to hashed bitarray of 
+    # type networkx (setSsmStr), where each node correspond to hashed bitarray of 
     # contained basic basic sets. Each node also contain attributes such as level (level), 
     # set of contained species (sp) and if the set is semi-self-maintained (ssm)
     # and an organization (is_org). 
@@ -500,15 +501,15 @@ class CRNS(RNIRG):
     # the arrival set corresponds to the closure, the key to the 
     # basic with which the closure was performed and the attribute whether the closure 
     # is synergistic or not. 
-    # The function also creates the class member (ssm_ssms) and (ssm_org) which 
+    # The function also creates the class member (SsmStrSsmListSpArray) and (SsmStrOrgListSpArray) which 
     # corresponds to a list of the closed semi-self-maintained set and 
     # organizations respectively
-    # This algorithm differs from ge_syn_str() by considering the basic to 
+    # This algorithm differs from setSynStr() by considering the basic to 
     # be conjugated which can contribute to be semi-self maintained by use of 
-    # the contrib_b() function.
-    def gen_ssm_str(self):
-        if not hasattr(self, 'a_b'):
-            print("The basic sets have not been initialized, please run the gen_atoms() function.")
+    # the getGBtContribBBt() function.
+    def setSsmStr(self):
+        if not hasattr(self, 'GInBListBt'):
+            print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
         # Initialization of the synergistic structure as a multigraph object
         G = nx.MultiDiGraph()
@@ -519,24 +520,24 @@ class CRNS(RNIRG):
         st=0
         
         # The nodes corresponding to the basic sets are generated.
-        for i in range(len(self.a_b)):
+        for i in range(len(self.GInBListBt)):
             st+=1
-            is_ssm=self.is_ssm(self.sp_b[i])
+            is_ssm=self.isSsmFromSp(self.BSpListBt[i])
             if is_ssm:
-                is_org=self.is_sm(self.sp_b[i])
-                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
-                       sp=self.sp[self.bt_ind(self.sp_b[i])],
+                is_org=self.isSmFromSp(self.BSpListBt[i])
+                G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
+                       sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=is_ssm,is_org=is_org)
-                ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
+                ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
                 if is_org:
-                    org.append(self.sp[self.bt_ind(self.sp_b[i])])
+                    org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
             else:           
-                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
-                       sp=self.sp[self.bt_ind(self.sp_b[i])],
+                G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
+                       sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=False,is_org=False)
         
         # Generation of the multigraph of the synergistic structure by set level (contained basics)
-        for i in range(len(self.sp_b)):
+        for i in range(len(self.BSpListBt)):
              
             # Closed set (nodes) at level i
             nodes = [x for x,y in G.nodes(data=True) if y['level']==i+1]
@@ -548,50 +549,50 @@ class CRNS(RNIRG):
                 # contribute to be ssm
                 
                 if G.nodes[j]["is_ssm"]:
-                     conn=self.bt_ind(self.conn_b(bt(j)))
+                     conn=self.getIndArrayFromBt(self.getGBtNotInBBt(bt(j)))
                 else:
-                     contib=self.contrib_b(bt(j))
+                     contib=self.getGBtContribBBt(bt(j))
                      if not contib.any():
                          continue
-                     conn=self.bt_ind(contib)
+                     conn=self.getIndArrayFromBt(contib)
                  
                 for k in conn:
                      st+=1
                      # Closure result
-                     cr_sp=self.closure(self.a2sp(bt(j) | self.a_b[k]),bt_type=True)
-                     cr_a=fbt(self.sp2a(cr_sp))
+                     cr_sp=self.getClosureFromSp(self.getSpBtInGBt(bt(j) | self.GInBListBt[k]),bt_type=True)
+                     cr_a=fbt(self.getGBtInSpBt(cr_sp))
                      
                      # node is added if is not in structrue
                      if not (cr_a in G):
-                         is_ssm=self.is_ssm(cr_sp)
+                         is_ssm=self.isSsmFromSp(cr_sp)
                          if is_ssm:
-                            is_org=self.is_sm(cr_sp)
+                            is_org=self.isSmFromSp(cr_sp)
                             G.add_node(cr_a,level=cr_a.count(),
-                                   sp=self.sp[self.bt_ind(cr_sp)],
+                                   sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org)
-                            ssms.append(self.sp[self.bt_ind(cr_sp)])
+                            ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                             if is_org:
-                                org.append(self.sp[self.bt_ind(cr_sp)])
+                                org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                          else:           
                             G.add_node(cr_a,level=cr_a.count(),
-                                   sp=self.sp[self.bt_ind(cr_sp)],
+                                   sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                    is_ssm=False,is_org=False)
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
-                     if cr_a.count() > (bt(j)|self.a_b[k]).count():
+                     if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
                         G.add_edge(j,cr_a,key=k,syn=True)
                      else:
                         G.add_edge(j,cr_a,key=k,syn=False)
                 
-        self.ssm_str=G
-        self.ssm_ssms=ssms
-        self.ssm_org=org
+        self.SsmStrNx=G
+        self.SsmStrSsmListSpArray=ssms
+        self.SsmStrOrgListSpArray=org
         return(st)
     
     
-    # Synergistic structure calculation function, requires the gen_atoms() 
+    # Synergistic structure calculation function, requires the setGenerators() 
     # function to be executed beforehand .It returns an directed multi-graph
-    # type networkx (ssm_str), where each node correspond to hashed bitarray of 
+    # type networkx (setConnectedStr), where each node correspond to hashed bitarray of 
     # contained basic basic sets. Each node also contain attributes such as level (level), 
     # set of contained species (sp) and if the set is semi-self-maintained (ssm)
     # and an organization (is_org). 
@@ -599,17 +600,17 @@ class CRNS(RNIRG):
     # the arrival set corresponds to the closure, the key to the 
     # basic with which the closure was performed and the attribute whether the closure 
     # is synergistic or not. 
-    # The function also creates the class member (ssm_ssms) and (ssm_org) which 
+    # The function also creates the class member (DynStrSsmListSpArray) and (DynStrOrgListSpArray) which 
     # corresponds to a list of the closed semi-self-maintained set and 
     # organizations respectively
-    # This algorithm differs from ge_syn_str() by considering the basic to 
+    # This algorithm differs from setSynStr() by considering the basic to 
     # be conjugated which can contribute to be semi-self maintained by use of 
-    # the contrib_b() function and use of the function d_connect(), which 
+    # the getGBtContribBBt() function and use of the function getGBtConnectedToBBt(), which 
     # only connect to basics if there are reactively connected. The result is a structrure 
     # where the nodes are semi-self-mantianed and only dynamically connected.
-    def gen_dyn_str(self):
-        if not hasattr(self, 'a_b'):
-            print("The basic sets have not been initialized, please run the gen_atoms() function.")
+    def setConnectedStr(self):
+        if not hasattr(self, 'GInBListBt'):
+            print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
         # Initialization of the synergistic structure as a multigraph object
         G = nx.MultiDiGraph()
@@ -619,24 +620,24 @@ class CRNS(RNIRG):
         # number of steps
         st=0
         # The nodes corresponding to the basic sets are generated.
-        for i in range(len(self.a_b)):
+        for i in range(len(self.GInBListBt)):
             st+=1
-            is_ssm=self.is_ssm(self.sp_b[i])
+            is_ssm=self.isSsmFromSp(self.BSpListBt[i])
             if is_ssm:
-                is_org=self.is_sm(self.sp_b[i])
-                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
-                       sp=self.sp[self.bt_ind(self.sp_b[i])],
+                is_org=self.isSmFromSp(self.BSpListBt[i])
+                G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
+                       sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=is_ssm,is_org=is_org)
-                ssms.append(self.sp[self.bt_ind(self.sp_b[i])])
+                ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
                 if is_org:
-                    org.append(self.sp[self.bt_ind(self.sp_b[i])])
+                    org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
             else:           
-                G.add_node(fbt(self.a_b[i]),level=self.a_b[i].count(),
-                       sp=self.sp[self.bt_ind(self.sp_b[i])],
+                G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
+                       sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=False,is_org=False)
         
         # Generation of the multigraph of the synergistic structure by set level (contained basics)
-        for i in range(len(self.sp_b)):
+        for i in range(len(self.BSpListBt)):
              
             # Closed set (nodes) at level i
             nodes = [x for x,y in G.nodes(data=True) if y['level']==i+1]
@@ -649,44 +650,44 @@ class CRNS(RNIRG):
                 # if not search for basic that can contribute to be ssm
                 
                 if G.nodes[j]["is_ssm"]:
-                     conn=self.bt_ind(self.dyn_conn_b(bt(j)))
+                     conn=self.getIndArrayFromBt(self.ConnenctedBListBt_b(bt(j)))
                 else:
-                     contib=self.contrib_b(bt(j))
+                     contib=self.getGBtContribBBt(bt(j))
                      if not contib.any():
                          continue
-                     conn=self.bt_ind(contib)
+                     conn=self.getIndArrayFromBt(contib)
                  
                 for k in conn:
                      st+=1    
                      # Closure result
-                     cr_sp=self.closure(self.a2sp(bt(j) | self.a_b[k]),bt_type=True)
-                     cr_a=fbt(self.sp2a(cr_sp))
+                     cr_sp=self.getClosureFromSp(self.getSpBtInGBt(bt(j) | self.GInBListBt[k]),bt_type=True)
+                     cr_a=fbt(self.getGBtInSpBt(cr_sp))
                      
                      # node is added if is not in structrue
                      if not (cr_a in G):
-                         is_ssm=self.is_ssm(cr_sp)
+                         is_ssm=self.isSsmFromSp(cr_sp)
                          if is_ssm:
-                            is_org=self.is_sm(cr_sp)
+                            is_org=self.isSmFromSp(cr_sp)
                             G.add_node(cr_a,level=cr_a.count(),
-                                   sp=self.sp[self.bt_ind(cr_sp)],
+                                   sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org)
-                            ssms.append(self.sp[self.bt_ind(cr_sp)])
+                            ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                             if is_org:
-                                org.append(self.sp[self.bt_ind(cr_sp)])
+                                org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                          else:           
                             G.add_node(cr_a,level=cr_a.count(),
-                                   sp=self.sp[self.bt_ind(cr_sp)],
+                                   sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                    is_ssm=False,is_org=False)
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
-                     if cr_a.count() > (bt(j)|self.a_b[k]).count():
+                     if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
                         G.add_edge(j,cr_a,key=k,syn=True)
                      else:
                         G.add_edge(j,cr_a,key=k,syn=False)
                 
-        self.dyn_ssm_str=G
-        self.dyn_ssms=ssms
-        self.dyn_org=org
+        self.ConnectedStrNx=G
+        self.ConnectedStrSsmListSpArray=ssms
+        self.ConnectedStrOrgListSpArray=org
         return(st)
     
     # Function that generates a network of the structures. It receives as 
@@ -697,8 +698,8 @@ class CRNS(RNIRG):
     # respectively. The shape of the set is circular if it is a basic or 
     # square if it is not. Finally, the green arrows correspond to synergies 
     # and the blue arrows to spurious union.
-    def display_str(self,graph):
-        G = nx.relabel_nodes(graph, lambda x: str(self.bt_ind(bt(x))))
+    def getStrDisplayPv(self,graph):
+        G = nx.relabel_nodes(graph, lambda x: str(self.getIndArrayFromBt(bt(x))))
         nt = Network('500px', '500px',directed=True)
         # populates the nodes and edges data structures
         
@@ -746,23 +747,23 @@ class CRNS(RNIRG):
     
         
     # Minimal generators generation function, to be started once the basic sets
-    # have been generated by the gen_atoms() function.  It returns a list
-    # (mgen) of bitarray list of species that correspond to the sets so that 
-    # by means of the closure they generate the basic set.
-    def gen_mgen(self):
-        if not hasattr(self, 'a_b'):
-            print("The basic sets have not been initialized, please run the gen_atoms() function.")
+    # have been generated by the setGenerators() function.  It returns a list
+    # (MgenListListSpArray) of bitarray list of species that correspond to the sets so that 
+    # by means of the closure they generate the basic molecule.
+    def setMgen(self):
+        if not hasattr(self, 'GInBListBt'):
+            print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
         
         
         mgen=[]
         
-        # Generating a list of the support of each reaction contained in each atom
-        for i in range(len(self.r_a)):
+        # Generating a list of the support of each reaction contained in each generator
+        for i in range(len(self.GRpListBt)):
             
             v=[]
-            for j in self.bt_ind(self.r_a[i]):
-                v.append(self.reac[j])
+            for j in self.getIndArrayFromBt(self.GRpListBt[i]):
+                v.append(self.ReacListBt[j])
             
             v.sort(key=lambda x: x.count())
         
@@ -789,91 +790,91 @@ class CRNS(RNIRG):
                     break
                 
             mgen.append(v)
-        self.mgen=mgen
+        self.MgenListListSpArray=mgen
     
 
     # Synergy generation function. it takes as input a minimum generator (sp)
-    # and (pi) the index of the objective atom. 
-    # The function verifies which combinations of atoms can 
+    # and (pi) the index of the objective . 
+    # The function verifies which combinations of generators can 
     # generate such a generator.        
-    def syn_gen(self,sp,pi):
+    def genSyn(self,sp,pi):
 
-        # list of atom that intersects sp 
+        # list of generator that intersects sp 
         xp=[]     
         
-        # union of atom species to see if synergy can be fulfill
-        ps=bt(len(self.sp))
+        # union of generator species to see if synergy can be fulfill
+        ps=bt(len(self.SpIdStrArray))
         ps.setall(0)
-        # adding atom that will overlap sp
-        for i in range(len(self.sp_b)):
-               if (self.sp_a[i] & sp).any():
+        # adding generator that will overlap sp
+        for i in range(len(self.BSpListBt)):
+               if (self.GSpListBt[i] & sp).any():
                    if(i!=pi):
                        xp.append(i)
-                       ps|=self.sp_a[i]
-        # Verifying if the atoms contain the minimum sp generator 
+                       ps|=self.GSpListBt[i]
+        # Verifying if the generators contain the minimum sp generator 
         # and trigger the synergy.
         
         if not ((ps & sp) == sp):
             return
         
-        # Bitarray for atom combinations.
+        # Bitarray for generator combinations.
         p=bt(len(xp))
         p.setall(0)
         
         # Recursive search of all synergies
         for i in range(len(xp)):
-            self.r_syn_gen(p,i,sp,xp,pi)
+            self.recursiveGenSyn(p,i,sp,xp,pi)
         
             
     # Recursive synergy generation function, requires as inputs (p) the 
-    # existing atoms to combine, o the next level to add to the scan, 
-    # xp list of indexes of the corresponding atoms, (sp) minimum 
-    # generator to reach and pi the index of the objective atom. 
+    # existing generators to combine, o the next level to add to the scan, 
+    # xp list of indexes of the corresponding generators, (sp) minimum 
+    # generator to reach and pi the index of the objective generator. 
     # Function recursively explores the possible 
     # combinations to reach a synergy. If this is reached, the branch 
-    # to be explored will be cut. The synergies are stored in a list (syn).
-    def r_syn_gen(self,p,o,sp,xp,pi):
+    # to be explored will be cut. The synergies are stored in a list (SynReacListGBt).
+    def recursiveGenSyn(self,p,o,sp,xp,pi):
         
         # Species bitarray result of the sinergy
-        u=bt(len(self.sp))
+        u=bt(len(self.SpIdStrArray))
         u.setall(0)
-        # Adding atom as candiadate to combinate
+        # Adding generator as candiadate to combinate
         p[o]=1;
         
-         # Eliminating redundant atoms that are already in account.
+         # Eliminating redundant generators that are already in account.
         if(p.count()>1):
-            ind=self.bt_ind(p).copy()
+            ind=self.getIndArrayFromBt(p).copy()
             for i in ind:
                 p[i]=0
                 u.setall(0)
-                for j in self.bt_ind(p):
+                for j in self.getIndArrayFromBt(p):
 
-                    u|=self.sp_a[xp[j]]
+                    u|=self.GSpListBt[xp[j]]
                 p[i]=1
             
-                if ((self.sp_a[xp[i]] & u & sp) == (self.sp_a[xp[i]] & sp)):
+                if ((self.GSpListBt[xp[i]] & u & sp) == (self.GSpListBt[xp[i]] & sp)):
                     p[o]=0
                     return
         
-        # Verfing if added atom fulfill triggering the minimal generator
-        u|=self.sp_a[xp[o]]
+        # Verfing if added generator fulfill triggering the minimal generator
+        u|=self.GSpListBt[xp[o]]
         
         # If it a new synergy, it will be appned and recusrion will stop
         if ((u & sp) == sp):
 
-            c_syn = bt(len(self.a_b))
+            c_syn = bt(len(self.GInBListBt))
             c_syn.setall(0)
             
-            for i in self.bt_ind(p):
+            for i in self.getIndArrayFromBt(p):
 
                 c_syn[xp[i]]=1
             
-            if not c_syn in self.syn:
-                self.syn.append(c_syn)
-                op=bt(len(self.a_b))
+            if not c_syn in self.SynReacListGBt:
+                self.SynReacListGBt.append(c_syn)
+                op=bt(len(self.GInBListBt))
                 op.setall(0)
                 op[pi]=1
-                self.syn_p.append(op)
+                self.SynProdListGBt.append(op)
 
                 
             p[o]=0
@@ -881,76 +882,76 @@ class CRNS(RNIRG):
         
         # if not recursion continue
         for i in range(o+1,len(xp)):
-            self.r_syn_gen(p,i,sp,xp,pi)
+            self.recursiveGenSyn(p,i,sp,xp,pi)
      
         p[o]=0
                 
             
     # Function that generates all the synergies from the minimum 
-    # generators. This is achieved through the use of the function gen_syn()
-    # and the recursive function r_gen_syn(). The output consists of list syn 
-    # which contains all the synergies and list (syn_p) which contains 
-    # all the triggered atoms.   
-    def all_syn(self):
-        if not hasattr(self, 'mgen'):
-            print("The minimal genetators have not been initialized, please run the gen_mgen() function.")
+    # generators. This is achieved through the use of the function genSyn()
+    # and the recursive function recursiveGenSyn(). The output consists of list SynReacListGBt 
+    # which contains all the synergies and list (SynProdListGBt) which contains 
+    # all the triggered generators.   
+    def setSyn(self):
+        if not hasattr(self, 'MgenListListSpArray'):
+            print("The minimal genetators have not been initialized, please run the setMgen(() function.")
             return         
         # List of posible synergies
         
-        self.syn=[]
-        self.syn_p=[]
+        self.SynReacListGBt=[]
+        self.SynProdListGBt=[]
         
         # Generation of all synergies from all minimum generators
-        for i in range(len(self.mgen)):
-            for j in self.mgen[i]:
+        for i in range(len(self.MgenListListSpArray)):
+            for j in self.MgenListListSpArray[i]:
                 if j.count()>0:
-                    self.syn_gen(j,i)
+                    self.genSyn(j,i)
                 else:
-                    for k in range(len(self.mgen)):
+                    for k in range(len(self.MgenListListSpArray)):
                         if k!=i:
-                            op=bt(len(self.a_b))
+                            op=bt(len(self.GInBListBt))
                             op.setall(0)
                             op[k]=1
-                            self.syn.append(op.copy())
+                            self.SynReacListGBt.append(op.copy())
                             op.setall(0)
                             op[i]=1
-                            self.syn_p.append(op.copy())
+                            self.SynProdListGBt.append(op.copy())
       
                     
     # Function that returns the closures that generate synergies with the 
     # input set (sp). The output corresponds to two lists in which the first 
     # corresponds to the synergy formed and the second the respective close set 
     # with which the union-closure whit (sp) set generates synergy.
-    def syn_sets(self,sp_set):
+    def getSynFromSp(self,sp_set):
         # Checks if input is or not bitarray, if it's no, it make the 
         # transformation
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set
 
         # Only closed sets are considered, therefore sp is considered 
         # as its generated closure
-        sp=self.closure(sp,bt_type=True)
-        # atom that contain the species
-        p=self.sp2a(sp)
+        sp=self.getClosureFromSp(sp,bt_type=True)
+        # generator that contain the species
+        p=self.getGBtInSpBt(sp)
 
         # synergies that can generate synergies with p, i.e. synergies 
         # that do not contain p and but intersect p 
         syn_part=[]
-        for i in self.syn:
+        for i in self.SynReacListGBt:
             if any(p&i):
                 syn_part.append(i)
         
         # list of closed set (coversion to bitarray from frozenbitarray), that 
         # not contain sp
-        cl_sets=list(filter(lambda x: (not p&x==p) & (not any(p&x)),list(map(lambda x: bt(x),list(self.syn_str.nodes())))))
+        cl_sets=list(filter(lambda x: (not p&x==p) & (not any(p&x)),list(map(lambda x: bt(x),list(self.SynStrNx.nodes())))))
 
         # generation of sinergies, syn_set are the results sinergies and syn_cand
         # are the sets that generates the synergy
@@ -959,41 +960,41 @@ class CRNS(RNIRG):
         for i in cl_sets:
             for j in syn_part:
                 syn_p=p|i
-                syn_set=self.closure(self.a2sp(p|i),bt_type=True)
+                syn_set=self.getClosureFromSp(self.getSpBtInGBt(p|i),bt_type=True)
                 if ((syn_p)&j==j) & (sp!=syn_set):
-                    syn_sets.append(self.sp[self.bt_ind(syn_set)])
-                    syn_cand.append(self.sp[self.bt_ind(self.a2sp(i))])
+                    syn_sets.append(self.SpIdStrArray[self.getIndArrayFromBt(syn_set)])
+                    syn_cand.append(self.SpIdStrArray[self.getIndArrayFromBt(self.getSpBtInGBt(i))])
                     break
                     
         return [syn_sets,syn_cand]
     
     # Function that generates the synergiy interactive graph. It returns
     # oyvis objecto. whre each synergie is label as p, and in draw as a 
-    # green squere. The atoms are colored as blue circules, where the size 
+    # green squere. The generators are colored as blue circules, where the size 
     # is proportinal to the number of contained species.
-    def display_syn(self):
+    def displaySynPv(self):
         
-        all_part=bt(len(self.sp_b))
+        all_part=bt(len(self.BSpListBt))
         all_part.setall(0)
 
-        for i in range(len(self.syn)):
-            all_part|=self.syn[i]
-            all_part|=self.syn_p[i]
+        for i in range(len(self.SynReacListGBt)):
+            all_part|=self.SynReacListGBt[i]
+            all_part|=self.SynProdListGBt[i]
 
         G = nx.MultiDiGraph()
 
-        for i in self.bt_ind(all_part):
-            sp=str(self.sp[self.bt_ind(self.sp_a[i])])
-            size=len(self.sp[self.bt_ind(self.sp_a[i])])*3
+        for i in self.getIndArrayFromBt(all_part):
+            sp=str(self.SpIdStrArray[self.getIndArrayFromBt(self.GSpListBt[i])])
+            size=len(self.SpIdStrArray[self.getIndArrayFromBt(self.GSpListBt[i])])*3
             G.add_node(i, color = "blue", label=str(i), size=size, title=sp, shape="dot")
             
-        for i in range(len(self.syn)):
+        for i in range(len(self.SynReacListGBt)):
             G.add_node("p"+str(i), color = "green", label="p"+str(i), size=7, shape="square")
             
-        for i in range(len(self.syn)):
-            for j in self.bt_ind(self.syn[i]):    
+        for i in range(len(self.SynReacListGBt)):
+            for j in self.getIndArrayFromBt(self.SynReacListGBt[i]):    
                 G.add_edge(j, "p"+str(i), color="gray")
-            for j in self.bt_ind(self.syn_p[i]):    
+            for j in self.getIndArrayFromBt(self.SynProdListGBt[i]):    
                 G.add_edge("p"+str(i), j, color="gray")
             
         nt = Network('500px', '500px',directed=True)

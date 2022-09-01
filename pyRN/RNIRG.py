@@ -28,29 +28,34 @@ import networkx as nx
 class RNIRG:
     
     # The constructor generates by default the following variables belonging to the object itself:
-            # sp -> species array
-            # sp_n -> array of the species name (sp_n = sp if not initialized from an sbml file)
-            # mr -> stoichiometric matrix of the reactive part
-            # mp -> stoichiometric matrix of the productive part
-            # reac -> list of the bitarray of species present in the reactive part by reaction
-            # prod -> List of the bitarray of species present in the productive part per reaction
+            # SpIdStrArray -> species array
+            # SpNameStrArray -> array of the species name (sp_n = sp if not initialized from an sbml file)
+            # MrDf -> stoichiometric matrix of the reactive part
+            # MpDf -> stoichiometric matrix of the productive part
+            # ReacListBt -> list of the bitarray of species present in the reactive part by reaction
+            # ProdListBt -> List of the bitarray of species present in the productive part per reaction
+            # FilenameStr -> String of the filename, if it correspond
+            # IsTextBool -> boolean if is load form a textfile
+            # IsSbmlbool -> boolean if its load form a Smbl file
 
-    # The following constructors from_txt and from_bml, generate the same 
+    # The following constructors setFromText and from_bml, generate the same 
     # variables from the reading of a file
     def __init__(self):
-            self.sp=None
-            self.sp_n=None
-            self.mr=None
-            self.mp=None
-            self.prod=None
-            self.reac=None
-
+            self.SpIdStrArray=None
+            self.SpNameStrArray=None
+            self.MrDf=None
+            self.MpDf=None
+            self.ProdListBt=None
+            self.ReacListBt=None
+            self.FilenameStr=None
+            self.IsTextBool=False
+            self.IsSbmlbool=False
     
     # Reaction Network initialization form text file similar to antimony format, 
     # see example "rn_test.txt". calling the object can be done by RN(file_name). 
     # Example rn = RN.form_txt("rn_text.txt")
     @classmethod
-    def from_txt(cls,file):
+    def setFromText(cls,file):
         try:
             # list fitering
             rn = pd.read_csv(file,header=None)
@@ -155,16 +160,22 @@ class RNIRG:
                
             prod.append(p_sp)              
         # creating class object and returning it
+        
+        #sorting mp and mr dataframes
+        mp=mp.sort_index(axis=1)
+        mr=mr.sort_index(axis=1)
+        
+        
         out =cls()
-        out.sp=mp.columns.values
-        out.sp_n=mr.columns.values
-        out.mr=mr.T
-        out.mp=mp.T
-        out.reac=reac
-        out.prod=prod
-        out.fname=file
-        out.txt=True
-        out.sbml=False
+        out.SpIdStrArray=mp.columns.values
+        out.SpNameStrArray=mr.columns.values
+        out.MrDf=mr.T
+        out.MpDf=mp.T
+        out.ReacListBt=reac
+        out.ProdListBt=prod
+        out.FilenameStr=file
+        out.IsTextBool=True
+        out.IsSbmlbool=False
         
         return out
 
@@ -176,7 +187,7 @@ class RNIRG:
     # as inflow reactions. Finally, the variable rand_bc=True considers an 
     # increasing number of species with bondarycondition property as inflow. 
     @classmethod
-    def from_sbml(cls,file,modifiers=True,bond_con=True,rand_bc=False):
+    def setFromSbml(cls,file,modifiers=True,bond_con=True,rand_bc=False):
         try:
             with open(file,'r') as file:
                 bs_sbml = bs(file.read(), "xml")
@@ -321,17 +332,21 @@ class RNIRG:
                     ind=mp.columns.get_loc(i['id'])
                     sp_n[ind]=i['name']
             
+            #sorting mp and mr dataframes
+            mp=mp.sort_index(axis=1)
+            mr=mr.sort_index(axis=1)
+            
             # creating class object and retuning it
             out=cls()
-            out.sp=mp.columns.values
-            out.sp_n=sp_n
-            out.mr=mr.T
-            out.mp=mp.T
-            out.prod=prod
-            out.reac=reac
-            out.fname=file.name
-            out.txt=False 
-            out.sbml=True 
+            out.SpIdStrArray=mp.columns.values
+            out.SpNameStrArray=sp_n
+            out.MrDf=mr.T
+            out.MpDf=mp.T
+            out.ProdListBt=prod
+            out.ReacListBt=reac
+            out.FilenameStr=file.name
+            out.IsTextBool=False 
+            out.IsSbmlbool=True 
             
             return out
         except:
@@ -342,7 +357,7 @@ class RNIRG:
     #Function that displays the species as a list from a bit array or a list of bitarrays
     #representing a a set of species or a list of sets of species respectively
     #Must be called using print    
-    def bt_to_sp(self, bit):
+    def printSpIdFromBt(self, bit):
         try:
             # Checks if input is or not a bitarray, If not, it make the 
             # transformation to it
@@ -353,7 +368,7 @@ class RNIRG:
                 # Print the species with value 1 in the bit array (1 means present)
                 for i in range (len(bit_toList)):
                     if bit_toList[i]==1:
-                        res=res+str(self.sp[i])+", "
+                        res=res+str(self.SpIdStrArray[i])+", "
                 #Needed: Delete last ","
                 res=res[:-1]+"}"
             elif isinstance(bit,list):
@@ -368,7 +383,7 @@ class RNIRG:
                     #Print the species with value 1 in the bit array (1 means present)
                     for j in range (len(bit_toList)):
                         if bit_toList[j]==1:
-                            res=res+str(self.sp[j])+", "
+                            res=res+str(self.SpIdStrArray[j])+", "
                     res=res[:-2]
                     res=res+"} "
             #Needed: in order to delete last "," we return res[:-3]+"}"
@@ -380,46 +395,47 @@ class RNIRG:
     # Function that displays the reactions on the screen. It receives as
     # input a list p of integers corresponding to the reactions to be displayed. 
     # If p is not entered, the complete network is displayed.
-    def sin_print_r(self,r_set=np.array([])):
+    def printRp(self,r_set=np.array([])):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
         if (r_set.size==0):
-            r=self.mp.columns
+            r=self.MpDf.columns
             r_i=range(len(r))
         else:
             if (isinstance(r_set,bt)):
-               r_i=self.bt_ind(r_set)
-               r=self.mp.columns[r_i]
+               r_i=self.getIndArrayFromBt(r_set)
+               r=self.MpDf.columns[r_i]
             else:
                 r_i=[]
                 for i in r_set:
-                    if i in self.mp.columns:
+                    if i in self.MpDf.columns:
                         r_i.append(i)
                 r=r_set
              
         for i in r_i:
-            p_text="R_"+str(i)+":   "
-            for j in np.where(self.mr.iloc[:,i]!=0)[0]:
-                if self.mr.iloc[j,i]==1.0:
-                    p_text+=self.mr.index[j]+" "
-                elif self.mr.iloc[j,i]==int(self.mr.iloc[j,i]):
-                    p_text+=str(int(self.mr.iloc[j,i]))+self.mr.index[j]+" "
+            p_text="r"+str(i)+":   "
+            for j in np.where(self.MrDf.iloc[:,i]!=0)[0]:
+                if self.MrDf.iloc[j,i]==1.0:
+                    p_text+=self.MrDf.index[j]+" "
+                elif self.MrDf.iloc[j,i]==int(self.MrDf.iloc[j,i]):
+                    p_text+=str(int(self.MrDf.iloc[j,i]))+self.MrDf.index[j]+" "
                 else:
-                    p_text+=str(self.mr.iloc[j,i])+self.mr.index[j]+" "
+                    p_text+=str(self.MrDf.iloc[j,i])+self.MrDf.index[j]+" "
                 p_text+="+ "
-            p_text=p_text[:-2]
+            if len(np.where(self.MrDf.iloc[:,i]!=0)[0])>0:
+                p_text=p_text[:-2]
             p_text+="=> "
             
-            for j in np.where(self.mp.iloc[:,i]!=0)[0]:
-                if self.mp.iloc[j,i]==1.0:
-                    p_text+=self.mp.index[j]+" "
-                elif self.mp.iloc[j,i]==int(self.mp.iloc[j,i]):
-                    p_text+=str(int(self.mp.iloc[j,i]))+self.mp.index[j]+" "
+            for j in np.where(self.MpDf.iloc[:,i]!=0)[0]:
+                if self.MpDf.iloc[j,i]==1.0:
+                    p_text+=self.MpDf.index[j]+" "
+                elif self.MpDf.iloc[j,i]==int(self.MpDf.iloc[j,i]):
+                    p_text+=str(int(self.MpDf.iloc[j,i]))+self.MpDf.index[j]+" "
                 else:
-                    p_text+=str(self.mp.iloc[j,i])+self.mp.index[j]+" "
+                    p_text+=str(self.MpDf.iloc[j,i])+self.MpDf.index[j]+" "
                 p_text+="+ "
-            if len(np.where(self.mp.iloc[:,i]!=0)[0])>0:
+            if len(np.where(self.MpDf.iloc[:,i]!=0)[0])>0:
                 p_text=p_text[:-2]    
             print(p_text)
 
@@ -427,55 +443,55 @@ class RNIRG:
     # Function that displays the rspecies on the screen. It receives as
     # input a list p of integers or bitarray corresponding to the reactions to be displayed. 
     # If p is not entered, all species is displayed.
-    def sin_print_sp(self,sp_set=None):
+    def printSp(self,sp_set=None):
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
         if sp_set is None:
-            sp_set=bt(len(self.sp))
+            sp_set=bt(len(self.SpIdStrArray))
             sp_set.setall(1)
             
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set.copy()
         # invoke display function for species
-        print("Species: ",self.bt_to_sp(sp))
+        print("Species: ",self.printSpIdFromBt(sp))
         
                    
     
-    def display_RN(self,r_set=np.array([])):
+    def getRnDisplayPv(self,r_set=np.array([])):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
         if (r_set.size==0):
-            r=self.mp.columns
+            r=self.MpDf.columns
             r_i=range(len(r))
         else:
             if (isinstance(r_set,bt)):
-               r_i=self.bt_ind(r_set)
-               r=self.mp.columns[r_i]
+               r_i=self.getIndArrayFromBt(r_set)
+               r=self.MpDf.columns[r_i]
             else:
                 r_i=[]
                 for i in r_set:
-                    if i in self.mp.columns:
+                    if i in self.MpDf.columns:
                         r_i.append(i)
                 r=r_set
                 
         G = nx.MultiDiGraph()
         sp=set()
         for i in r_i:
-            sp|=set(self.sp[self.bt_ind(self.reac[i])])|set(self.sp[self.bt_ind(self.prod[i])])
-            # size=len(self.sp[self.bt_ind(self.sp_p[i])])*3
-            G.add_node("r"+str(i), color = "red", label="r"+str(i), shape="square", size=7)
+            sp|=set(self.SpIdStrArray[self.getIndArrayFromBt(self.ReacListBt[i])])|set(self.SpIdStrArray[self.getIndArrayFromBt(self.ProdListBt[i])])
+            # size=len(self.SpIdStrArray[self.getIndArrayFromBt(self.SpIdStrArray_p[i])])*3
+            G.add_node("r"+str(i), color = "yellow", label="r"+str(i), shape="square", size=7)
         
-        inf=set(self.is_inflow(np.array(list(sp)),True))
-        out=set(self.is_outflow(np.array(list(sp)),True))
+        inf=set(self.getInflowFromSp(np.array(list(sp)),True))
+        out=set(self.getOutflowFromSp(np.array(list(sp)),True))
         sp-=inf
         sp-=out
         
@@ -487,20 +503,20 @@ class RNIRG:
             G.add_node(str(i), color = "red", label=str(i), size=14, shape="dot")
         for i in r_i:
             
-            for j in self.bt_ind(self.reac[i]):
-                st_value=self.mr.iloc[j,i]
+            for j in self.getIndArrayFromBt(self.ReacListBt[i]):
+                st_value=self.MrDf.iloc[j,i]
                 label=""
                 if st_value!=1:
                     label=str(st_value)
-                G.add_edge(str(self.sp[j]), "r"+str(i), color="gray",
+                G.add_edge(str(self.SpIdStrArray[j]), "r"+str(i), color="gray",
                            label=label,title=label)
             
-            for j in self.bt_ind(self.prod[i]):
-                st_value=self.mp.iloc[j,i]
+            for j in self.getIndArrayFromBt(self.ProdListBt[i]):
+                st_value=self.MpDf.iloc[j,i]
                 label=""
                 if st_value!=1:
                     label=str(st_value)
-                G.add_edge("r"+str(i), str(self.sp[j]), color="gray",
+                G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="gray",
                            label=label,title=label)
         
         nt = Network('500px', '500px',directed=True)
@@ -512,41 +528,41 @@ class RNIRG:
     
     #Function that plot the stochimetric matirx, it recives as imput a vector
     # or bit arrar of species (sp_set) and reaction (r_set), and plot the stochimetric 
-    # matrix whit colors
-    def plot_S(self,sp_set=np.array([]) ,r_set=np.array([])):
+    # matrix With colors
+    def plotS(self,sp_set=np.array([]) ,r_set=np.array([])):
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
         if (sp_set.size==0):
-            sp=self.sp
+            sp=self.SpIdStrArray
             sp_i=range(len(sp))
         else:
             if (isinstance(sp_set,bt)):
-               sp_i=self.bt_ind(sp_set)
-               sp=self.sp[sp_i]
+               sp_i=self.getIndArrayFromBt(sp_set)
+               sp=self.SpIdStrArray[sp_i]
             else:
                 sp_i=[]
                 for i in sp_set:
-                    if i in self.mp.index.values:
-                        sp_i.append(self.mp.index.get_loc(i))
+                    if i in self.MpDf.index.values:
+                        sp_i.append(self.MpDf.index.get_loc(i))
                 sp=sp_set
             
         # Same procedure for reactions
         if (r_set.size==0):
-            r=self.mp.columns
+            r=self.MpDf.columns
             r_i=range(len(r))
         else:
             if (isinstance(r_set,bt)):
-               r_i=self.bt_ind(r_set)
-               r=self.mp.columns[r_i]
+               r_i=self.getIndArrayFromBt(r_set)
+               r=self.MpDf.columns[r_i]
             else:
                 r_i=[]
                 for i in r_set:
-                    if i in self.mp.columns:
+                    if i in self.MpDf.columns:
                         r_i.append(i)
                 r=r_set
             
         # Generating the sotichiometrix sub-matrix        
-        S=self.mp.iloc[sp_i,r_i]-self.mr.iloc[sp_i,r_i]
+        S=self.MpDf.iloc[sp_i,r_i]-self.MrDf.iloc[sp_i,r_i]
         fig = plt.figure(figsize = (10, 5))
         
         #  Ploting
@@ -569,28 +585,28 @@ class RNIRG:
 
     # Function that use a input the existing species and return, the reaction
     # that are be able to be triggered (R_X of X).
-    def sp2r(self,sp_set):
+    def getRpFromSp(self,sp_set):
         # Checks if input is or not a bitarray, If not, it make the 
         # transformation to it
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set.copy()
         
-        nsp=list(set(range(len(sp)))-set(self.bt_ind(sp))) #species no present
+        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
         
         rc =[] # creating variable of available reaction 
-        for j in range(self.mp.shape[1]):
-            if (all(self.mp.iloc[nsp,j]==0) and all(self.mr.iloc[nsp,j]==0)):
+        for j in range(self.MpDf.shape[1]):
+            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
                 rc.append(j) # selecting reactions that can be trigger with available species
         
-        rbt=bt(self.mp.shape[1])
+        rbt=bt(self.MpDf.shape[1])
         rbt.setall(0)
         for i in rc:
             rbt[i]=1
@@ -602,17 +618,17 @@ class RNIRG:
     # Also as input it receives the rpresent eactions r_set as np.array or bitarray format.
     # The function  will return an bitarray if bt_type is True, otherwise will
     # return an numpy.array of species.
-    def closure(self,sp_set,r_set=None,bt_type=False):
+    def getClosureFromSp(self,sp_set,r_set=None,bt_type=False):
         
         # Checks if sp_set is or not a bitarray, If not, it make the 
         # transformation to it
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set.copy()
@@ -621,10 +637,10 @@ class RNIRG:
         # transformation to it
         if (r_set is None):
             # creating a vector of reaction that can be triggered
-            n_reac = np.array(range(self.mp.shape[1]))
+            n_reac = np.array(range(self.MpDf.shape[1]))
         else:
             if not (isinstance(r_set,bt)):
-                r=bt(self.mp.shape[1])
+                r=bt(self.MpDf.shape[1])
                 r.setall(0)
                 for i in r_set:
                     r[i]=1
@@ -632,15 +648,15 @@ class RNIRG:
                 r=r_set.copy()
 
             # creating a vector of reaction that can be triggered
-            n_reac = self.bt_ind(r)
+            n_reac = self.getIndArrayFromBt(r)
         
         i=0
         flag=False
         # Generates the closure until no reaction can be trigered
         while(len(n_reac)>0):
-            if (sp & self.reac[n_reac[i]]) == self.reac[n_reac[i]]:
+            if (sp & self.ReacListBt[n_reac[i]]) == self.ReacListBt[n_reac[i]]:
                 
-                sp=sp|self.prod[n_reac[i]]
+                sp=sp|self.ProdListBt[n_reac[i]]
                 n_reac=np.delete(n_reac,i)
                 flag=True
             else:
@@ -656,79 +672,79 @@ class RNIRG:
         if bt_type : 
             return sp
         else:
-            sp_set=np.array(range(self.mp.shape[0]))
+            sp_set=np.array(range(self.MpDf.shape[0]))
             for i in range(len(sp)):
                 if sp[i]==0:
                     sp_set=np.delete(sp_set,np.where(sp_set == i))
-            return self.sp[sp_set]
+            return self.SpIdStrArray[sp_set]
     
     
     # First iteration of generated closure for a given set, in bitarray or 
     # spcies set. "sp_set" argument can be an numpy.array of species or a bitarray
     # of percent species.The function  will return an bitarray if bt_type is 
     # True, otherwise will return an numpy.array of species.  
-    def clos_one(self,sp_set,bt_type=False):
+    def getClos_oneFromSp(self,sp_set,bt_type=False):
         
         # Checks if input is or not a bitarray, If not, it make the 
         # transformation to it
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set
             sp_t=sp.copy()
         # Generates the closure only for the first pass
-        for i in range(self.mp.shape[1]):
-            if (sp_t & self.reac[i]) == self.reac[i]:
-                sp=sp|self.prod[i]
+        for i in range(self.MpDf.shape[1]):
+            if (sp_t & self.ReacListBt[i]) == self.ReacListBt[i]:
+                sp=sp|self.ProdListBt[i]
         
         # returns bitarray or species vector
         if bt_type : 
             return sp
         else:
-            sp_set=np.array(range(self.mp.shape[0]))
+            sp_set=np.array(range(self.MpDf.shape[0]))
             for i in range(len(sp)):
                 if sp[i]==0:
                     sp_set=np.delete(sp_set,np.where(sp_set == i))
-            return self.sp[sp_set]
+            return self.SpIdStrArray[sp_set]
     
     
     # Function that confirms if a set is reactive semi-self-maintained, input is
     # "sp_set" that can be an bitarray or an species array. 
     # returns a true or false depending if the property is achieved
-    def is_ssm(self,sp_set):
+    def isSsmFromSp(self,sp_set):
         
         # Checks if input is or not a bitarray, If not, it make the 
         # transformation to it
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set
         
         # init of reactant species and product species array
-        r = bt(self.mp.shape[0])
+        r = bt(self.MpDf.shape[0])
         r.setall(0)
         
         p = r.copy()
         p.setall(0)
         
         # generates of reactant species and product species array
-        for i in range(self.mp.shape[1]):
-             if (sp & self.reac[i]) == self.reac[i]:
+        for i in range(self.MpDf.shape[1]):
+             if (sp & self.ReacListBt[i]) == self.ReacListBt[i]:
 
-                r|=self.reac[i].copy()
-                p|=self.prod[i].copy()
+                r|=self.ReacListBt[i].copy()
+                p|=self.ProdListBt[i].copy()
         
         # verifies if produces species are in the sp set and if 
         # semi-self-maintained condition is satisfy
@@ -743,34 +759,34 @@ class RNIRG:
     # Function that confirms if a set is stoichimetriclly semi-self-mantained, 
     # input is "sp_set" that can be an bitarray or an species array. 
     # returns a true or false depending if the property is achived
-    def is_s_ssm(self,sp_set):
+    def isStoiSsmFromSp(self,sp_set):
         
         # Checks if input is or not a bitarray, If not, it make the 
         # transformation to it
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
             
         else:
             sp=sp_set
               
         # init of reactant species and product species array
-        r = bt(self.mp.shape[0])
+        r = bt(self.MpDf.shape[0])
         r.setall(0)
         
-        p = bt(self.mp.shape[0])
+        p = bt(self.MpDf.shape[0])
         p.setall(0)
         
         # generates of reactant species and product species array
-        for i in range(self.mp.shape[1]):
-             if (sp & self.reac[i]) == self.reac[i]:
-                for j in range(self.mp.shape[0]):
-                    d=self.mp.iloc[j][i]-self.mr.iloc[j][i]
+        for i in range(self.MpDf.shape[1]):
+             if (sp & self.ReacListBt[i]) == self.ReacListBt[i]:
+                for j in range(self.MpDf.shape[0]):
+                    d=self.MpDf.iloc[j][i]-self.MrDf.iloc[j][i]
                     if d<0:
                         r[j]=1
                     elif d>0:
@@ -788,33 +804,33 @@ class RNIRG:
     # Function that confirms if a set is self-mantained, 
     # input is "sp_set" that can be an bitarray or an species array. 
     # returns a true or false depending if the property is achived
-    def is_sm(self,sp_set):
+    def isSmFromSp(self,sp_set):
         
         # Checks if input is or not bitarray, if it's no, it make the 
         # transmation
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set
             
         # init of reactant species and product species array
-        r = bt(self.mp.shape[0])
+        r = bt(self.MpDf.shape[0])
         r.setall(0)
         
-        p = bt(self.mp.shape[0])
+        p = bt(self.MpDf.shape[0])
         p.setall(0)
         
         # generates of reactant species and product species array
-        for i in range(self.mp.shape[1]):
-             if (sp & self.reac[i]) == self.reac[i]:
-                r|=self.reac[i]
-                p|=self.prod[i]
+        for i in range(self.MpDf.shape[1]):
+             if (sp & self.ReacListBt[i]) == self.ReacListBt[i]:
+                r|=self.ReacListBt[i]
+                p|=self.ProdListBt[i]
         
         # adding product species to the species vector
         sp=r|p
@@ -823,8 +839,8 @@ class RNIRG:
         r_ind=[]
         
         # generates of reaction indexes form trigable reactions
-        for i in range(self.mp.shape[1]):
-             if (sp & self.reac[i]) == self.reac[i]:
+        for i in range(self.MpDf.shape[1]):
+             if (sp & self.ReacListBt[i]) == self.ReacListBt[i]:
                  r_ind.append(i)
         
         if len(r_ind)==0:
@@ -837,7 +853,7 @@ class RNIRG:
                 sp_ind.append(i)
         
         # relative Soichiometric matrix to present species and reaction
-        S=np.array(self.mr-self.mp)
+        S=np.array(self.MrDf-self.MpDf)
         S=S[np.ix_(sp_ind,r_ind)]
         S=S.tolist()
         
@@ -861,11 +877,11 @@ class RNIRG:
         
     
     # Subset funcntion for bitarrays
-    def is_subset(a, b):
+    def BtIsSubsetofBt(a, b):
         return (a & b) == a
       
     # Function that returns Bitarray indexes for postition with 1 value 
-    def bt_ind(self,bt):
+    def getIndArrayFromBt(self,bt):
         ind=[]
         for i in range(len(bt)):
             if bt[i]==1:
@@ -875,62 +891,62 @@ class RNIRG:
     
     # Function that receives a set of species (sp_set) and returns 
     # the idexes of which are inflow.
-    def is_inflow(self,sp_set,set_type=False):
+    def getInflowFromSp(self,sp_set,set_type=False):
                 
         # Checks if input is or not bitarray, if it's no, it make the 
         # transmation
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set
         
         inf=sp.copy()
         inf.setall(0)
-        for i in range(len(self.reac)):
-            if (self.reac[i].any()) and (not self.prod[i].any()):
-                inf |= self.reac[i]
+        for i in range(len(self.ReacListBt)):
+            if (self.ReacListBt[i].any()) and (not self.ProdListBt[i].any()):
+                inf |= self.ReacListBt[i]
         
         inf&=sp
         
         if set_type:
-            return self.sp[self.bt_ind(inf)]
+            return self.SpIdStrArray[self.getIndArrayFromBt(inf)]
         
-        return self.bt_ind(inf)
+        return self.getIndArrayFromBt(inf)
         
     # Function that receives a set of species (sp_set) and returns 
     # the idexes of which are inflow.
-    def is_outflow(self,sp_set,set_type=False):
+    def getOutflowFromSp(self,sp_set,set_type=False):
                 
         # Checks if input is or not bitarray, if it's no, it make the 
         # transmation
         if not (isinstance(sp_set,bt)):
-            sp=bt(self.mp.shape[0])
+            sp=bt(self.MpDf.shape[0])
             sp.setall(0)
             
             for i in sp_set:
-                if i in self.mp.index.values:
-                    ind=self.mp.index.get_loc(i)
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
                     sp[ind]=1
         else:
             sp=sp_set
         
         out=sp.copy()
         out.setall(0)
-        for i in range(len(self.reac)):
-            if (self.prod[i].any()) and (not self.reac[i].any()):
-                out |= self.prod[i]
+        for i in range(len(self.ReacListBt)):
+            if (self.ProdListBt[i].any()) and (not self.ReacListBt[i].any()):
+                out |= self.ProdListBt[i]
         
         out&=sp
         if set_type:
-            return self.sp[self.bt_ind(out)]
+            return self.SpIdStrArray[self.getIndArrayFromBt(out)]
         
-        return self.bt_ind(out)
+        return self.getIndArrayFromBt(out)
     
     # random generation of reaction networks
 
@@ -941,7 +957,7 @@ class RNIRG:
     # dist is a log scaled distribution in the [-1,1] range representing locality
     # pr and pp are a log scaled penalization for the repeated use of species as reactants or products
     @classmethod
-    def rand_gen_no_inflow(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None):
+    def setRandomgeneratedNoInflow(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None):
         
         if Ns is None:
             Ns=Nr
@@ -1019,25 +1035,28 @@ class RNIRG:
               reac.append(r_sp)
               prod.append(p_sp)
               
-              
-          out =cls()
-          out.mr=mr
-          out.mp=mp
-          out.sp=np.array(mr.index)
-          out.sp_n=out.sp.copy()
-          out.reac=reac
-          out.prod=prod
-          out.fname=None
-          out.txt=False
-          out.sbml=False
-          
-          return out
+        #sorting mp and mr dataframes
+        mp=mp.sort_index(axis=1)
+        mr=mr.sort_index(axis=1)
+        
+        out =cls()
+        out.MrDf=mr
+        out.MpDf=mp
+        out.SpIdStrArray=np.array(mr.index)
+        out.SpNameStrArray=out.SpIdStrArray.copy()
+        out.ReacListBt=reac
+        out.ProdListBt=prod
+        out.FilenameStr=None
+        out.IsTextBool=False
+        out.IsSbmlbool=False
+        
+        return out
 
     
-    def rand_gen_extra(self,p=.1,m=2,Nse=None,extra=None,l="x"):
+    def setExtraRandomgenerated(self,p=.1,m=2,Nse=None,extra=None,l="x"):
         
-        mr = self.mr
-        mp = self.mp
+        mr = self.MrDf
+        mp = self.MpDf
         Ns = mr.shape[0]
         Nr = mr.shape[1]
         
@@ -1083,17 +1102,17 @@ class RNIRG:
             prod.append(p_sp)
         
         # Changing the variables of the vectors
-        self.mr=mr
-        self.mp=mp
-        self.sp=np.array(mr.index)
-        self.sp_n=self.sp.copy()
-        self.reac=reac
-        self.prod=prod
+        self.MrDf=mr
+        self.MpDf=mp
+        self.SpIdStrArray=np.array(mr.index)
+        self.SpIdStrArray_n=self.SpIdStrArray.copy()
+        self.ReacListBt=reac
+        self.ProdListBt=prod
     
     # function that adds a percentage of additional (extra) inflow 
     # reactions to an existing network 
-    def rand_gen_extra_inflow(self,extra=0.1):
-        Ns = self.mr.shape[0]
+    def setExtraRandomgeneratedInflow(self,extra=0.1):
+        Ns = self.MrDf.shape[0]
         
         # selection of species that will considere as inflow species
         i = np.random.choice(range(Ns),np.round(extra*Ns).astype(int),replace=True)
@@ -1109,40 +1128,40 @@ class RNIRG:
             j+=1
             
         mr=pd.DataFrame(mr)
-        mr.index=self.mr.index.copy()
+        mr.index=self.MrDf.index.copy()
         mp=pd.DataFrame(mp)
-        mp.index=self.mr.index.copy()
+        mp.index=self.MrDf.index.copy()
         
         # adding reaction to respective patices
-        self.mr = pd.concat([self.mr,mr],axis=1)
-        self.mr.columns=range(self.mr.shape[1])
-        self.mp = pd.concat([self.mp,mp],axis=1)
-        self.mp.columns=range(self.mp.shape[1])
+        self.MrDf = pd.concat([self.MrDf,mr],axis=1)
+        self.MrDf.columns=range(self.MrDf.shape[1])
+        self.MpDf = pd.concat([self.MpDf,mp],axis=1)
+        self.MpDf.columns=range(self.MpDf.shape[1])
         
         # creating extra bitset variables for the support and products
         reac=[]
         prod=[]
-        for i in range(self.mp.shape[1]):
+        for i in range(self.MpDf.shape[1]):
             
-            r_sp=bt(self.mr.shape[0])
+            r_sp=bt(self.MrDf.shape[0])
             r_sp.setall(0)
             p_sp=r_sp.copy()
             
-            for j in np.where(self.mr.iloc[:,i]!=0)[0]:
+            for j in np.where(self.MrDf.iloc[:,i]!=0)[0]:
                 r_sp[j]=1
-            for j in np.where(self.mp.iloc[:,i]!=0)[0]:
+            for j in np.where(self.MpDf.iloc[:,i]!=0)[0]:
                 p_sp[j]=1
             
             reac.append(r_sp)
             prod.append(p_sp)       
         
-        self.reac=reac
-        self.prod=prod
+        self.ReacListBt=reac
+        self.ProdListBt=prod
     
     # function that adds a percentage of additional (extra) inflow 
     # reactions to an existing network
-    def rand_gen_extra_outflow(self,extra=0.1):
-        Ns = self.mr.shape[0]
+    def setExtraRandomgeneratedOutflow(self,extra=0.1):
+        Ns = self.MrDf.shape[0]
         
         # selection of species that will considere as outflow species
         i = np.random.choice(range(Ns),np.round(extra*Ns).astype(int),replace=True)
@@ -1158,55 +1177,55 @@ class RNIRG:
             j+=1
             
         mr=pd.DataFrame(mr)
-        mr.index=self.mr.index.copy()
+        mr.index=self.MrDf.index.copy()
         mp=pd.DataFrame(mp)
-        mp.index=self.mr.index.copy()
+        mp.index=self.MrDf.index.copy()
         
         # adding reaction to respective patices
-        self.mr = pd.concat([self.mr,mr],axis=1)
-        self.mr.columns=range(self.mr.shape[1])
-        self.mp = pd.concat([self.mp,mp],axis=1)
-        self.mp.columns=range(self.mp.shape[1])
+        self.MrDf = pd.concat([self.MrDf,mr],axis=1)
+        self.MrDf.columns=range(self.MrDf.shape[1])
+        self.MpDf = pd.concat([self.MpDf,mp],axis=1)
+        self.MpDf.columns=range(self.MpDf.shape[1])
         
         # creating extra bitset variables for the support and products
         reac=[]
         prod=[]
-        for i in range(self.mp.shape[1]):
+        for i in range(self.MpDf.shape[1]):
             
-            r_sp=bt(self.mr.shape[0])
+            r_sp=bt(self.MrDf.shape[0])
             r_sp.setall(0)
             p_sp=r_sp.copy()
             
-            for j in np.where(self.mr.iloc[:,i]!=0)[0]:
+            for j in np.where(self.MrDf.iloc[:,i]!=0)[0]:
                 r_sp[j]=1
-            for j in np.where(self.mp.iloc[:,i]!=0)[0]:
+            for j in np.where(self.MpDf.iloc[:,i]!=0)[0]:
                 p_sp[j]=1
             
             reac.append(r_sp)
             prod.append(p_sp)       
         
-        self.reac=reac
-        self.prod=prod
+        self.ReacListBt=reac
+        self.ProdListBt=prod
 
     
-    # A wrapper of function rand_gen_no_inflow, but adding percentage of input inflow 
+    # A wrapper of function setRandomgeneratedNoInflow, but adding percentage of input inflow 
     # and input outflow reactions.
     @classmethod
-    def rand_gen_whit_inflow(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None, inflow=0.1, outflow=0.1):
+    def setRandomgeneratedWithInflow(cls,Nr=12,Ns=None,extra=.4, dist=lambda x: x*0+1, pr=0, pp=None, inflow=0.1, outflow=0.1):
         
         # inizialization of 
-        out=cls.rand_gen_no_inflow(Nr,Ns,extra, dist, pr, pp)
-        out.rand_gen_extra_inflow(inflow)
-        out.rand_gen_extra_outflow(outflow)
-        out.rn_clean()
+        out=cls.setRandomgeneratedNoInflow(Nr,Ns,extra, dist, pr, pp)
+        out.setExtraRandomgeneratedInflow(inflow)
+        out.setExtraRandomgeneratedOutflow(outflow)
+        out.SetRnClean()
         
         return out
             
     # Function that cleans up reaccion redundancies and unsed species.
-    def rn_clean(self):
+    def SetRnClean(self):
         
-        mr=self.mr.copy()
-        mp=self.mp.copy()
+        mr=self.MrDf.copy()
+        mp=self.MpDf.copy()
         
         i = np.where(mr.sum(axis=1)+mr.sum(axis=1)==0)[0]
         if len(i)>0: 
@@ -1239,9 +1258,9 @@ class RNIRG:
             prod.append(p_sp)
         
         # Changing the variables of the vectors
-        self.mr=mr
-        self.mp=mp
-        self.sp=np.array(mr.index)
-        self.sp_n=self.sp.copy()
-        self.reac=reac
-        self.prod=prod
+        self.MrDf=mr
+        self.MpDf=mp
+        self.SpIdStrArray=np.array(mr.index)
+        self.SpNameStrArray=self.SpIdStrArray.copy()
+        self.ReacListBt=reac
+        self.ProdListBt=prod
