@@ -34,7 +34,7 @@ class CRNS(RNIRG):
     # BStoichioPositiveSpListBt: positive stoichiometric species contained in basic molecule set
     # BStoichioNegativeSpListBt: negative stoichiometric species contained in basic molecule set
     # GInBListBt: generator contained in each basic molecule set
-    # ConnenctedBListBt: basic molecule sets that are connected (whose has a non empty intersection 
+    # ConnectedBListBt: basic molecule sets that are connected (whose has a non empty intersection 
     # between the support and the products o viceversa).
     # NotContainedBListBt: basic molecule sets that are not contained (whose has a non empty intersection 
     # between the support and the products o viceversa).      
@@ -172,7 +172,7 @@ class CRNS(RNIRG):
                     conn[j][i]=1
         
         self.NotContainedBListBt=conn
-        self.ConnenctedBListBt=dyn_conn
+        self.ConnectedBListBt=dyn_conn
         return(st)
     
     # Function that returns the number of basic sets in which each species of 
@@ -354,7 +354,7 @@ class CRNS(RNIRG):
         c.setall(0)
         
         for i in self.getIndArrayFromBt(s):
-            c|=self.ConnenctedBListBt[i]
+            c|=self.ConnectedBListBt[i]
             
         c= c & ~s
         return c
@@ -650,7 +650,7 @@ class CRNS(RNIRG):
                 # if not search for basic that can contribute to be ssm
                 
                 if G.nodes[j]["is_ssm"]:
-                     conn=self.getIndArrayFromBt(self.ConnenctedBListBt_b(bt(j)))
+                     conn=self.getIndArrayFromBt(self.getGBtConnectedToBBt(bt(j)))
                 else:
                      contib=self.getGBtContribBBt(bt(j))
                      if not contib.any():
