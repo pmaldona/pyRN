@@ -757,7 +757,7 @@ class CRNS(RNIRG):
         
         
         mgen=[]
-        
+        self.MGenStepInt=0
         # Generating a list of the support of each reaction contained in each generator
         for i in range(len(self.GRpListBt)):
             
@@ -824,7 +824,6 @@ class CRNS(RNIRG):
         # Recursive search of all synergies
         for i in range(len(xp)):
             self.recursiveGenSyn(p,i,sp,xp,pi)
-        
             
     # Recursive synergy generation function, requires as inputs (p) the 
     # existing generators to combine, o the next level to add to the scan, 
@@ -848,7 +847,7 @@ class CRNS(RNIRG):
                 p[i]=0
                 u.setall(0)
                 for j in self.getIndArrayFromBt(p):
-
+                    self.MGenStepInt+=1
                     u|=self.GSpListBt[xp[j]]
                 p[i]=1
             
