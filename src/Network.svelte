@@ -34,16 +34,25 @@
             nodes = new vis.DataSet(result.nodes);
             for(let i = 0; i < result.edges.length; i++) {
                 let edge = result.edges[i];
-                //console.log(edge);
+                // console.log(edge);
                 if(edge.title){
                     edge.label = edge.title;
                 }
-                
+                edge.smooth = {enabled: false};
+                for(let j = 0; j < result.edges.length; j++) {
+                    if(j != i) {
+                        if(edge.from == result.edges[j].to && edge.to == result.edges[j].from) {
+                            edge.smooth = {enabled: true, type: "discrete", roundness: 0.7};
+                        }
+                    }
+                }
+                edge.physics = false;
             }
             
             edges = new vis.DataSet(result.edges);
             options = JSON.parse(result.options);
-            options.edges.font = {color:'#000000', strokeColor: '#000000', strokeWidth: 0.5};
+            options.edges.font = {color:'#000000', strokeColor: '#000000', strokeWidth: 0.5}
+            options.physics = {enabled: false};
             statistics.species_count = result.species_count;
             statistics.reaction_count = result.reaction_count;
             network.set_network({nodes: nodes, edges: edges, options: options, species_count: result.species_count, reaction_count: result.reaction_count});
@@ -93,7 +102,7 @@
                 {/each}
             </select>
             <!-- svelte-ignore a11y-missing-attribute -->
-            <a class="waves-effect waves-light btn" on:click={drawNetwork}>redraw lattice</a>
+            <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawNetwork}>redraw lattice</a>
         </div>
     </div>
     <div style="position: absolute; bottom: 51px; right: 5px;">

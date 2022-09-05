@@ -23,6 +23,7 @@
 
 	const setName = (name) => {
 		filename.open_file(name);
+		openPage(1);
 	}
 
 	const openPage = (_p) => {
@@ -97,6 +98,36 @@
 
 		return s;
 	}
+
+	const generateConcentrationsPlot = async (timeStart, timeFinal, steps, cutoff) => {
+		let promise = eel.plot_concentrations(timeStart, timeFinal, steps, cutoff)();
+		let c = await promise.then(result => {
+			return result;
+		});
+
+		return c;
+	}
+
+	const generateRatesPlot = async (timeStart, timeFinal, steps, cutoff) => {
+		let promise = eel.plot_rates(timeStart, timeFinal, steps, cutoff)();
+		let r = await promise.then(result => {
+			return result;
+		});
+
+		return r;
+	}
+
+	const generateRandomNetwork = async () => {
+		let promise = eel.random_network()();
+		let randomNetwork = await promise.then(result => {
+			return result;
+		});
+
+		if(randomNetwork) {
+			filename.open_file("Random Network");
+			openPage(1);
+		}
+	}
 </script>
 
 <nav>
@@ -121,7 +152,10 @@
 	genBasicsSp={generateBasicsSpeciesPlot}
 	genBasicsR={generateBasicsReactionPlot}
 	genStoich={generateStoichiometryPlot}
+	genConcentrations={generateConcentrationsPlot}
+	genRates={generateRatesPlot}
   	initialValues={state}
+	genRandNet={generateRandomNetwork}
 />
 
 <footer>

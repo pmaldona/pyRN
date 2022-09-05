@@ -3,6 +3,7 @@
 
 	export let initialValues;
     export let setName;
+	export let genRandNet;
 
     window.eel.expose(say_hello_js, 'say_hello_js');
 	function say_hello_js(x) {
@@ -22,13 +23,20 @@
             
         });
     }
+
+	function genNetwork() {
+		genRandNet();
+	}
 </script>
 
 <main>
 	<h1>CRNS UI</h1>
 
     <!-- svelte-ignore a11y-missing-attribute -->
-    <a class="waves-effect waves-light btn" on:click={openFile}>Open File</a>
+    <a class="waves-effect waves-light btn" style="margin: 20px;" on:click={openFile}>Open File</a>
+	<br>
+	<!-- svelte-ignore a11y-missing-attribute -->
+	<a class="waves-effect waves-light btn" style="margin: 20px;" on:click={genNetwork}>Generate Random Network</a>
 </main>
 
 <style>

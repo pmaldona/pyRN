@@ -3,16 +3,27 @@
     export let genBasicsSp;
     export let genBasicsR;
     export let genStoich;
+    export let genConcentrations;
+    export let genRates;
 
     let plots = [
         { id: 1, text: `Stoichiometry` },
-		{ id: 2, text: `Basics with all Species` },
-		//{ id: 2, text: `Basics with all Reactions` }
+        { id: 2, text: `Concentrations`},
+        { id: 3, text: `Rates`},
+		//{ id: 4, text: `Basics with all Species` },
+		//{ id: 5, text: `Basics with all Reactions` }
 	];
 
     let selected = plots[0];
 
     let image_source;
+
+    let timeStart = 0;
+    let timeFinal = 50;
+    let steps = 100;
+    let cutoff = 0.1;
+    let i_sp = undefined;
+    let rt = undefined;
 
     if($filename != "" && image_source == undefined) {
           plot();
@@ -34,11 +45,23 @@
         }); 
     }
 
+    function pltConcentrations() {
+        genConcentrations(timeStart, timeFinal, steps, cutoff).then(result => {
+            image_source = result;
+        });
+    }
+
+    function pltRates() {
+        genRates(timeStart, timeFinal, steps, cutoff).then(result => {
+            image_source = result;
+        });
+    }
+
     function plot() {
         if(selected.id == 2) {
-            pltBasicsSp();
+            pltConcentrations();
         } else if (selected.id == 3){
-            pltBasicsR();
+            pltRates();
         } else {
             pltStoich();
         }
@@ -52,16 +75,41 @@
                 <img src='data:image/png;base64,{image_source}' style="max-width: 100%; height: auto; object-fit: contain;">
             {/if}
         </div>
-        <div style="margin: 15px;">
-            <select bind:value={selected} on:change="{() => console.log(selected)}" style="display:block">
+        <div style="margin: 15px; width: 250px;">
+            <select bind:value={selected} on:change="{() => console.log(selected)}" style="display:block;">
                 {#each plots as plot}
                     <option value={plot}>
                         {plot.text}
                     </option>
                 {/each}
             </select>
+            <label>
+                Start:
+                <input type=number bind:value={timeStart}>
+            </label>
+            <label>
+                End: 
+                <input type=number bind:value={timeFinal}>
+            </label>
+            <label>
+                Steps: 
+                <input type=number bind:value={steps}>
+            </label>
+            <label>
+                Cutoff: 
+                <input type=number bind:value={cutoff}>
+            </label>
+            <div>
+                Initial Concentrations:
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a class="waves-effect waves-light btn-flat" on:click={plot}>Init</a>
+                <br>
+                Rate Constants:
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a class="waves-effect waves-light btn-flat" on:click={plot}>Rate</a>
+            </div>
             <!-- svelte-ignore a11y-missing-attribute -->
-            <a class="waves-effect waves-light btn" on:click={plot}>replot</a>
+            <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={plot}>replot</a>
         </div>
     </div>
     {#if $filename == ""}

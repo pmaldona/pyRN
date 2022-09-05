@@ -126,8 +126,9 @@
             <label>
                 <input type=checkbox bind:value={useLayout}>
             </label>
+            <br>
             <!-- svelte-ignore a11y-missing-attribute -->
-            <a class="waves-effect waves-light btn" on:click={drawLattice}>redraw lattice</a>
+            <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawLattice}>redraw lattice</a>
         </div>
     </div>
     <div style="position: absolute; bottom: 51px; right: 5px;">

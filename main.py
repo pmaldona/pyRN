@@ -78,10 +78,10 @@ def gen_synergetic():
 @eel.expose
 def gen_protosynergetic():
     if RN:
-        RN.gen_basics()
+        RN.gen_atoms()
         RN.gen_mgen()
         RN.all_syn()
-        network = RN.display_pr_syn()
+        network = RN.display_syn()
         nodes, edges, heading, height, width, options = network.get_network_data()
         transitions = len(RN.syn)
         generators = len(nodes) - transitions
@@ -91,7 +91,7 @@ def gen_protosynergetic():
 @eel.expose
 def calculate_orgs():
     if RN:
-        RN.gen_basics()
+        RN.gen_atoms()
         #RN.gen_syn_str()
         RN.gen_ssm_str()
         #print(RN.ssms)
@@ -167,6 +167,50 @@ def plot_stoichiometry():
 
     return encoded
     #plt.show()
+
+@eel.expose
+def plot_concentrations(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
+    if RN:
+        RN.set_model_ma(i_sp,rt)
+        RN.run_model(ti,tf,steps,cutoff)
+        print(RN.con)
+        print(RN.rate)
+        print(RN.abst)
+        print(RN.a_sp)
+        print(RN.a_r)
+        fig, ax = plt.subplots(1, 1, figsize = (10, 5))
+        ax.plot(RN.con) #cmap=mpl.colormaps['viridis'])
+        ax.title.set_text("Concentrations")
+        tmpfile = BytesIO()
+        fig.savefig(tmpfile, format='png')
+        encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
+
+        return encoded
+
+@eel.expose
+def plot_rates(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
+    if RN:
+        RN.set_model_ma(i_sp,rt)
+        RN.run_model(ti,tf,steps,cutoff)
+        print(RN.con)
+        print(RN.rate)
+        print(RN.abst)
+        print(RN.a_sp)
+        print(RN.a_r)
+        fig, ax = plt.subplots(1, 1, figsize = (10, 5))
+        ax.plot(RN.rate) #cmap=mpl.colormaps['viridis'])
+        ax.title.set_text("Rates")
+        tmpfile = BytesIO()
+        fig.savefig(tmpfile, format='png')
+        encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
+
+        return encoded
+
+@eel.expose
+def random_network(): 
+    global RN
+    RN=pyRN.rand_gen_whit_inflow()
+    return True
 
 #say_hello_py('Python World!')
 #eel.say_hello_js('Python World!')   # Call a Javascript function
