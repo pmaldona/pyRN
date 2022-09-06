@@ -544,9 +544,11 @@ class CRNS(RNIRG):
              
             # Closed set (nodes) at level i
             nodes = [x for x,y in G.nodes(data=True) if y['level']==i+1]
-             
+            n_nodes=len(nodes)
+            node_n=0
              # Generating closures whit connected basics sets for each set in level i
             for j in nodes:
+                print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
                 # if node is semi-self-maintained (ssm), the it explore other possible 
                 # combinations to search for ssm sets, if not search for basic that can 
                 # contribute to be ssm
