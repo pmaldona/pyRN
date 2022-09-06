@@ -447,43 +447,46 @@ class CRNS(RNIRG):
                 
         # Generation of the multigraph of the synergistic structure by set level (contained basics)
         for i in range(len(self.BSpListBt)):
-             
+            
             # Closed set (nodes) at level i
             nodes = [x for x,y in G.nodes(data=True) if y['level']==i+1]
-             
+            n_nodes=len(nodes)
+            node_n=0
              # Generating closures whit connected basics sets for each set in level i
             for j in nodes:
-                 for k in self.getIndArrayFromBt(self.getGBtNotInBBt(bt(j))):
-                     st+=1    
-                     # Closure result
-                     cr_sp=self.getClosureFromSp(self.getSpBtInGBt(bt(j) | self.GInBListBt[k]),bt_type=True)
-                     cr_a=fbt(self.getGBtInSpBt(cr_sp))
-                     
-                     # node is added if is not in structrue
-                     if not (cr_a in G):
-                         is_ssm=self.isSsmFromSp(cr_sp)
-                         if is_ssm:
-                             is_org=self.isSmFromSp(cr_sp)
-                             G.add_node(cr_a,level=cr_a.count(),
-                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
-                                    is_ssm=is_ssm,is_org=is_org,is_basic=False)
-                             ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
-                             if is_org:
-                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
-                         else:           
-                             G.add_node(cr_a,level=cr_a.count(),
-                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
-                                    is_ssm=False,is_org=False,is_basic=False)
-                         
-                     # Adding edges corresponding to the colsure, and verifing if is a sinergy:
-                     if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
-                        G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=True,added_basic=k)
-                     else:
-                        G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=False,added_basic=k)
-                    # if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
-                    #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=True,added_basic=k)
-                    # else:
-                    #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=False,added_basic=k)
+                node_n+=1
+                print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
+                for k in self.getIndArrayFromBt(self.getGBtNotInBBt(bt(j))):
+                    st+=1    
+                    # Closure result
+                    cr_sp=self.getClosureFromSp(self.getSpBtInGBt(bt(j) | self.GInBListBt[k]),bt_type=True)
+                    cr_a=fbt(self.getGBtInSpBt(cr_sp))
+                    
+                    # node is added if is not in structrue
+                    if not (cr_a in G):
+                        is_ssm=self.isSsmFromSp(cr_sp)
+                        if is_ssm:
+                            is_org=self.isSmFromSp(cr_sp)
+                            G.add_node(cr_a,level=cr_a.count(),
+                                   sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
+                                   is_ssm=is_ssm,is_org=is_org,is_basic=False)
+                            ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                            if is_org:
+                                org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                        else:           
+                            G.add_node(cr_a,level=cr_a.count(),
+                                   sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
+                                   is_ssm=False,is_org=False,is_basic=False)
+                        
+                    # Adding edges corresponding to the colsure, and verifing if is a sinergy:
+                    if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
+                       G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=True,added_basic=k)
+                    else:
+                       G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=False,added_basic=k)
+                   # if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
+                   #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=True,added_basic=k)
+                   # else:
+                   #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=False,added_basic=k)
                 
         self.SynStrNx=G
         self.SynStrSsmListSpArray=ssms

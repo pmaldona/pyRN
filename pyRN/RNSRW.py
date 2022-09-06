@@ -30,6 +30,11 @@ class RNSRW(RNIRG):
         try:
             self.model
             self.model.clearModel()
+            try:
+                del(self.SpConDf)
+                del(self.RpRateDf)
+            except:
+                self.model
         except:
             self.model=re.RoadRunner()
         # self.model.setIntegrator('rk45') # set integrator first
