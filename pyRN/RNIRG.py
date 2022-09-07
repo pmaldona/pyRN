@@ -1105,7 +1105,7 @@ class RNIRG:
         self.MrDf=mr
         self.MpDf=mp
         self.SpIdStrArray=np.array(mr.index)
-        self.SpIdStrArray_n=self.SpIdStrArray.copy()
+        self.SpNameStrArray=self.SpIdStrArray.copy()
         self.ReacListBt=reac
         self.ProdListBt=prod
     
