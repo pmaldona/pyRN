@@ -1,6 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 import site
 
+_p = site.getsitepackages()[0]
+if "site-packages" in _p:
+    _p = os.path.join(site.getsitepackages()[0],'eel','eel.js')
+else:
+    _P = os.path.join(site.getsitepackages()[0], 'lib', 'site-packages','eel','eel.js')
+
 block_cipher = None
 
 
@@ -8,7 +14,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[(os.path.join(site.getsitepackages()[0],'eel','eel.js'), 'eel'), ('static', 'static')],
+    datas=[(_p, 'eel'), ('static', 'static')],
     hiddenimports=['bottle_websocket'],
     hookspath=[],
     hooksconfig={},
