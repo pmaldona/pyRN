@@ -27,6 +27,23 @@ jobs:
 
       - name: Install dep-packages
         run: sudo apt-get install libxml2-dev libxslt-dev python-dev cython libglpk-dev
+
+      - name: build python module
+        run: pyinstaller main.spec
+      
+      - name: build electron app
+        run: npm run package
+      
+      - uses: vimtor/action-zip@v1
+        with:
+          files: out/
+          dest: pyRN_GUI-linux.zip
+      
+      - name: Archive build
+        uses: actions/upload-artifact@v3
+        with:
+          name: pyRN_GUI-linux
+          path: pyRN_GUI-linux.zip
   
   build-windows:
     runs-on: windows-latest
@@ -48,6 +65,23 @@ jobs:
 
       - name: Install dep-packages
         run: pip install lxml
+      
+      - name: build python module
+        run: pyinstaller main.spec
+      
+      - name: build electron app
+        run: npm run package
+      
+      - uses: vimtor/action-zip@v1
+        with:
+          files: out/
+          dest: pyRN_GUI-win.zip
+      
+      - name: Archive build
+        uses: actions/upload-artifact@v3
+        with:
+          name: pyRN_GUI-win
+          path: pyRN_GUI-win.zip
   
   build-macos:
     runs-on: macos-latest
@@ -69,3 +103,20 @@ jobs:
 
       - name: Install dep-packages
         run: STATIC_DEPS=true sudo pip install lxml
+      
+      - name: build python module
+        run: pyinstaller main.spec
+      
+      - name: build electron app
+        run: npm run package
+
+      - uses: vimtor/action-zip@v1
+        with:
+          files: out/
+          dest: pyRN_GUI-macos.zip
+      
+      - name: Archive build
+        uses: actions/upload-artifact@v3
+        with:
+          name: pyRN_GUI-macos
+          path: pyRN_GUI-macos.zip
