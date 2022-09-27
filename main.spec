@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-
+import site
 
 block_cipher = None
 
@@ -8,11 +8,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[
-        ('/Users/fionndairekeogh/Documents/dev/eel_test/eel_test/lib/python3.9/site-packages/eel/eel.js', 'eel'),
-        ('static', 'static'),
-        ('./electron-v17', 'electron'),
-    ],
+    datas=[(os.path.join(site.getsitepackages()[0],'eel','eel.js'), 'eel'), ('static', 'static')],
     hiddenimports=['bottle_websocket'],
     hookspath=[],
     hooksconfig={},
@@ -28,7 +24,7 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    [],
+    [('u', None, 'OPTION')],
     exclude_binaries=True,
     name='main',
     debug=False,
