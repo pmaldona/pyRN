@@ -92,6 +92,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Architecure
+        run: sysctl -a | grep machdep.cpu
+
       - uses: actions/setup-node@v3
         with:
           node-version: 16
@@ -125,3 +128,8 @@ jobs:
         with:
           name: pyRN_GUI-macos
           path: pyRN_GUI-macos.zip
+  test-mac-12:
+    runs-on: macos-12
+    steps:
+      - name: Architecure
+        run: sysctl -a | grep machdep.cpu
