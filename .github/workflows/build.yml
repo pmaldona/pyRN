@@ -30,9 +30,12 @@ jobs:
 
       - name: build python module
         run: pyinstaller main.spec
+        run: sudo chmod +x dist/main/main
       
       - name: build electron app
         run: npm run package
+        run: ls out
+        run: ls out/*/
       
       - uses: vimtor/action-zip@v1
         with:
