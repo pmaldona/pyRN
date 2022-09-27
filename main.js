@@ -2,9 +2,19 @@ const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const proc = require('child_process');
 const url = require('url');
 const path = require('path');
+const isDev = require('electron-is-dev');
 //var icmp = require('icmp');
 
-let child = proc.spawn('python', ['-u','main.py']);
+command = path.join(__dirname, 'dist', 'main', 'main')
+args = []
+if(isDev) {
+    console.log("DEV-Build");
+    command = 'python';
+    args = ['-u','main.py']
+} 
+
+//let child = proc.spawn('python', ['-u','main.py']);
+let child = proc.spawn(command, args);
 
 let eel_started = false;
 
@@ -31,6 +41,7 @@ async function createWindow () {
     });
     while(eel_started == false) {
         await sleep(500);
+        win.loadURL('http://localhost:8000/');
     }
     win.loadURL('http://localhost:8000/'); //.catch();
 }

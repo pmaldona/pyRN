@@ -4,3 +4,7 @@ node_modules
 crns
 package-lock.json
 pyRN
+dist
+build
+out
+*.spec

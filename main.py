@@ -171,13 +171,12 @@ def plot_stoichiometry():
 @eel.expose
 def plot_concentrations(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
     if RN:
-        RN.set_model_ma(i_sp,rt)
+        try:
+            RN.con
+            RN.param_change_ma(i_sp,rt,init=True)
+        except:
+            RN.set_model_ma(i_sp,rt)
         RN.run_model(ti,tf,steps,cutoff)
-        print(RN.con)
-        print(RN.rate)
-        print(RN.abst)
-        print(RN.a_sp)
-        print(RN.a_r)
         fig, ax = plt.subplots(1, 1, figsize = (10, 5))
         ax.plot(RN.con) #cmap=mpl.colormaps['viridis'])
         ax.title.set_text("Concentrations")
@@ -190,13 +189,13 @@ def plot_concentrations(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
 @eel.expose
 def plot_rates(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
     if RN:
-        RN.set_model_ma(i_sp,rt)
+        try:
+            RN.rate
+            RN.param_change_ma(i_sp,rt,init=True)
+        except:
+            RN.set_model_ma(i_sp,rt)
+        
         RN.run_model(ti,tf,steps,cutoff)
-        print(RN.con)
-        print(RN.rate)
-        print(RN.abst)
-        print(RN.a_sp)
-        print(RN.a_r)
         fig, ax = plt.subplots(1, 1, figsize = (10, 5))
         ax.plot(RN.rate) #cmap=mpl.colormaps['viridis'])
         ax.title.set_text("Rates")

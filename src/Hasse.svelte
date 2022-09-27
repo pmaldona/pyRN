@@ -55,6 +55,7 @@
 
             options = JSON.parse(result.options);
             options.edges.font = {color:'#000000', strokeColor: '#000000', strokeWidth: 0.5};
+            options.layout.improvedLayout = false;
             statistics.species_count = result.species_count;
             statistics.reaction_count = result.reaction_count;
             hasse.set_hasse({nodes: nodes, edges: edges, options: options});
