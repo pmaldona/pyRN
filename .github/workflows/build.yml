@@ -50,7 +50,7 @@ jobs:
         run: pip install lxml
   
   build-macos:
-    runs-on: darwin-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
