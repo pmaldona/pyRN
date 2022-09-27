@@ -66,6 +66,8 @@ jobs:
       - name: Install dep-packages
         run: pip install lxml
       
+      - run: python -c "import site; site.getsitepackages()"
+
       - name: build python module
         run: pyinstaller main.spec
       
