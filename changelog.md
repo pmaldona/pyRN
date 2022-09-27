@@ -1,1 +1,1 @@
-test log.
+Added pipelines for mac and windows.

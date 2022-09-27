@@ -6,7 +6,7 @@ on:
     paths:
       - 'changelog.md'
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,3 +24,48 @@ jobs:
       - run: pip install pycddlib
       - run: pip install pypoman
       - run: pip install git+https://github.com/pmaldona/pyRN.git
+
+      - name: Install dep-packages
+        run: sudo apt-get install libxml2-dev libxslt-dev python-dev cython libglpk-dev
+  
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - run: npm install
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install eel
+      - run: pip install pyinstaller
+      - run: pip install pycddlib
+      - run: pip install pypoman
+      - run: pip install git+https://github.com/pmaldona/pyRN.git
+
+      - name: Install dep-packages
+        run: pip install lxml
+  
+  build-macos:
+    runs-on: darwin-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - run: npm install
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install eel
+      - run: pip install pyinstaller
+      - run: pip install pycddlib
+      - run: pip install pypoman
+      - run: pip install git+https://github.com/pmaldona/pyRN.git
+
+      - name: Install dep-packages
+        run: STATIC_DEPS=true sudo pip install lxml
