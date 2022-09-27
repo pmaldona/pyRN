@@ -360,20 +360,12 @@ class RNSRW(RNIRG):
             # del(self.abst)
             # del(self.a_r)
             # del(self.a_sp)
-
-            for i in range(self.MpDf.shape[1]):
-                self.model.setGlobalParameterByName("k"+str(i),rt[i])
-            
-            for i in range(self.MpDf.shape[0]):
-                self.model.setInitConcentration(self.model.getIds()[i], i_sp[i])
-                
-        else:
-            
-            for i in range(self.MpDf.shape[1]):
-                self.model.setGlobalParameterByName("k"+str(i),rt[i])
-            
-            for i in range(self.MpDf.shape[0]):
-                self.model.setValue(self.model.getIds()[i], i_sp[i])
+      
+        for i in range(self.MpDf.shape[1]):
+            self.model.setGlobalParameterByName("k"+str(i),rt[i])
+        
+        for i in range(self.MpDf.shape[0]):
+            self.model.setValue(self.model.getIds()[i], i_sp[i])
     
     # randomize components of a state or flow vector using a log normal distribution
     # v vector, mask of affected components (defaults to active ones), mu and sigma parameters of the distribution

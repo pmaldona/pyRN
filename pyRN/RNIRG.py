@@ -159,13 +159,27 @@ class RNIRG:
  
                
             prod.append(p_sp)              
-        # creating class object and returning it
+        
         
         #sorting mp and mr dataframes
+        sp_i=mp.columns.values.tolist()
+        sorted_sp_i=mp.sort_index(axis=1).columns.values.tolist()
+        sorted_ind = [sp_i.index(i) for i in sorted_sp_i]
+        
+        for i in range(len(prod)):
+            tmp_prod=bt(len(mr.columns))
+            tmp_reac=bt(len(mr.columns))
+            for j in range(len(mr.columns)):
+                tmp_prod[j]=prod[i][sorted_ind[j]]
+                tmp_reac[j]=reac[i][sorted_ind[j]]
+            
+            prod[i]=tmp_prod
+            reac[i]=tmp_reac
+        
         mp=mp.sort_index(axis=1)
         mr=mr.sort_index(axis=1)
         
-        
+        # creating class object and returning it
         out =cls()
         out.SpIdStrArray=mp.columns.values
         out.SpNameStrArray=mr.columns.values
@@ -323,6 +337,23 @@ class RNIRG:
                    
                 prod.append(p_sp)              
             
+            #sorting mp and mr dataframes
+            sp_i=mp.columns.values.tolist()
+            sorted_sp_i=mp.sort_index(axis=1).columns.values.tolist()
+            sorted_ind = [sp_i.index(i) for i in sorted_sp_i]
+            
+            for i in range(len(prod)):
+                tmp_prod=bt(len(mr.columns))
+                tmp_reac=bt(len(mr.columns))
+                for j in range(len(mr.columns)):
+                    tmp_prod[j]=prod[i][sorted_ind[j]]
+                    tmp_reac[j]=reac[i][sorted_ind[j]]
+                
+                prod[i]=tmp_prod
+                reac[i]=tmp_reac
+            
+            mp=mp.sort_index(axis=1)
+            mr=mr.sort_index(axis=1)
                  
             # creation of species name vector.
             bs_sp=bs_sbml.select('species[name]')
@@ -332,9 +363,7 @@ class RNIRG:
                     ind=mp.columns.get_loc(i['id'])
                     sp_n[ind]=i['name']
             
-            #sorting mp and mr dataframes
-            mp=mp.sort_index(axis=1)
-            mr=mr.sort_index(axis=1)
+   
             
             # creating class object and retuning it
             out=cls()
@@ -1036,6 +1065,20 @@ class RNIRG:
               prod.append(p_sp)
               
         #sorting mp and mr dataframes
+        sp_i=mp.columns.values.tolist()
+        sorted_sp_i=mp.sort_index(axis=1).columns.values.tolist()
+        sorted_ind = [sp_i.index(i) for i in sorted_sp_i]
+        
+        for i in range(len(prod)):
+            tmp_prod=bt(len(mr.columns))
+            tmp_reac=bt(len(mr.columns))
+            for j in range(len(mr.columns)):
+                tmp_prod[j]=prod[i][sorted_ind[j]]
+                tmp_reac[j]=reac[i][sorted_ind[j]]
+            
+            prod[i]=tmp_prod
+            reac[i]=tmp_reac
+        
         mp=mp.sort_index(axis=1)
         mr=mr.sort_index(axis=1)
         

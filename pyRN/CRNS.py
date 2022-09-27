@@ -548,6 +548,7 @@ class CRNS(RNIRG):
             node_n=0
              # Generating closures whit connected basics sets for each set in level i
             for j in nodes:
+                node_n+=1
                 print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
                 # if node is semi-self-maintained (ssm), the it explore other possible 
                 # combinations to search for ssm sets, if not search for basic that can 
@@ -838,7 +839,7 @@ class CRNS(RNIRG):
     # combinations to reach a synergy. If this is reached, the branch 
     # to be explored will be cut. The synergies are stored in a list (SynReacListGBt).
     def recursiveGenSyn(self,p,o,sp,xp,pi):
-        
+        self.SynRecInt+=1
         # Species bitarray result of the sinergy
         u=bt(len(self.SpIdStrArray))
         u.setall(0)
@@ -854,6 +855,7 @@ class CRNS(RNIRG):
                 for j in self.getIndArrayFromBt(p):
                     self.MGenStepInt+=1
                     u|=self.GSpListBt[xp[j]]
+                    self.SynStepsInt+=1
                 p[i]=1
             
                 if ((self.GSpListBt[xp[i]] & u & sp) == (self.GSpListBt[xp[i]] & sp)):
@@ -870,7 +872,7 @@ class CRNS(RNIRG):
             c_syn.setall(0)
             
             for i in self.getIndArrayFromBt(p):
-
+                self.SynStepsInt+=1
                 c_syn[xp[i]]=1
             
             if not c_syn in self.SynReacListGBt:
@@ -904,7 +906,8 @@ class CRNS(RNIRG):
         
         self.SynReacListGBt=[]
         self.SynProdListGBt=[]
-        
+        self.SynStepsInt=0
+        self.SynRecInt=0
         # Generation of all synergies from all minimum generators
         for i in range(len(self.MgenListListSpArray)):
             for j in self.MgenListListSpArray[i]:
@@ -920,7 +923,7 @@ class CRNS(RNIRG):
                             op.setall(0)
                             op[i]=1
                             self.SynProdListGBt.append(op.copy())
-      
+                            self.SynStepsInt+=1
                     
     # Function that returns the closures that generate synergies with the 
     # input set (sp). The output corresponds to two lists in which the first 
@@ -972,9 +975,9 @@ class CRNS(RNIRG):
                     
         return [syn_sets,syn_cand]
     
-    # Function that generates the synergiy interactive graph. It returns
-    # oyvis objecto. whre each synergie is label as p, and in draw as a 
-    # green squere. The generators are colored as blue circules, where the size 
+    # Function that generates the synergy interactive graph. It returns
+    # pyvis object, where each synergy is labeled as p, and it's draw as a 
+    # green square. The generators are colored as blue circules, where the size 
     # is proportinal to the number of contained species.
     def displaySynPv(self):
         
