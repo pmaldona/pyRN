@@ -29,8 +29,9 @@ jobs:
         run: sudo apt-get install libxml2-dev libxslt-dev python-dev cython libglpk-dev
 
       - name: build python module
-        run: pyinstaller main.spec
-        run: sudo chmod +x dist/main/main
+        run: |
+          pyinstaller main.spec
+          sudo chmod +x dist/main/main
       
       - name: build electron app
         run: npm run package

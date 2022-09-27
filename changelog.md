@@ -3,3 +3,4 @@ Added builds for python and electron.
 windows should work.
 test for linux.
 test for mac.
+fixed build.yml
