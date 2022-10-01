@@ -37,21 +37,121 @@ class RNSRW(RNIRG):
                 self.model
         except:
             self.model=re.RoadRunner()
-        # self.model.setIntegrator('rk45') # set integrator first
-        # self.model.integrator.epsilon = 1e-10
-        # self.model.getIntegrator().setValue("absolute_tolerance",[1E-18,1E-18,1E-18,1E-18])
+            
         self.model.addCompartment("C", 1,True)
         # Creating the random initial concetration if it's out of condition
         if i_sp is None: 
             i_sp=np.random.rand(self.MpDf.shape[0])
-        elif(len(i_sp) !=self.MpDf.shape[0]):
-            i_sp=np.random.rand(self.MpDf.shape[0])
-        
+            
+        sp_list=[]
+        for i in range(len(i_sp)):
+            sp_list.append([self.SpIdStrArray[i],i_sp[i]])
+        self.SpInitConDf=pd.DataFrame(sp_list)
+
         # Creating the random initial rates if it's out of condition
-        if rt is None:  
+        if rt is None: 
             rt=np.random.rand(self.MpDf.shape[1])
-        elif (len(rt) !=self.MpDf.shape[1]):
-           rt=np.random.rand(self.MpDf.shape[1])
+            
+        rt_list=[]
+        for i in range(len(rt)):
+            rt_list.append(["k"+str(i),rt[i]])
+        self.KConstDf=pd.DataFrame(rt_list)
+
+        # Adding species to the model and treshold concetration
+        for i in range(len(self.SpIdStrArray)):
+            self.model.addSpecies(self.SpIdStrArray[i], compartment="C", initConcentration=i_sp[i],forceRegenerate=True)
+        # Adding reactions and reactions rate constants
+        for i in range(self.MpDf.shape[1]):
+            self.model.addParameter("k"+str(i),rt[i],True)
+            
+            prod=[]
+            for j in np.where(self.MpDf.iloc[:,i])[0]:
+                if self.MpDf.iloc[j,i].astype(int) > 1:
+                    prod.append(str(self.MpDf.iloc[j,i].astype(int))+self.MpDf.index[j])
+                else:
+                    prod.append(self.MpDf.index[j])
+            reac=[]
+            rate="k"+str(i)
+            for j in np.where(self.MrDf.iloc[:,i])[0]:
+                if self.MrDf.iloc[j,i].astype(int) > 1:
+                    reac.append(str(self.MrDf.iloc[j,i].astype(int))+self.MrDf.index[j])
+                else:
+                    reac.append(self.MrDf.index[j])
+                    
+                if self.MrDf.iloc[j,i]>1:
+                    for k in range(1,self.MrDf.iloc[j,i].astype(int)+1):
+                        rate+=" * "+self.MrDf.index[j]
+                else:
+                    rate+=" * "+self.MrDf.index[j]
+   
+            self.model.addReaction("r"+str(i), reac, prod, rate)
+        
+        # Adding events so if conentrations of species are under cutoff, 
+        # will have zero concentration 
+        # for i in range(len(self.SpIdStrArray)):
+        #     self.model.addEvent("e"+str(i),True,self.SpIdStrArray[i]+"<"+str(cutoff),True)
+        #     self.model.addEventAssignment("e"+str(i),self.SpIdStrArray[i],"0",True)
+        #     self.model.addTrigger("e"+str(i),self.SpIdStrArray[i]+"<"+str(cutoff),forceRegenerate=True)
+        
+        self.model.regenerateModel()
+        self.IsSbmlbool=False
+        
+    # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
+    # reaction network. It recives as input a vector of the initial concentration 
+    # of species form a file (SpConFileNameStr), the kinetics constant vector also from a file
+    # KConstFileNameStr and the concentration thearshold where a species is condidered not present. if the variables 
+    # i_sp and rt are not given, they are randomly initialized by a uniform 
+    # distribution between 0 and 1
+    def setMakModelFromFile(self, SpConFileNameStr=None ,KConstFileNameStr=None ,cutoff=0.1):
+        
+        self.CutoffFloat=cutoff
+        # Creating the model
+        # self.model=te.loada("")
+        try:
+            self.model
+            self.model.clearModel()
+            try:
+                del(self.SpConDf)
+                del(self.RpRateDf)
+            except:
+                self.model
+        except:
+            self.model=re.RoadRunner()
+
+        self.model.addCompartment("C", 1,True)
+        # Creating the random initial concetration if it's out of condition
+        if SpConFileNameStr is None: 
+            i_sp=np.random.rand(self.MpDf.shape[0])
+            
+            sp_list=[]
+            for i in range(len(i_sp)):
+                sp_list.append([self.SpIdStrArray[i],i_sp[i]])
+            self.SpInitConDf=pd.DataFrame(sp_list)
+            
+        else:
+            self.SpInitConDf=pd.read_csv(SpConFileNameStr,delimiter=":",header=None)
+            if(self.SpInitConDf.shape[0]!=len(self.SpIdStrArray)):
+                raise NameError('Species concentration file has not the same number of values')
+            
+            for i in range(len(self.SpIdStrArray)):
+                i_sp[i]=self.SpInitConDf[1][self.SpInitConDf[0]==self.SpIdStrArray[i]].values[0]
+            
+        # Creating the random initial rates if it's out of condition
+        if KConstFileNameStr is None: 
+            rt=np.random.rand(self.MpDf.shape[1])
+            
+            rt_list=[]
+            for i in range(len(rt)):
+                rt_list.append(["k"+str(i),rt[i]])
+            self.KConstDf=pd.DataFrame(rt_list)
+
+        else:
+            self.KConstDf=pd.read_csv(KConstFileNameStr,delimiter=":",header=None)
+            if(self.KConstDf.shape[0]!=self.MpDf.shape[1]):
+                raise NameError('Kinetic constants file has not the same number of values')
+            
+            for i in range(self.MpDf.shape[1]):
+                rt[i]=self.KConstDf[1].iloc[i]
            
         # Adding species to the model and treshold concetration
         for i in range(len(self.SpIdStrArray)):
@@ -100,7 +200,22 @@ class RNSRW(RNIRG):
         # self.model = te.loadSBMLModel(self.fname)
         self.model = re.RoadRunner(self.fname)
     
+    # Function that save initial conditions parameters in files
+    def saveInitCondToText(self,SpConFileNameStr=None,KConstFileNameStr=None):
         
+        if KConstFileNameStr==None:
+            self.KConstFileNameStr=self.FilenameStr[0:-4]+"KConst.txt"
+        else: 
+            self.KConstFileNameStr=KConstFileNameStr
+            
+        if SpConFileNameStr==None:     
+            self.SpConFileNameStr=self.FilenameStr[0:-4]+"SpCon.txt"
+        else:
+            self.SpConFileNameStr=SpConFileNameStr
+        
+        self.SpInitConDf.to_csv(self.SpConFileNameStr,sep=":",index=None,header=None)
+        self.KConstDf.to_csv(self.KConstFileNameStr,sep=":",index=None,header=None)
+    
     # Function that return concentration species in right order and cosidering a cutoff
     def getSpConArray(self,cutoff=None):
         
@@ -201,19 +316,7 @@ class RNSRW(RNIRG):
         ac_reac=self.getActiveRpArray(c_st,cutoff)
         reac[ac_reac==False]=0
         rate=[[ti]+reac.tolist()]
-        
-        # # Check if the abstraction has changed, if remain the same, no data is added.
-        # try:
-        #     if any(self.RN.abst[-1]!=(c_st>0)):
-        #         abst=[[ti]+self.getSpAbstracArray(c_st,k,cutoff).tolist()]
-        #         a_sp=[[ti]+self.getActiveSpArray(c_st,cutoff).tolist()]
-        #         a_r=[[ti]+self.getActiveRpArray(c_st,cutoff).tolist()]
-        # # Exception is generated if the RN.abst variable is not initialized beforehand.
-        # except:
-        #     abst=[[ti]+self.getSpAbstracArray(c_st,k,cutoff).tolist()]
-        #     a_sp=[[ti]+self.getActiveSpArray(c_st,cutoff).tolist()]
-        #     a_r=[[ti]+self.getActiveRpArray(c_st,cutoff).tolist()]
-        
+                
         # Running the simulation
         for i in range(steps):
             t=t_step*i+ti
@@ -226,12 +329,6 @@ class RNSRW(RNIRG):
             ac_reac=self.getActiveRpArray(n_st,cutoff)
             reac[ac_reac==False]=0
             rate.append([t+t_step]+reac.tolist())
-            # # appending data if the active species changes
-            # if not all((c_st<cutoff)==(n_st<cutoff)):
-            #     abst.append([t+t_step]+self.getSpAbstracArray(n_st,k,cutoff).tolist())
-            #     a_sp.append([t+t_step]+self.getActiveSpArray(n_st,cutoff).tolist())
-            #     a_r.append([t+t_step]+ac_reac.tolist())
-            # c_st=n_st.copy()
             c_st[c_st<cutoff]=0
         
         
@@ -239,33 +336,16 @@ class RNSRW(RNIRG):
         con=pd.DataFrame(con,columns=['time']+sp_names)
         con=con.set_index('time')
         
-        # abst=pd.DataFrame(abst,columns=['time']+sp_names)
-        # abst=abst.set_index('time')
-        
-        # a_sp=pd.DataFrame(a_sp,columns=['time']+sp_names)
-        # a_sp=a_sp.set_index('time')
-        
-        
         rate=pd.DataFrame(rate,columns=['time']+rate_name)
         rate=rate.set_index('time')
-        
-        # a_r=pd.DataFrame(a_r,columns=['time']+rate_name)
-        # a_r=a_r.set_index('time')
-        
         
         try:
             self.SpConDf=pd.concat([self.SpConDf,con])
             self.RpRateDf=pd.concat([self.RpRateDf,rate])
-            #self.abst=pd.concat([self.abst,abst])
-            #self.a_sp=pd.concat([self.a_sp,a_sp])
-            #self.a_r=pd.concat([self.a_r,a_r])
-            
         except:
             self.SpConDf=con
             self.RpRateDf=rate
-            # self.abst=abst
-            # self.a_sp=a_sp
-            # self.a_r=a_r
+
     
     def getAbstracDf(self,abst_type="non_null",cutoff=None):    
         
@@ -335,7 +415,7 @@ class RNSRW(RNIRG):
     
     # Function that modify parameters of a given model. It recives as input a 
     # vector of the initial concentration of species i_sp, the reactive 
-    # constant vector rt and the concentration 
+    # constant vector rt. The init value if for restart time to ti=0 (i.e. reset model)
     def setMakParam(self, i_sp=None ,rt=None,init=False):
         
         if self.IsSbmlbool:
@@ -357,10 +437,75 @@ class RNSRW(RNIRG):
         if init:
             del(self.SpConDf)
             del(self.RpRateDf)
-            # del(self.abst)
-            # del(self.a_r)
-            # del(self.a_sp)
+            sp_list=[]
+            for i in range(len(i_sp)):
+                sp_list.append([self.SpIdStrArray[i],i_sp[i]])
+            self.SpInitConDf=pd.DataFrame(sp_list)
+                
+            rt_list=[]
+            for i in range(len(rt)):
+                rt_list.append(["k"+str(i),rt[i]])
+            self.KConstDf=pd.DataFrame(rt_list)
       
+        for i in range(self.MpDf.shape[1]):
+            self.model.setGlobalParameterByName("k"+str(i),rt[i])
+        
+        for i in range(self.MpDf.shape[0]):
+            self.model.setValue(self.model.getIds()[i], i_sp[i])
+    
+    # Function that modify parameters of a given model. It recives as input a 
+    # vector of the initial concentration of species file SpConFileNameStr, and the 
+    # kinetics constant file KConstFileNameStr. The init value if for restart time to 
+    # ti=0 (i.e. reset model)
+    def setMakParamFromFile(self, SpConFileNameStr, KConstFileNameStr, init=False):
+        
+        if self.IsSbmlbool:
+            print("The initialized model corresponds to an sbml model, therefore the perturbation function cannot be used.")
+            return
+        
+        i_sp=np.random.rand(self.MpDf.shape[0])
+        self.SpInitConDf=pd.read_csv(SpConFileNameStr,delimiter=":",header=None)
+       
+        if(self.SpInitConDf.shape[0]!=len(self.SpIdStrArray)):
+            raise NameError('Species concentration file has not the same number of values')
+            
+        for i in range(len(self.SpIdStrArray)):
+            i_sp[i]=self.SpInitConDf[1][self.SpInitConDf[0]==self.SpIdStrArray[i]].values[0]
+            
+        rt=np.random.rand(self.MpDf.shape[1])
+        self.KConstDf=pd.read_csv(KConstFileNameStr,delimiter=":",header=None)
+        if(self.KConstDf.shape[0]!=self.MpDf.shape[1]):
+            raise NameError('Kinetic constants file has not the same number of values')
+        
+        for i in range(self.MpDf.shape[1]):
+            rt[i]=self.KConstDf[1].iloc[i]
+        
+        # Creating the random initial concetration if it's out of condition
+        if i_sp is None: 
+            i_sp=np.random.rand(self.MpDf.shape[0])
+        elif(len(i_sp) !=self.MpDf.shape[0]):
+            i_sp=np.random.rand(self.MpDf.shape[0])
+        
+        # Creating the random initial concetration if it's out of condition
+        if rt is None:  
+            rt=np.random.rand(self.MpDf.shape[1])
+        elif (len(rt) !=self.MpDf.shape[1]):
+            rt=np.random.rand(self.MpDf.shape[1])
+        
+        if init:
+            del(self.SpConDf)
+            del(self.RpRateDf)
+            
+            sp_list=[]
+            for i in range(len(i_sp)):
+                sp_list.append([self.SpIdStrArray[i],i_sp[i]])
+            self.SpInitConDf=pd.DataFrame(sp_list)
+                
+            rt_list=[]
+            for i in range(len(rt)):
+                rt_list.append(["k"+str(i),rt[i]])
+            self.KConstDf=pd.DataFrame(rt_list)
+            
         for i in range(self.MpDf.shape[1]):
             self.model.setGlobalParameterByName("k"+str(i),rt[i])
         
@@ -511,9 +656,7 @@ class RNSRW(RNIRG):
                     try:
                         del(self.SpConDf)
                         del(self.RpRateDf)
-                        # del(self.abst)
-                        # del(self.a_sp)
-                        # del(self.a_r)
+
                         self.setMakModel(i_sp=s ,rt=f ,cutoff=cutoff) # initialization of the model
                     except:
                         self.setMakModel(i_sp=s ,rt=f ,cutoff=cutoff) # initialization of the model
@@ -665,9 +808,6 @@ class RNSRW(RNIRG):
                     try:
                         del(self.SpConDf)
                         del(self.RpRateDf)
-                        # del(self.abst)
-                        # del(self.a_sp)
-                        # del(self.a_r)
                         self.setMakModel(i_sp=s ,rt=f ,cutoff=cutoff) # initialization of the model
                     except:
                         self.setMakModel(i_sp=s ,rt=f ,cutoff=cutoff) # initialization of the model

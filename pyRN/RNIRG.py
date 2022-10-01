@@ -192,7 +192,40 @@ class RNIRG:
         out.IsSbmlbool=False
         
         return out
-
+    # Generates a textfile for the reaction network
+    def saveToText(self,file):
+        self.FilenameStr=file
+        text_file = open(self.FilenameStr, "w")
+        
+        p_text=""
+        for i in range(self.MpDf.shape[1]):
+            p_text+="r"+str(i)+":   "
+            for j in np.where(self.MrDf.iloc[:,i]!=0)[0]:
+                if self.MrDf.iloc[j,i]==1.0:
+                    p_text+=self.MrDf.index[j]+" "
+                elif self.MrDf.iloc[j,i]==int(self.MrDf.iloc[j,i]):
+                    p_text+=str(int(self.MrDf.iloc[j,i]))+self.MrDf.index[j]+" "
+                else:
+                    p_text+=str(self.MrDf.iloc[j,i])+self.MrDf.index[j]+" "
+                p_text+="+ "
+            if len(np.where(self.MrDf.iloc[:,i]!=0)[0])>0:
+                p_text=p_text[:-2]
+            p_text+="=> "
+            
+            for j in np.where(self.MpDf.iloc[:,i]!=0)[0]:
+                if self.MpDf.iloc[j,i]==1.0:
+                    p_text+=self.MpDf.index[j]+" "
+                elif self.MpDf.iloc[j,i]==int(self.MpDf.iloc[j,i]):
+                    p_text+=str(int(self.MpDf.iloc[j,i]))+self.MpDf.index[j]+" "
+                else:
+                    p_text+=str(self.MpDf.iloc[j,i])+self.MpDf.index[j]+" "
+                p_text+="+ "
+            if len(np.where(self.MpDf.iloc[:,i]!=0)[0])>0:
+                p_text=p_text[:-2]
+            
+            p_text+="\n"
+        text_file.write(p_text)
+        text_file.close()
             
     # Initialization of the network from a smbl file, "file" corresponds 
     # to the path of the smbl file. The variable modifiers=True, includes 
