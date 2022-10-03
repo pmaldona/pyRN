@@ -132,7 +132,7 @@ class RNIRG:
         
         # creation of stoichiometric matrix for reactive and product part
         mr=np.zeros([len(er),len(sp)])
-        mr=pd.DataFrame(mr,columns=sp)
+        mr=pd.DataFrame(mr,columns=list(sp))
         mp=copy.copy(mr)
         reac=list()
         prod=list()
@@ -342,7 +342,7 @@ class RNIRG:
             
             # creation of stoichiometric matrix for reactive and product part
             mr=np.zeros([len(er),len(sp)])
-            mr=pd.DataFrame(mr,columns=sp)
+            mr=pd.DataFrame(mr,columns=list(sp))
             mp=copy.copy(mr)
             reac=list()
             prod=list()
