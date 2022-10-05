@@ -952,8 +952,8 @@ class RNIRG:
         return ind
     
     # Function that receives a set of species (sp_set) and returns 
-    # the idexes of which are inflow.
-    def getInflowFromSp(self,sp_set,set_type=False):
+    # the idexes of which are outflow.
+    def getOutflowFromSp(self,sp_set,set_type=False):
                 
         # Checks if input is or not bitarray, if it's no, it make the 
         # transmation
@@ -983,7 +983,7 @@ class RNIRG:
         
     # Function that receives a set of species (sp_set) and returns 
     # the idexes of which are inflow.
-    def getOutflowFromSp(self,sp_set,set_type=False):
+    def getInflowFromSp(self,sp_set,set_type=False):
                 
         # Checks if input is or not bitarray, if it's no, it make the 
         # transmation
