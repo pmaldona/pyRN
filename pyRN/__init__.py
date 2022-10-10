@@ -8,12 +8,11 @@ Created on Sat Jul  9 19:15:03 2022
 General Reaction Network Class
 """
 
-from .RNDS import RNDS
-from .RNSRW import RNSRW
 from .CRNS import CRNS
+from .RNLI import RNLI
 import copy
     
-class pyRN(RNSRW,CRNS,RNDS):
+class pyRN(CRNS,RNLI):
     
     def copy(self):
         return pyRN(copy.copy(self))
