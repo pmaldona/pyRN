@@ -164,12 +164,14 @@ class CRNS(RNIRG):
                 # connectivity conditions
                 if (not j==i) and a_b[i][j]==0 and (rsp_b[i] & psp_b[j]).any():
                     dyn_conn[i][j]=1
-                if (not j==i) and a_b[i][j]==0 and (psp_b[i] & rsp_b[j]).any():
+                    dyn_conn[j][i]=1
+                elif (not j==i) and a_b[i][j]==0 and (psp_b[i] & rsp_b[j]).any():
+                    dyn_conn[i][j]=1
                     dyn_conn[j][i]=1
                 # Hasse condition (all connected)
                 if (not j==i) and a_b[i][j]==0:
                     conn[i][j]=1
-                    conn[j][i]=1
+                    # conn[j][i]=1
         
         self.NotContainedBListBt=conn
         self.ConnectedBListBt=dyn_conn
@@ -530,14 +532,14 @@ class CRNS(RNIRG):
                 is_org=self.isSmFromSp(self.BSpListBt[i])
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
-                       is_ssm=is_ssm,is_org=is_org)
+                       is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
                 ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
                 if is_org:
                     org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
             else:           
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
-                       is_ssm=False,is_org=False)
+                       is_ssm=False,is_org=False,is_basic=True,basic_id=i)
         
         # Generation of the multigraph of the synergistic structure by set level (contained basics)
         for i in range(len(self.BSpListBt)):
@@ -575,20 +577,20 @@ class CRNS(RNIRG):
                             is_org=self.isSmFromSp(cr_sp)
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
-                                   is_ssm=is_ssm,is_org=is_org)
+                                   is_ssm=is_ssm,is_org=is_org,is_basic=False)
                             ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                             if is_org:
                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                          else:           
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
-                                   is_ssm=False,is_org=False)
+                                   is_ssm=False,is_org=False,is_basic=False)
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
                      if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
-                        G.add_edge(j,cr_a,key=k,syn=True)
+                        G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
                      else:
-                        G.add_edge(j,cr_a,key=k,syn=False)
+                        G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
                 
         self.SsmStrNx=G
         self.SsmStrSsmListSpArray=ssms
@@ -631,14 +633,14 @@ class CRNS(RNIRG):
                 is_org=self.isSmFromSp(self.BSpListBt[i])
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
-                       is_ssm=is_ssm,is_org=is_org)
+                       is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
                 ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
                 if is_org:
                     org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
             else:           
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
-                       is_ssm=False,is_org=False)
+                       is_ssm=False,is_org=False,is_basic=True,basic_id=i)
         
         # Generation of the multigraph of the synergistic structure by set level (contained basics)
         for i in range(len(self.BSpListBt)):
@@ -668,20 +670,20 @@ class CRNS(RNIRG):
                             is_org=self.isSmFromSp(cr_sp)
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
-                                   is_ssm=is_ssm,is_org=is_org)
+                                   is_ssm=is_ssm,is_org=is_org,is_basic=False)
                             ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                             if is_org:
                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                          else:           
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
-                                   is_ssm=False,is_org=False)
+                                   is_ssm=False,is_org=False,is_basic=False)
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
                      if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
-                        G.add_edge(j,cr_a,key=k,syn=True)
+                        G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
                      else:
-                        G.add_edge(j,cr_a,key=k,syn=False)
+                        G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
                 
         self.ConnectedStrNx=G
         self.ConnectedStrSsmListSpArray=ssms
@@ -725,14 +727,14 @@ class CRNS(RNIRG):
                 is_org=self.isSmFromSp(self.BSpListBt[i])
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
-                       is_ssm=is_ssm,is_org=is_org)
+                       is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
                 ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
                 if is_org:
                     org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
             else:           
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
-                       is_ssm=False,is_org=False)
+                       is_ssm=False,is_org=False,is_basic=True,basic_id=i)
         
         # Generation of the multigraph of the synergistic structure by set level (contained basics)
         for i in range(len(self.BSpListBt)):
@@ -768,20 +770,20 @@ class CRNS(RNIRG):
                             is_org=self.isSmFromSp(cr_sp)
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
-                                   is_ssm=is_ssm,is_org=is_org)
+                                   is_ssm=is_ssm,is_org=is_org,is_basic=False)
                             ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                             if is_org:
                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
                          else:           
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
-                                   is_ssm=False,is_org=False)
+                                   is_ssm=False,is_org=False,is_basic=True)
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
                      if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
-                        G.add_edge(j,cr_a,key=k,syn=True)
+                        G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
                      else:
-                        G.add_edge(j,cr_a,key=k,syn=False)
+                        G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
                 
         self.ConnectedSsmStrNx=G
         self.ConnectedSsmStrSsmListSpArray=ssms
@@ -796,9 +798,9 @@ class CRNS(RNIRG):
     # respectively. The shape of the set is circular if it is a basic or 
     # square if it is not. Finally, the green arrows correspond to synergies 
     # and the blue arrows to spurious union.
-    def getStrDisplayPv(self,graph):
+    def getStrDisplayPv(self,graph,notebook=False):
         G = nx.relabel_nodes(graph, lambda x: str(self.getIndArrayFromBt(bt(x))))
-        nt = Network('500px', '500px',directed=True)
+        nt = Network('500px', '500px',directed=True,notebook=notebook)
         # populates the nodes and edges data structures
         
         # Removing the sp array for pyvis ploting

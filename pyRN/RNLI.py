@@ -20,6 +20,7 @@ class RNLI(RNSRW,RNDS):
         all_reac.setall(1)
         op_ind=self.getIndArrayFromBt(self.getOpSpBt(self.SpIdStrArray,all_reac))
         mr=self.MrDf[range(self.MrDf.shape[1])]
+        
         # obtaining the max kinteic constant for each overproducible species
         for i in op_ind:
             op_sp_stoi=mr.iloc[i].max()
@@ -27,7 +28,6 @@ class RNLI(RNSRW,RNDS):
             max_kin=0
             if len(op_max_reacs)==1:
                 max_kin=self.model.getValue("k"+str(op_max_reacs[0]))
-                op_max_id=op_max_reacs[0]
             else:
                 for j in op_max_reacs:
                     if self.model.getValue("k"+str(j))>max_kin:
