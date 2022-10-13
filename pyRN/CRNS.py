@@ -1073,7 +1073,7 @@ class CRNS(RNIRG):
     # pyvis object, where each synergy is labeled as p, and it's draw as a 
     # green square. The generators are colored as blue circules, where the size 
     # is proportinal to the number of contained species.
-    def displaySynPv(self):
+    def displaySynPv(self,notebook=False):
         
         all_part=bt(len(self.BSpListBt))
         all_part.setall(0)
@@ -1098,7 +1098,7 @@ class CRNS(RNIRG):
             for j in self.getIndArrayFromBt(self.SynProdListGBt[i]):    
                 G.add_edge("p"+str(i), j, color="gray")
             
-        nt = Network('500px', '500px',directed=True)
+        nt = Network('500px', '500px',directed=True,notebook=notebook)
         nt.from_nx(G)
         nt.toggle_physics(False)
         # nt.show('RN.html')

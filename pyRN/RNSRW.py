@@ -7,15 +7,16 @@ Created on Thu Jul  7 10:48:31 2022
 
 Reaction Network Simulator and Random Walk Class
 """
-from .RNIRG import RNIRG
+from .CRNS import CRNS
 import numpy as np
 import roadrunner as re
 import pandas as pd
 import time
 import json
 import copy
+from bitarray import bitarray as bt
 
-class RNSRW(RNIRG):
+class RNSRW(CRNS):
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
     # reaction network. It recives as input a vector of the initial concentration 
     # of species i_sp, the reactive constant vector rt and the concentration 
@@ -280,6 +281,33 @@ class RNSRW(RNIRG):
             
         return v
 
+    def getComplexityFloat(self,abst,abst_type="species",elem_type="basics"):
+        
+        ab=bt(abst.tolist())
+        # print(ab)
+        compl=0
+        
+        if abst_type=="species" and elem_type=="basics":
+            for i in self.BSpListBt:
+                # print("basic:",i)
+                pres=ab&i
+                # print("present:",pres)
+                # print("fraction:",pres.count(1)/i.count(1))
+                compl+=pres.count(1)/i.count(1)
+        elif abst_type=="reactions" and elem_type=="basics":
+            for i in self.BRpListBt:
+                pres=ab&i
+                compl+=pres.count(1)/i.count(1)
+        elif abst_type=="species" and elem_type=="generators":
+            for i in self.GSpListBt:
+                pres=ab&i
+                compl+=pres.count(1)/i.count(1)
+        elif abst_type=="reactions" and elem_type=="generators":
+            for i in self.BSpListBt:
+                pres=ab&i
+                compl+=pres.count(1)/i.count(1)
+        # print("compleexity:",compl)
+        return compl
     
     # Function that simulates the dynamics of the proposed model. It takes as 
     # input the initial time ti and the final time tf, and the number of steps 
@@ -399,7 +427,12 @@ class RNSRW(RNIRG):
                     # condition of abstraction change the abstaraction are added
                     if any((cs>cutoff) != (ns>cutoff)) and i>0:
                         abst.append([self.SpConDf.index[i+1]]+self.getActiveRpArray(self.SpConDf.iloc[i+1],cutoff).tolist())
-        
+                elif abst_type=="complexity":
+                    cs=self.getActiveSpArray(self.SpConDf.iloc[i],cutoff)
+                    ns=self.getActiveSpArray(self.SpConDf.iloc[i+1],cutoff)
+                    # condition of abstraction change the abstaraction are added
+                    if any((cs>cutoff) != (ns>cutoff)) and i>0:
+                        abst.append([self.SpConDf.index[i+1]]+self.getActiveSpArray(self.SpConDf.iloc[i+1],cutoff).tolist())
         rate_name=[]
         for i in range(self.MrDf.shape[1]):
             rate_name.append('r'+str(i))
@@ -412,6 +445,17 @@ class RNSRW(RNIRG):
             abst=pd.DataFrame(abst,columns=['time']+rate_name)    
             abst=abst.set_index('time')
         return abst
+    
+    
+    def getComplexityArray(self,abstDf,abst_type="species",elem_type="basics"):
+        
+        comp_v=[]
+        for i in abstDf.iterrows():
+            # print(i)
+            comp_v.append(self.getComplexityFloat(i[1],abst_type=abst_type,elem_type=elem_type))
+                          
+        return np.array(comp_v)
+    
     
     # Function that modify parameters of a given model. It recives as input a 
     # vector of the initial concentration of species i_sp, the reactive 
@@ -629,6 +673,7 @@ class RNSRW(RNIRG):
     # c a dataframe of the convergent states in the random walk
     # a a dataframe of the abstractions of the convergent state (closure)
     # ac a dataframe of the active species of the convergent state (closure)
+    # co a dataframe of the complexity (closure)
     # u a dataframe of the active species in the random walk (used species)
     # sim a list of dataframe whit the simulation data (con, rate, abst, a_sp and a_r dataframes)
     def setRw(self,w=range(10),l=10,cutoff=.1,rt=None,n=5000,trys=10,sim_save=True,fname="rand_walk.json"):
@@ -644,7 +689,7 @@ class RNSRW(RNIRG):
         for i in w:  # for each random walk
             
             if i>len(self.RwListDictDf)-1: # this is a new random walk
-                    self.RwListDictDf.append(dict(f=None,s=None,p=None,c=None,a=None,u=None,t=None)) # matrices are created to store the steps in columns
+                    self.RwListDictDf.append(dict(f=None,s=None,p=None,c=None,a=None,ac=None,u=None,ca=None,cac=None,cu=None,t=None)) # matrices are created to store the steps in columns
             if self.RwListDictDf[i]['f'] is None: # this is a void random walk (0 steps)
                 s = np.zeros(len(self.SpIdStrArray)) # the current state is zeroed
                 if rt is None:
@@ -710,6 +755,9 @@ class RNSRW(RNIRG):
                     self.RwListDictDf[i]['ac'] = pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
                                                              index=self.SpIdStrArray) # a second abstraction is stored (active species)
                     self.RwListDictDf[i]['u'] = pd.DataFrame(s>0,index=self.SpIdStrArray)  # a thrid abstraction is stored (active species)
+                    self.RwListDictDf[i]['ca'] = [self.getComplexityFloat(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff))] # complexity of abstraction is stored  
+                    self.RwListDictDf[i]['cac'] = [self.getComplexityFloat(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff))] # complexity of second abstraction is stored (active species)
+                    self.RwListDictDf[i]['cu'] = [self.getComplexityFloat(s>0)] # complexity of thrid abstraction is stored (active species
                     self.RwListDictDf[i]['t'] = [st] # the time elapsed in the dynamic simulation is stored in the random walk
                 else:
                     self.RwListDictDf[i]['s'] = pd.concat([self.RwListDictDf[i]['s'],self.SpConDf.iloc[-1]],axis=1)
@@ -721,8 +769,11 @@ class RNSRW(RNIRG):
                     self.RwListDictDf[i]['ac'] = pd.concat([self.RwListDictDf[i]['ac'],pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
                                                                                                     index=self.SpIdStrArray)],axis=1) # a second abstraction is stored (active species) 
                     self.RwListDictDf[i]['u'] = pd.concat([self.RwListDictDf[i]['u'],pd.DataFrame(s>0,index=self.SpIdStrArray)],axis=1) # a thrid abstraction is stored (used species)
+                    self.RwListDictDf[i]['ca'].append(self.getComplexityFloat(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff))) # complexity of abstraction is stored  
+                    self.RwListDictDf[i]['cac'].append(self.getComplexityFloat(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff))) # complexity of second abstraction is stored (active species)
+                    self.RwListDictDf[i]['cu'].append(self.getComplexityFloat(s>0)) # complexity of thrid abstraction is stored (active species)
                     self.RwListDictDf[i]['t'].append(st) # the time elapsed in the dynamic simulation is stored in the random walk
-                 
+                    
             
             if sim_save:
                 h=0
@@ -742,7 +793,6 @@ class RNSRW(RNIRG):
             self.RwListDictDf[i]['a'].columns=range(iter_steps+1)
             self.RwListDictDf[i]['ac'].columns=range(iter_steps+1)
             self.RwListDictDf[i]['u'].columns=range(iter_steps+1)
-           
             
         out=copy.deepcopy(self.RwListDictDf)
         for i in out:
@@ -754,6 +804,7 @@ class RNSRW(RNIRG):
             i['a']=i['a'].to_json()
             i['ac']=i['ac'].to_json()
             i['u']=i['u'].to_json()
+
             for j in range(len(i['sim'])):
                 for k in i['sim'][j]:
                     i['sim'][j][k].reset_index(inplace=True)
