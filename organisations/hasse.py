@@ -44,23 +44,28 @@ def getOrgsSmallerContaining(organizations, sm, speciesList):
                 if remove == False:
                     solutions.append(str(_root))
                     continue
-
-            result.append((root, solutions))
-        
-
+            
+            if len(solutions) > 0:
+                result.append((root, solutions))
+    print("RESULT:")    
+    print(result)
     return result
 
 
 def build_hasse(sm, RN):
 
-    ssm_ssms = RN.ssm_ssms
-    species_list = RN.sp
+    ssm_ssms = RN.SsmStrSsmListSpArray
+    species_list = RN.MpDf.index.values
 
+    self_maintained = []
+    for org in sm:
+        self_maintained.append(org[1]['sp'])
+    
     orgs = list()
     for org in sm:
         _org = list()
         for species in species_list:
-            if species in org:
+            if species in org[1]['sp']:
                 _org.append(1)
             else:
                 _org.append(0)
@@ -68,7 +73,7 @@ def build_hasse(sm, RN):
 
     G = nx.Graph()
     node_id_count = 0
-    sm.sort(key=len)
+    self_maintained.sort(key=len)
     length_dict = {}
     for semi_self in ssm_ssms:
         if length_dict.get(str(len(semi_self)), False):
@@ -79,16 +84,16 @@ def build_hasse(sm, RN):
     c = 0
     species_count = 0
     reaction_count = 0
-    for _set in sm:
+    for _set in self_maintained:
         _len = len(_set)
         species_count = species_count + _len
         reactions = set()
         for spcs in _set:
-            row = RN.mr.loc[spcs]
+            row = RN.MrDf.loc[spcs]
             for i in range(len(row)):
                 if row[i] >= 1:
                     reactions.add(i)
-            row = RN.mp.loc[spcs]
+            row = RN.MpDf.loc[spcs]
             for i in range(len(row)):
                 if row[i] >= 1:
                     reactions.add(i)
@@ -104,21 +109,26 @@ def build_hasse(sm, RN):
         _y = -75*(_len-1)
         G.add_node(node_id_count, group = 1, label="O"+str(node_id_count), size=20, title=str(_set), x = _x, y = _y, fixed = json.loads('{ "x":false, "y":true}'))
         node_id_count += 1
+        print(str(_set))
+        print(node_id_count)
+        print(G.nodes)
     
     avg_species = species_count/len(sm)
     avg_reactions = reaction_count/len(sm)
 
-    edges = getOrgsSmallerContaining(orgs, sm, species_list)
-    
+    edges = getOrgsSmallerContaining(orgs, self_maintained, species_list)
+
     for edgeList in edges:
+        
         _from = -1
-        for index in list(G.nodes()):
+        for index in list(G.nodes):
             if str(edgeList[0]) == G.nodes[index]['title']:
                 _from = index
                 break
         for edge in edgeList[1:]:
             _to = -1
             for index in list(G.nodes()):
+                print(edge[0])
                 if str(edge[0]) == G.nodes[index]['title']:
                     _to = index
                     break
@@ -127,6 +137,7 @@ def build_hasse(sm, RN):
 
 
     nodes = list(G.nodes.items())
+    print(nodes)
     nodes.reverse()
     _range = list(range(len(nodes)))
     _range.reverse()

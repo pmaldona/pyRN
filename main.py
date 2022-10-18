@@ -24,10 +24,12 @@ def openFile(path):
     print(path)
     extension = str(path).split('.')[-1]
     if extension == 'txt':
-        RN = pyRN.from_txt(path)
+        RN = pyRN.setFromText(path)
+        RN.setGenerators()
         return True
     elif extension == 'sbml' or extension == 'xml':
-        RN = pyRN.from_sbml(path)
+        RN = pyRN.setFromSbml(path)
+        RN.setGenerators()
         return True
     else:
         return False
@@ -35,18 +37,18 @@ def openFile(path):
 @eel.expose
 def gen_network():
     if RN:
-        network = RN.display_RN()
+        network = RN.getRnDisplayPv()
         nodes, edges, heading, height, width, options = network.get_network_data()
-        species_count = len(RN.sp)
-        reaction_count = len(RN.mr.columns)
+        species_count = len(RN.SpIdStrArray)
+        reaction_count = len(RN.MrDf.columns)
         return {"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options, "species_count": species_count, "reaction_count": reaction_count}
         #return {"network": str(network)}
 
 @eel.expose
 def gen_synergetic():
     if RN:
-        RN.gen_syn_str()
-        network = RN.display_str(RN.syn_str)
+        RN.setSynStr()
+        network = RN.getStrDisplayPv(RN.SynStrNx)
         nodes, edges, heading, height, width, options = network.get_network_data()
         basic = 0
         closed = 0
@@ -78,12 +80,15 @@ def gen_synergetic():
 @eel.expose
 def gen_protosynergetic():
     if RN:
-        RN.gen_atoms()
-        RN.gen_mgen()
-        RN.all_syn()
-        network = RN.display_syn()
+        #RN.gen_atoms()
+        #RN.gen_mgen()
+        #RN.all_syn()
+        RN.setSynStr()
+        RN.setMgen()
+        RN.setSyn()
+        network = RN.displaySynPv()
         nodes, edges, heading, height, width, options = network.get_network_data()
-        transitions = len(RN.syn)
+        transitions = 0 #len(RN.getSyn())
         generators = len(nodes) - transitions
         return {"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options, "generators": generators, "transitions": transitions}
         #return {"network": str(network)}
@@ -91,19 +96,16 @@ def gen_protosynergetic():
 @eel.expose
 def calculate_orgs():
     if RN:
-        RN.gen_atoms()
-        #RN.gen_syn_str()
-        RN.gen_ssm_str()
-        #print(RN.ssms)
-        self_maintained = []
-        
-        for semi_self in RN.ssm_ssms:
-            if RN.is_sm(semi_self):
-                self_maintained.append(semi_self)
+        RN.setMgen()
+        RN.setSynStr()
+        RN.setSsmStr()
+
+        # the nodes that are self-maintained can be obtain by searching by the property
+        organizations = [(n,p) for n,p in RN.SynStrNx.nodes(data=True) if p['is_org']]
         
         hasse = Network('500px', '500px')
         hasse.toggle_physics(False)
-        nx_graph, species_count, reaction_count = build_hasse(self_maintained, RN)
+        nx_graph, species_count, reaction_count = build_hasse(organizations, RN)
         hasse.from_nx(nx_graph)
         #print(r_net)
 
@@ -138,11 +140,11 @@ def plot_basics_r():
 
 @eel.expose
 def plot_stoichiometry():
-    sp=RN.sp
+    sp=RN.SpIdStrArray
     sp_i=range(len(sp))
-    r=RN.mp.columns
+    r=RN.MpDf.columns
     r_i=range(len(r))
-    S=RN.mp.iloc[sp_i,r_i]-RN.mr.iloc[sp_i,r_i]
+    S=RN.MpDf.iloc[sp_i,r_i]-RN.MrDf.iloc[sp_i,r_i]
     fig, ax = plt.subplots(figsize = (10, 5))
     
     #  Ploting
@@ -171,14 +173,10 @@ def plot_stoichiometry():
 @eel.expose
 def plot_concentrations(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
     if RN:
-        try:
-            RN.con
-            RN.param_change_ma(i_sp,rt,init=True)
-        except:
-            RN.set_model_ma(i_sp,rt)
-        RN.run_model(ti,tf,steps,cutoff)
+        RN.setMakModelFromFile(SpConFileNameStr=None ,KConstFileNameStr=None ,cutoff=cutoff)
+        RN.runModel(ti,tf,steps,cutoff)
         fig, ax = plt.subplots(1, 1, figsize = (10, 5))
-        ax.plot(RN.con) #cmap=mpl.colormaps['viridis'])
+        ax.plot(RN.SpConDf) #cmap=mpl.colormaps['viridis'])
         ax.title.set_text("Concentrations")
         tmpfile = BytesIO()
         fig.savefig(tmpfile, format='png')
@@ -189,15 +187,10 @@ def plot_concentrations(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
 @eel.expose
 def plot_rates(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
     if RN:
-        try:
-            RN.rate
-            RN.param_change_ma(i_sp,rt,init=True)
-        except:
-            RN.set_model_ma(i_sp,rt)
-        
-        RN.run_model(ti,tf,steps,cutoff)
+        RN.setMakModelFromFile(SpConFileNameStr=None ,KConstFileNameStr=None ,cutoff=cutoff)
+        RN.runModel(ti,tf,steps,cutoff)
         fig, ax = plt.subplots(1, 1, figsize = (10, 5))
-        ax.plot(RN.rate) #cmap=mpl.colormaps['viridis'])
+        ax.plot(RN.RpRateDf) #cmap=mpl.colormaps['viridis'])
         ax.title.set_text("Rates")
         tmpfile = BytesIO()
         fig.savefig(tmpfile, format='png')
@@ -208,7 +201,7 @@ def plot_rates(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
 @eel.expose
 def random_network(): 
     global RN
-    RN=pyRN.rand_gen_whit_inflow()
+    RN=pyRN.setRandomgeneratedWithInflow()
     return True
 
 #say_hello_py('Python World!')
