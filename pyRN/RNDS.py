@@ -111,7 +111,88 @@ class RNDS(RNIRG):
                 opsp[self.getIndArrayFromBt(sp)[i]]=1
                 
         return(opsp)
+    
+    # Verifies which species of a reaction network (not necessarily an organization) 
+    # are overproducible. Inputs are species sp_set and process vector pr, 
+    # returns a list of overproducible species
+    def getSpNeededToOrg(self,sp_set,pr,destruct=False):     
+        # Checks if input is bitarray, if it is not, it make the 
+        # transformation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
         
+        if not (isinstance(pr,bt)):
+            v=bt(self.MpDf.shape[0])
+            v.setall(0)
+            
+            for i in pr:
+                v[i]=1
+        else:
+            v=pr
+        # If it's only one species and self mantained, the reuturns the specie
+        # itself
+        if sp.count()==1 and self.isSmFromSp(sp):
+            return sp
+        
+        Ns=sp.count() # number of species (rows)
+        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+        
+        rc =[] # creating variable of available reaction 
+        for j in self.getIndArrayFromBt(v):
+            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+       
+        # stoichiometric matrix of rn with prepended creation and destruction reactions 
+        S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
+        S=S.to_numpy()
+        S=np.column_stack((np.identity(Ns),np.column_stack((-np.identity(Ns),S))))
+        print("S:",S)
+        S=S.tolist()
+       
+        
+        # production of every species = 0, always possible because of additional creation and destruction reactions
+        f=np.zeros(Ns) 
+        f=f.tolist()
+        print("f:",f)
+        # original reactions with rate>=1 (any positive), prepended reactions with rate>=0
+        h=-np.ones(2*Ns+len(rc))
+        h[0:2*Ns]=0
+        h=h.tolist()
+        print("h:",h)
+        
+        # cost 0 for every reaction
+        cost=np.zeros(2*Ns+len(rc)) #norm of porcess vector for minimization
+        cost[0:Ns+Ns*destruct]=1
+        cost=cost.tolist()
+        print("cost:",cost)
+        
+        G=-np.identity(2*Ns+len(rc))
+        print("G:",G)
+        G=G.tolist()
+        
+        res = linprog(cost, A_eq=S, b_eq=f, A_ub=G, b_ub=h, method='highs')
+        # The unknown to be solved is the process column vector v = [vc,vd,vo] (creation/destruction/original network).
+        # The result for v is stored in the variable rn.linp.r$X (vc is X[1:Ns], vd is X[Ns+(1:Ns)]).
+        # The equations are S v = f (with f=0), G v >= h (i.e. [vc,vd,vo] >= [0,0,1] because G is the identity matrix).
+        # Only the original network reactions are constrained to be strictly positive (here arbitrarily vo >= 1).
+        # The cost is  Cost . vc  (dot product) or  Cost . vd  when destruction is penalized instead of creation.
+        # The linear programming ideal result is every prepended creation reaction with rate 0 (minimal Cost 0).
+        # It implies that there is at least one original process vector that can sustain every species (and even increase
+        # them if destruction reactions have positive rate). In that case the reaction network is a proper organization.
+        # If not it can be converted into one by adding the extra inflow of species with creation rate > 0.
+        # Returns the indexes of species needed as extra inflow and overproduced species in the particular solution found.        
+        
+        return(dict(inf=np.where(res.x[0:Ns]>0)[0],ovp=np.where(res.x[Ns+1:2*Ns]>0)[0],v=res.x[0:Ns]))
+
+    
     # Generates a base of overproduced species of a reaction network 
     # (not necessarily an organization). Inputs are species sp_set and 
     # process vector pr, returns a list of minium overproducible species sets.    
@@ -367,7 +448,7 @@ class RNDS(RNIRG):
                     
                                        
     # Function that verifiys if a decomposition input is semi-self-
-    # mattained or not.
+    # mantained or not.
     def getSsmDcomArray(self,dcom):
         
         #classification of overproduced species

@@ -527,7 +527,7 @@ class RNIRG:
         
                    
     
-    def getRnDisplayPv(self,r_set=np.array([])):
+    def getRnDisplayPv(self,r_set=np.array([]),notebook=False):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
@@ -581,7 +581,7 @@ class RNIRG:
                 G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="gray",
                            label=label,title=label)
         
-        nt = Network('500px', '500px',directed=True)
+        nt = Network('500px', '500px',directed=True,notebook=notebook)
         nt.from_nx(G)
         nt.toggle_physics(False)
         # nt.show('proto.html')
@@ -1044,7 +1044,7 @@ class RNIRG:
             d=np.array(list(map(dist,list(map(lambda x: rnorm(x-xr[i]),xs)))))
             dr = d - pr*usr; 
             dr = np.exp(dr-np.max(dr))
-            sr = np.random.choice(range(Nr),1,p=norm(dr))
+            sr = np.random.choice(range(Ns),1,p=norm(dr))
             dp = d - pp*usp; 
             dp[sr] = -np.inf 
             dp = np.exp(dp-np.max(dp))
@@ -1058,7 +1058,7 @@ class RNIRG:
         i = np.where(usr==0)[0]
         for s in np.random.choice(i,len(i)):
           d=np.array(list(map(dist,list(map(lambda x: rnorm(x-xs[s]),xr)))))
-          r = np.random.choice(range(Nr),1,p=norm(np.exp(dr)))
+          r = np.random.choice(range(Nr),1,p=norm(np.exp(d)))
           mr.iloc[s,r] = mr.iloc[s,r] + 1
         
         # (4) assignment of species not used as products to a random reaction (eventually the same reaction)
@@ -1066,7 +1066,7 @@ class RNIRG:
         
         for s in np.random.choice(i,len(i)):
           d=np.array(list(map(dist,list(map(lambda x: rnorm(x-xs[s]),xr)))))
-          r = np.random.choice(range(Nr),1,p=norm(np.exp(dr)))
+          r = np.random.choice(range(Nr),1,p=norm(np.exp(d)))
           mp.iloc[s,r] = mp.iloc[s,r] + 1
         
         # (5) extra assignment of species at random
@@ -1304,11 +1304,12 @@ class RNIRG:
         mp=self.MpDf.copy()
         
         i = np.where(mr.sum(axis=1)+mr.sum(axis=1)==0)[0]
-        if len(i)>0: 
+        if len(i)>0:
             mr = mr.drop(mr.index[i],axis=0,inplace=False)  # unused species are eliminated
             mp = mp.drop(mp.index[i],axis=0,inplace=False)  # unused species are eliminated
-            
-        i = np.where(list(map(lambda k: all(mr.iloc[:,k]==mp.iloc[:,k]), range(mr.shape[0]))))[0]
+                
+        i = np.where(list(map(lambda k: all(mr.iloc[:,k]==mp.iloc[:,k]), range(mr.shape[1]))))[0]
+
         if len(i)>0:
             mr = mr.drop(mr.index[i],axis=0,inplace=False)  # unused species are eliminated
             mp = mp.drop(mp.index[i],axis=0,inplace=False)  # unused species are eliminated

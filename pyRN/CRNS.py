@@ -1087,19 +1087,28 @@ class CRNS(RNIRG):
         for i in self.getIndArrayFromBt(all_part):
             sp=str(self.SpIdStrArray[self.getIndArrayFromBt(self.GSpListBt[i])])
             size=len(self.SpIdStrArray[self.getIndArrayFromBt(self.GSpListBt[i])])*3
-            G.add_node(i, color = "blue", label=str(i), size=size, title=sp, shape="dot")
-            
+            if self.GInBListBt[i].count()>1:
+                G.add_node(i, color = "royalblue", label=str(i), size=size, title=sp, shape="dot")
+            else:
+                G.add_node(i, color = "lime", label=str(i), size=size, title=sp, shape="dot")
         for i in range(len(self.SynReacListGBt)):
-            G.add_node("p"+str(i), color = "green", label="p"+str(i), size=7, shape="square")
-            
+            if self.SynReacListGBt[i].count()==1:
+                G.add_node("p"+str(i), color = "crimson", label="p"+str(i), size=7, shape="square")
+            else:
+                G.add_node("p"+str(i), color = "teal", label="p"+str(i), size=7, shape="square")
         for i in range(len(self.SynReacListGBt)):
-            for j in self.getIndArrayFromBt(self.SynReacListGBt[i]):    
-                G.add_edge(j, "p"+str(i), color="gray")
-            for j in self.getIndArrayFromBt(self.SynProdListGBt[i]):    
-                G.add_edge("p"+str(i), j, color="gray")
-            
+            if self.SynReacListGBt[i].count()==1:
+                for j in self.getIndArrayFromBt(self.SynReacListGBt[i]):    
+                    G.add_edge(j, "p"+str(i), color="crimson")
+                for j in self.getIndArrayFromBt(self.SynProdListGBt[i]):    
+                    G.add_edge("p"+str(i), j, color="crimson")
+            else:        
+                for j in self.getIndArrayFromBt(self.SynReacListGBt[i]):    
+                    G.add_edge(j, "p"+str(i), color="teal")
+                for j in self.getIndArrayFromBt(self.SynProdListGBt[i]):    
+                    G.add_edge("p"+str(i), j, color="teal")
         nt = Network('500px', '500px',directed=True,notebook=notebook)
         nt.from_nx(G)
-        nt.toggle_physics(False)
+        nt.toggle_physics(True)
         # nt.show('RN.html')
         return(nt)
