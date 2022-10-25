@@ -117,9 +117,11 @@
 		return r;
 	}
 
-	const generateRandomNetwork = async () => {
-		let promise = eel.random_network()();
-		let randomNetwork = await promise.then(result => {
+	const generateRandomNetwork = async (generator_object) => {
+		let promise = eel.setup_random_generation(generator_object)();
+		await promise.then();
+		let promise_gen = eel.random_network()();
+		let randomNetwork = await promise_gen.then(result => {
 			return result;
 		});
 
@@ -127,6 +129,17 @@
 			filename.open_file("Random Network");
 			openPage(1);
 		}
+	}
+
+	const addExtraSpecies = async (add_obj) => {
+		let promise = eel.add_extra_species(add_obj)();
+		let addedNew = await promise.then(result => {
+			return result;
+		});
+		if(addedNew) {
+			return true;
+		}
+		return false;
 	}
 </script>
 
@@ -154,6 +167,7 @@
 	genStoich={generateStoichiometryPlot}
 	genConcentrations={generateConcentrationsPlot}
 	genRates={generateRatesPlot}
+	addSpecies={addExtraSpecies}
   	initialValues={state}
 	genRandNet={generateRandomNetwork}
 />

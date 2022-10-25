@@ -9,6 +9,7 @@ function generateGraph(containerName, ntwrk) {
 
     let _network = new vis.Network(container, data, ntwrk.options);
     _network.setOptions(ntwrk.options);
+    return _network;
 }
 
 export { generateGraph };

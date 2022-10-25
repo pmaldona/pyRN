@@ -11,7 +11,7 @@
     let options = {};
     
     let graphs = [
-		{ id: 1, text: `Organisation Structures` },
+		{ id: 1, text: `Reactive Organisation Structures` },
 		{ id: 2, text: `Synergistic Structures` }
 	];
 

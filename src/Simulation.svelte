@@ -1,4 +1,5 @@
 <script>
+    import { text } from 'svelte/internal';
     import { filename } from './store/FileStore';
     export let genBasicsSp;
     export let genBasicsR;
@@ -83,31 +84,33 @@
                     </option>
                 {/each}
             </select>
-            <label>
-                Start:
-                <input type=number bind:value={timeStart}>
-            </label>
-            <label>
-                End: 
-                <input type=number bind:value={timeFinal}>
-            </label>
-            <label>
-                Steps: 
-                <input type=number bind:value={steps}>
-            </label>
-            <label>
-                Cutoff: 
-                <input type=number bind:value={cutoff}>
-            </label>
-            <div>
-                Initial Concentrations:
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <a class="waves-effect waves-light btn-flat" on:click={plot}>Init</a>
-                <br>
-                Rate Constants:
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <a class="waves-effect waves-light btn-flat" on:click={plot}>Rate</a>
-            </div>
+            {#if selected.text != 'Stoichiometry'}
+                <label>
+                    Start:
+                    <input type=number bind:value={timeStart}>
+                </label>
+                <label>
+                    End: 
+                    <input type=number bind:value={timeFinal}>
+                </label>
+                <label>
+                    Steps: 
+                    <input type=number bind:value={steps}>
+                </label>
+                <label>
+                    Cutoff: 
+                    <input type=number bind:value={cutoff}>
+                </label>
+                <div>
+                    Initial Concentrations:
+                    <!-- svelte-ignore a11y-missing-attribute -->
+                    <a class="waves-effect waves-light btn-flat" on:click={plot}>Init</a>
+                    <br>
+                    Rate Constants:
+                    <!-- svelte-ignore a11y-missing-attribute -->
+                    <a class="waves-effect waves-light btn-flat" on:click={plot}>Rate</a>
+                </div>
+            {/if}
             <!-- svelte-ignore a11y-missing-attribute -->
             <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={plot}>replot</a>
         </div>

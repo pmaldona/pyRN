@@ -4,8 +4,19 @@
     import { network } from './store/NetworkStore';
     import { filename } from './store/FileStore';
     import { protoSyn } from './store/ProtoSynStrStore';
+    import Modal,{getModal} from './Modal.svelte'
     export let genNetwork;
     export let genProtoSyn;
+    export let addSpecies;
+
+    let with_inflow = false;
+	let new_extra = 1;
+	let percentage_of_species = 0.1;
+	let extra = 1;
+	let percentage_of_reactions = 0.1;
+	let label_of_species = "x";
+	let extra_inflow = 0.1;
+	let extra_outflow = 0.1;
 
     let nodes;
     let edges;
@@ -24,6 +35,19 @@
         generators: 0,
         transitions: 0
     };
+
+    C2S.prototype.circle = CanvasRenderingContext2D.prototype.circle;
+    C2S.prototype.square = CanvasRenderingContext2D.prototype.square;
+    C2S.prototype.triangle = CanvasRenderingContext2D.prototype.triangle;
+    C2S.prototype.triangleDown = CanvasRenderingContext2D.prototype.triangleDown;
+    C2S.prototype.star = CanvasRenderingContext2D.prototype.star;
+    C2S.prototype.diamond = CanvasRenderingContext2D.prototype.diamond;
+    C2S.prototype.roundRect = CanvasRenderingContext2D.prototype.roundRect;
+    C2S.prototype.ellipse_vis = CanvasRenderingContext2D.prototype.ellipse_vis;
+    C2S.prototype.database = CanvasRenderingContext2D.prototype.database;
+    C2S.prototype.arrowEndpoint = CanvasRenderingContext2D.prototype.arrowEndpoint;
+    C2S.prototype.circleEndpoint = CanvasRenderingContext2D.prototype.circleEndpoint;
+    C2S.prototype.dashedLine = CanvasRenderingContext2D.prototype.dashedLine;
 
     if($filename != "" && nodes == undefined) {
           drawNetwork();
@@ -87,6 +111,103 @@
             genRNStr();
         }
     }
+
+    function action(e) {
+		e.preventDefault();
+        let labels = label_of_species.split(',');
+        for(let i = 0; i < labels.length; i++) {
+            labels[i] = labels[i].trim();
+        }
+        if(labels.length != new_extra) {
+            labels = [labels[0]];
+        }
+
+		let form_obj = {
+            Nse: new_extra,
+	        p: new_extra==0 ? percentage_of_species : 0,
+	        extra: extra,
+	        m: extra==0 ? percentage_of_reactions : 0,
+	        l: labels
+	    };
+        console.log(form_obj);
+        getModal().close();
+		let promise = addSpecies(form_obj);
+        promise.then(result => {
+            if(result == true) {
+                drawNetwork();
+            }
+        });
+	}
+
+    function exportSvg()
+    {
+        var networkContainer = network.get_network().body.container;
+        var ctx = new C2S({width: networkContainer.clientWidth, height: networkContainer.clientWidth, embedImages: true});
+
+        var canvasProto = network.get_network().canvas.__proto__;
+        var currentGetContext = canvasProto.getContext;
+        canvasProto.getContext = function()
+        {
+            return ctx;
+        }
+        var svgOptions = {
+            nodes: {
+                shapeProperties: {
+                    interpolation: false //so images are not scaled svg will get full image
+                },
+                scaling: { label: { drawThreshold : 0} },
+                font:{color:'#000000'}
+            },
+            edges: {
+                scaling: { label: { drawThreshold : 0} }
+            }
+        };
+        network.get_network().setOptions(svgOptions);
+        network.get_network().redraw();
+        network.get_network().setOptions(options);
+        canvasProto.getContext = currentGetContext;
+        ctx.waitForComplete(function()
+            {
+                var svg = ctx.getSerializedSvg();
+                showSvg(svg);
+            });
+    }
+    function showSvg(svg)
+    {
+        var svgBlob = new Blob([svg], {type: 'image/svg+xml'});
+        openBlob(svgBlob, "network.svg");
+    }
+
+    function openBlob(blob, fileName)
+	  {
+		if(window.navigator && window.navigator.msSaveOrOpenBlob)
+        {
+
+            //blobToDataURL(blob, function(dataurl){window.open(dataurl);});
+            window.navigator.msSaveOrOpenBlob(blob,fileName);
+        }
+        else
+        {
+			var a = document.getElementById("blobLink");
+			if(!a)
+			{
+				a = document.createElement("a");
+				document.body.appendChild(a);
+				a.setAttribute("id", "blobLink");
+				a.style = "display: none";
+			}
+			var data = window.URL.createObjectURL(blob);
+			a.href = data;
+			a.download = fileName;
+			a.click();
+			setTimeout(function()
+				{
+				// For Firefox it is necessary to delay revoking the ObjectURL
+				window.URL.revokeObjectURL(data);
+				}
+				, 100);
+        }
+    }
     
 </script>
 
@@ -102,9 +223,20 @@
                 {/each}
             </select>
             <!-- svelte-ignore a11y-missing-attribute -->
-            <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawNetwork}>redraw lattice</a>
+            <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawNetwork}>redraw</a>
+            <div>
+                {#if $filename != ""}
+                    {#if selected.id == 1}
+                        <!-- svelte-ignore a11y-missing-attribute -->
+                        <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => getModal().open()}>Add Extra Species</a>
+                    {/if}
+                {/if}
+            </div>
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportSvg()}>Export to SVG</a>
         </div>
     </div>
+    
     <div style="position: absolute; bottom: 51px; right: 5px;">
         <h6>Network statistics:</h6>
         {#if selected.id == 1}
@@ -146,6 +278,53 @@
             </h5>
         </div>
     {/if}
+
+    <Modal>
+        <h4>Add Species</h4>
+        <div style="height: 250px; overflow:auto;">
+            <form onsubmit="action(e)">
+                <table>
+                    <tr>
+                        <td>Number of added species</td>
+                        <td><input type="number" id="species" step="1" bind:value={new_extra} style="width: 20%;"></td> 
+                    </tr>
+                    {#if new_extra==0}
+                        <tr>
+                            <td>Percentage of species added to reactions</td>
+                            <td>
+                                <input type="number" id="perc_species" min="2" step="1" bind:value={percentage_of_species} style="width: 20%;">
+                            </td>
+                        </tr>
+                    {/if}
+                    <tr>
+                        <td>Number of reactions to add the species to</td>
+                        <td>
+                            <input type="number" id="reactions" step="1" bind:value={extra} style="width: 20%;">
+                        </td>
+                        <!-- <td><input type="number" id="reactions" min="1" step="1" bind:value={random_reactions} style="width: 20%;"></td>  -->
+                    </tr>
+                    {#if extra==0}
+                        <tr>
+                            <td>Percentage of reactions to add the species to</td>
+                            <td>
+                                <input type="number" id="perc_reactions" bind:value={percentage_of_reactions} style="width: 20%;">
+                            </td>
+                        </tr>
+                    {/if}
+                    <tr>
+                        <td>Label of the new species</td>
+                        <td>
+                            <input type="text" id="reactions" step="1" bind:value={label_of_species} style="width: 100%;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Species will be split by ','</td>
+                    </tr>
+                </table>
+                <input type="submit" value="Generate" on:click={action}>
+            </form>
+        </div>
+    </Modal>
 </main>
 
 <style>
@@ -166,4 +345,10 @@
     #circle {
         margin-left: 33%;
     }
+
+    table, tr, td {
+		border: 0px solid black;
+		margin: 5px;
+		padding: 0px;
+	}
 </style>

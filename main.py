@@ -101,6 +101,7 @@ def calculate_orgs():
         RN.setSsmStr()
 
         # the nodes that are self-maintained can be obtain by searching by the property
+        # To-Do: Change to send method
         organizations = [(n,p) for n,p in RN.SynStrNx.nodes(data=True) if p['is_org']]
         
         hasse = Network('500px', '500px')
@@ -140,34 +141,35 @@ def plot_basics_r():
 
 @eel.expose
 def plot_stoichiometry():
-    sp=RN.SpIdStrArray
-    sp_i=range(len(sp))
-    r=RN.MpDf.columns
-    r_i=range(len(r))
-    S=RN.MpDf.iloc[sp_i,r_i]-RN.MrDf.iloc[sp_i,r_i]
-    fig, ax = plt.subplots(figsize = (10, 5))
-    
-    #  Ploting
-    
-    ax.matshow(S, cmap=mpl.colormaps['viridis'])
-    
-    
-    for i in range(len(sp_i)):
-        for j in range(len(r_i)):
-            c = S.iloc[i,j]               
-            ax.text(j, i, str(c), va='center', ha='center')
-    
-    sp_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(sp_i)))))
-    r_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(r_i)))))
-    
-    ax.set_yticks(sp_ticks,sp)
-    ax.set_xticks(r_ticks,r)
+    if RN:
+        sp=RN.SpIdStrArray
+        sp_i=range(len(sp))
+        r=RN.MpDf.columns
+        r_i=range(len(r))
+        S=RN.MpDf.iloc[sp_i,r_i]-RN.MrDf.iloc[sp_i,r_i]
+        fig, ax = plt.subplots(figsize = (10, 5))
+        
+        #  Ploting
+        
+        ax.matshow(S, cmap=mpl.colormaps['viridis'])
+        
+        
+        for i in range(len(sp_i)):
+            for j in range(len(r_i)):
+                c = S.iloc[i,j]               
+                ax.text(j, i, str(c), va='center', ha='center')
+        
+        sp_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(sp_i)))))
+        r_ticks=np.array(list(map(lambda x: x+ 0.5,range(len(r_i)))))
+        
+        ax.set_yticks(sp_ticks,sp)
+        ax.set_xticks(r_ticks,r)
 
-    tmpfile = BytesIO()
-    fig.savefig(tmpfile, format='png')
-    encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
+        tmpfile = BytesIO()
+        fig.savefig(tmpfile, format='png')
+        encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
 
-    return encoded
+        return encoded
     #plt.show()
 
 @eel.expose
@@ -199,10 +201,81 @@ def plot_rates(ti=0, tf=50, steps=100, cutoff=0.1, i_sp=None, rt=None):
         return encoded
 
 @eel.expose
-def random_network(): 
+def setup_random_generation(
+    gen_obj = {
+    "has_inflow": False, 
+    "random_species": 1,
+	"random_reactions": 1,
+	"distribution": "log scaled",
+	"pr": 0,
+	"pp": 0,
+	"inflow": 0.1,
+	"outflow": 0.1}
+):
+    
+    dist = lambda x: x*0+1
+    if gen_obj["distribution"] != "log scaled":
+        dist = lambda x: x*0+1
+
+    global generator_obj
+    generator_obj = {
+        "has_inflow": gen_obj["has_inflow"], 
+        "random_species": gen_obj["random_species"],
+	    "random_reactions": gen_obj["random_reactions"],
+	    "distribution": dist,
+	    "pr": gen_obj["pr"],
+	    "pp": gen_obj["pp"],
+	    "inflow": gen_obj["inflow"],
+	    "outflow": gen_obj["outflow"]
+    }
+    
+@eel.expose
+def random_network():
     global RN
-    RN=pyRN.setRandomgeneratedWithInflow()
+    if generator_obj["has_inflow"]:
+        RN=pyRN.setRandomgeneratedWithInflow(
+            Nr=generator_obj["random_reactions"],
+            Ns=generator_obj["random_species"],
+            dist=generator_obj["distribution"],
+            pr=generator_obj["pr"],
+            pp=generator_obj["pp"],
+            inflow=generator_obj["inflow"],
+            outflow=generator_obj["outflow"]
+        )
+    else:
+        RN=pyRN.setRandomgeneratedNoInflow(
+            Nr=generator_obj["random_reactions"],
+            Ns=generator_obj["random_species"],
+            dist=generator_obj["distribution"],
+            pr=generator_obj["pr"],
+            pp=generator_obj["pp"]
+        )
+    RN.setGenerators()
+    RN.setMgen()
     return True
+
+@eel.expose
+def add_extra_species(add_obj = {
+    "Nse": None,
+    "p": 0.1,
+    "extra": None,
+    "m": 1,
+    "l": "x"
+}):
+    if add_obj["Nse"] == 0:
+        add_obj["Nse"] = None
+    if add_obj["extra"] == 0:
+        add_obj["extra"] = None
+    if RN:
+        if add_obj["Nse"]>1:
+            for i in range(add_obj["Nse"]):
+                if i >= len(add_obj["l"]):
+                    RN.setExtraRandomgenerated(Nse=i, p=add_obj["p"], extra=add_obj["extra"], m=add_obj["m"], l=add_obj["l"][0])
+                else:
+                    RN.setExtraRandomgenerated(Nse=i, p=add_obj["p"], extra=add_obj["extra"], m=add_obj["m"], l=add_obj["l"][0])
+        else:
+            RN.setExtraRandomgenerated(Nse=add_obj["Nse"], p=add_obj["p"], extra=add_obj["extra"], m=add_obj["m"], l=add_obj["l"][0])
+        return True
 
 #say_hello_py('Python World!')
 #eel.say_hello_js('Python World!')   # Call a Javascript function
