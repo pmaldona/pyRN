@@ -31,13 +31,13 @@ jobs:
       - name: build python module
         run: |
           pyinstaller main.spec
-          sudo chmod +x dist/main/main
+          sudo chmod a+x dist/main/main
       
       - name: build electron app
         run: |
           npm run package
           ls out/*/ | grep pyrn_gui
-          sudo chmod +x out/*/pyrn_gui
+          sudo chmod a+x out/*/pyrn_gui
       
       - uses: vimtor/action-zip@v1
         with:

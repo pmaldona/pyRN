@@ -80,3 +80,8 @@ ipcMain.handle('OPEN_FILE', async (event) => {
     ]});
     return filePath;
 });
+
+ipcMain.handle('SAVE_FILE', async (event) => {
+    const filePath = await dialog.showSaveDialog();
+    return filePath;
+});

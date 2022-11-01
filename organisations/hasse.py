@@ -113,8 +113,11 @@ def build_hasse(sm, RN):
         print(node_id_count)
         print(G.nodes)
     
-    avg_species = species_count/len(sm)
-    avg_reactions = reaction_count/len(sm)
+    avg_species = 0
+    avg_reactions = 0
+    if len(sm) > 0:
+        avg_species = species_count/len(sm)
+        avg_reactions = reaction_count/len(sm)
 
     edges = getOrgsSmallerContaining(orgs, self_maintained, species_list)
 

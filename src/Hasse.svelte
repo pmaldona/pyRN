@@ -103,6 +103,76 @@
     //     console.log(nodes);
     //     generateHasse();
     // }
+
+    function exportSvg()
+    {
+        var networkContainer = network.get_network().body.container;
+        var ctx = new C2S({width: networkContainer.clientWidth, height: networkContainer.clientWidth, embedImages: true});
+
+        var canvasProto = network.get_network().canvas.__proto__;
+        var currentGetContext = canvasProto.getContext;
+        canvasProto.getContext = function()
+        {
+            return ctx;
+        }
+        var svgOptions = {
+            nodes: {
+                shapeProperties: {
+                    interpolation: false //so images are not scaled svg will get full image
+                },
+                scaling: { label: { drawThreshold : 0} },
+                font:{color:'#000000'}
+            },
+            edges: {
+                scaling: { label: { drawThreshold : 0} }
+            }
+        };
+        network.get_network().setOptions(svgOptions);
+        network.get_network().redraw();
+        network.get_network().setOptions(options);
+        canvasProto.getContext = currentGetContext;
+        ctx.waitForComplete(function()
+            {
+                var svg = ctx.getSerializedSvg();
+                showSvg(svg);
+            });
+    }
+    function showSvg(svg)
+    {
+        var svgBlob = new Blob([svg], {type: 'image/svg+xml'});
+        openBlob(svgBlob, "network.svg");
+    }
+
+    function openBlob(blob, fileName)
+	  {
+		if(window.navigator && window.navigator.msSaveOrOpenBlob)
+        {
+
+            //blobToDataURL(blob, function(dataurl){window.open(dataurl);});
+            window.navigator.msSaveOrOpenBlob(blob,fileName);
+        }
+        else
+        {
+			var a = document.getElementById("blobLink");
+			if(!a)
+			{
+				a = document.createElement("a");
+				document.body.appendChild(a);
+				a.setAttribute("id", "blobLink");
+				a.style = "display: none";
+			}
+			var data = window.URL.createObjectURL(blob);
+			a.href = data;
+			a.download = fileName;
+			a.click();
+			setTimeout(function()
+				{
+				// For Firefox it is necessary to delay revoking the ObjectURL
+				window.URL.revokeObjectURL(data);
+				}
+				, 100);
+        }
+    }
     
 </script>
 
@@ -130,6 +200,8 @@
             <br>
             <!-- svelte-ignore a11y-missing-attribute -->
             <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawLattice}>redraw lattice</a>
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportSvg()}>Export to SVG</a>
         </div>
     </div>
     <div style="position: absolute; bottom: 51px; right: 5px;">

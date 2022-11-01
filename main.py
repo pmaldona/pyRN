@@ -35,6 +35,11 @@ def openFile(path):
         return False
 
 @eel.expose
+def export_network(path):
+    if RN:
+        RN.saveToText(path);
+    
+@eel.expose
 def gen_network():
     if RN:
         network = RN.getRnDisplayPv()

@@ -8,6 +8,7 @@
     export let genNetwork;
     export let genProtoSyn;
     export let addSpecies;
+    export let expNetwork;
 
     let with_inflow = false;
 	let new_extra = 1;
@@ -62,6 +63,7 @@
                 if(edge.title){
                     edge.label = edge.title;
                 }
+                edge.color = {color: '#848484', highlight: '#848484', hover: '#848484', inherit: false, opacity: 1.0};
                 edge.smooth = {enabled: false};
                 for(let j = 0; j < result.edges.length; j++) {
                     if(j != i) {
@@ -80,6 +82,8 @@
             statistics.species_count = result.species_count;
             statistics.reaction_count = result.reaction_count;
             network.set_network({nodes: nodes, edges: edges, options: options, species_count: result.species_count, reaction_count: result.reaction_count});
+            console.log(network.get_network());
+            console.log(nodes);
         }); 
     }
 
@@ -92,7 +96,7 @@
                 if(edge.title){
                     edge.label = edge.title;
                 }
-                
+                edge.color = {color: '#848484', highlight: '#848484', hover: '#848484', inherit: false, opacity: 1.0};
             }
             
             edges = new vis.DataSet(result.edges);
@@ -208,6 +212,10 @@
 				, 100);
         }
     }
+
+    function exportNetwork() {
+        expNetwork();
+    }
     
 </script>
 
@@ -234,6 +242,8 @@
             </div>
             <!-- svelte-ignore a11y-missing-attribute -->
             <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportSvg()}>Export to SVG</a>
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportNetwork()}>Export Network</a>
         </div>
     </div>
     

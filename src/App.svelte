@@ -141,6 +141,21 @@
 		}
 		return false;
 	}
+
+	const exportNetwork = async() => {
+		let exported = window.electron.save().then(result => {
+            let path = result;
+            let success = eel.export_network(path)();
+            let ret = success.then(result => {
+				return result
+            });
+            return ret;
+        });
+		if(exported) {
+			return true;
+		}
+		return false;
+	}
 </script>
 
 <nav>
@@ -170,6 +185,7 @@
 	addSpecies={addExtraSpecies}
   	initialValues={state}
 	genRandNet={generateRandomNetwork}
+	expNetwork={exportNetwork}
 />
 
 <footer>
