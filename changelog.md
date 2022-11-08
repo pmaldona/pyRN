@@ -5,3 +5,4 @@ fixed linux.
 Naming redone.
 added export functionallity.
 Added Change Plot.
+Added Trajectory Plot.

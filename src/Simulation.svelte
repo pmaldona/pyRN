@@ -9,6 +9,7 @@
     export let randSimpleWalk;
     export let plotSimpleWalk;
     export let plotAbstraction;
+    export let plotTrajectory;
 
     let plots = [
         { id: 1, text: `Stoichiometry`, disabled: false},
@@ -39,6 +40,7 @@
     let nmin = 3;
     let fname = "rand_walk.json";
     let has_random_walk = false;
+    let convPert = false;
 
     if($filename != "" && image_source == undefined) {
           plot();
@@ -108,6 +110,12 @@
 
     function plot_abstraction() {
         plotAbstraction(selected_key).then(result => {
+            image_source = result;
+        });
+    }
+
+    function plot_trajectory() {
+        plotTrajectory(selected_key, convPert).then(result => {
             image_source = result;
         });
     }
@@ -219,6 +227,23 @@
                 <!-- svelte-ignore a11y-missing-attribute -->
                 <div>
                     <a class="waves-effect waves-light btn-flat" on:click={plot_abstraction}>Plot Abstraction Size</a>
+                </div>
+            {/if}
+            {#if selected.id == 6}
+                <select bind:value={selected_key} on:change="{() => console.log(selected_key)}" style="display:block;">
+                    {#each keys as key}
+                        <option value={key}>
+                            {key}
+                        </option>
+                    {/each}
+                </select>
+                <label>
+                    Show Convergence and Peretubations: 
+                    <input type="checkbox" bind:checked={convPert} style="opacity: 1; position: relative;">
+                </label>
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <div>
+                    <a class="waves-effect waves-light btn-flat" on:click={plot_trajectory}>Plot Trajectory</a>
                 </div>
             {/if}
             <!-- svelte-ignore a11y-missing-attribute -->

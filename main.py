@@ -328,6 +328,20 @@ def plot_abstraction(index):
 
         return encoded
 
+@eel.expose
+def plot_trajectory(index, conv_pert):
+    if RN:
+        fig, ax = plt.subplots(1, 1, figsize = (10, 5))
+        if conv_pert:
+            RN.plotHasseConvergenceAndPerturbationSimpleRw(ax, walk_index=index, title='') #cmap=mpl.colormaps['viridis'])
+        else:
+           RN.plotHasseSimpleRw(ax, walk_indexes=None, abstractions_type='c', title='Test', loga=False)
+        tmpfile = BytesIO()
+        fig.savefig(tmpfile, format='png')
+        encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
+
+        return encoded
+
 print("[eel]: Start");
 
 eel.start('index.html', mode=None)

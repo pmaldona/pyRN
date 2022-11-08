@@ -204,6 +204,14 @@
 		});
 		return plot;
 	}
+
+	const plotTrajectory = async(index, convPert) => {
+		let promise = eel.plot_trajectory(index, convPert)();
+		let plot = await promise.then(result => {
+			return result;
+		});
+		return plot;
+	}
 </script>
 
 <nav>
@@ -239,6 +247,7 @@
 	randSimpleWalk={simpleRandomWalk}
 	plotSimpleWalk={plotRandomWalkRaw}
 	plotAbstraction={plotAbstraction}
+	plotTrajectory={plotTrajectory}
 />
 
 <footer>
