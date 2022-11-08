@@ -745,7 +745,7 @@ class RNIRG:
     # spcies set. "sp_set" argument can be an numpy.array of species or a bitarray
     # of percent species.The function  will return an bitarray if bt_type is 
     # True, otherwise will return an numpy.array of species.  
-    def getClos_oneFromSp(self,sp_set,bt_type=False):
+    def getClosOneFromSp(self,sp_set,bt_type=False):
         
         # Checks if input is or not a bitarray, If not, it make the 
         # transformation to it
@@ -950,6 +950,16 @@ class RNIRG:
                 ind.append(i)
         
         return ind
+    
+    # Function that returns Bitarray for postition from a 0 and 1 array 
+    def getBtFromIndArray(self,v):
+        btarray=bt(len(v))
+        btarray.setall(0)
+        for i in range(len(v)):
+            if v[i]==1:
+                btarray[i]=1
+        
+        return btarray
     
     # Function that receives a set of species (sp_set) and returns 
     # the idexes of which are outflow.
@@ -1311,8 +1321,8 @@ class RNIRG:
         i = np.where(list(map(lambda k: all(mr.iloc[:,k]==mp.iloc[:,k]), range(mr.shape[1]))))[0]
 
         if len(i)>0:
-            mr = mr.drop(mr.index[i],axis=0,inplace=False)  # unused species are eliminated
-            mp = mp.drop(mp.index[i],axis=0,inplace=False)  # unused species are eliminated
+            mr = mr.drop(mr.columns[i],axis=1,inplace=False)  # unused species are eliminated
+            mp = mp.drop(mp.columns[i],axis=1,inplace=False)  # unused species are eliminated
           
         mr = mr.loc[:,~mr.columns.duplicated()].copy()
         mp = mp.loc[:,~mp.columns.duplicated()].copy()

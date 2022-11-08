@@ -15,6 +15,7 @@ import time
 import json
 import copy
 from bitarray import bitarray as bt
+from bitarray import frozenbitarray as fbt
 
 class RNSRW(CRNS):
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
@@ -229,7 +230,7 @@ class RNSRW(CRNS):
         con[con<cutoff]=0
         return con
         
-    # Function that return reaction rates in right order and cosidering a cutoff
+    # Function that return reaction rates in right order and considering a cutoff
     def getRpRateArray(self,cutoff=0.1):
         con=[]
         for i in range(self.MrDf.shape[1]):
@@ -243,7 +244,8 @@ class RNSRW(CRNS):
     def getSpAbstracArray(self,s,f,cutoff=None):
         if cutoff is None:
             cutoff=self.CutoffFloat
-        k = self.getIndArrayFromBt(self.getClosureFromSp(sp_set=self.SpIdStrArray[np.where(s>=cutoff)[0]],r_set=np.where(f>0)[0],bt_type=True))
+        k = self.getIndArrayFromBt(self.getClosureFromSp(sp_set=self.SpIdStrArray[np.where(s>=cutoff)[0]],
+                                                         r_set=np.where(f>0)[0],bt_type=True))
         v = np.repeat(False,len(s))
         v[k] = True
         return v
@@ -280,8 +282,11 @@ class RNSRW(CRNS):
             v[sp] = True
             
         return v
-
-    def getComplexityFloat(self,abst,abst_type="species",elem_type="basics"):
+    
+    # It measures the complexity as a function of the (abst_type) species or r
+    # eactions present in the abstraction (abst), considering in which 
+    # generators or basic molecules these first ones are present. 
+    def getComplexityFloat(self,abst,abst_type="reactions",elem_type="generators"):
         
         ab=bt(abst.tolist())
         # print(ab)
@@ -289,10 +294,7 @@ class RNSRW(CRNS):
         
         if abst_type=="species" and elem_type=="basics":
             for i in self.BSpListBt:
-                # print("basic:",i)
                 pres=ab&i
-                # print("present:",pres)
-                # print("fraction:",pres.count(1)/i.count(1))
                 compl+=pres.count(1)/i.count(1)
         elif abst_type=="reactions" and elem_type=="basics":
             for i in self.BRpListBt:
@@ -303,10 +305,9 @@ class RNSRW(CRNS):
                 pres=ab&i
                 compl+=pres.count(1)/i.count(1)
         elif abst_type=="reactions" and elem_type=="generators":
-            for i in self.BSpListBt:
+            for i in self.GRpListBt:
                 pres=ab&i
                 compl+=pres.count(1)/i.count(1)
-        # print("compleexity:",compl)
         return compl
     
     # Function that simulates the dynamics of the proposed model. It takes as 
@@ -318,7 +319,7 @@ class RNSRW(CRNS):
     # RNIRG.abst, RNIRG.a_sp and RNIRG.a_r. Those corresponde to the abstraction, 
     # active species and active reaction. This dataframes will append another 
     # line if any of the species change their concentration below or over the cutoff  
-    def runModel(self,ti=0,tf=50,steps=100,cutoff=None): 
+    def runMakModel(self,ti=0,tf=50,steps=100,cutoff=None): 
         
         if cutoff is None:
             cutoff=self.CutoffFloat
@@ -374,7 +375,12 @@ class RNSRW(CRNS):
             self.SpConDf=con
             self.RpRateDf=rate
 
-    
+    # Function that generates a Dataframe of the concentrations (SpConDf) of 
+    # the last simulation run (runMakModel). It receives with input the type 
+    # of abst_type required (Non-null "non-null", the closure of the non-null 
+    # species "close_abst", the active species "active_species" and the 
+    # active reactions "active_reactions") and the cutoff if it needs to be 
+    # changed.
     def getAbstracDf(self,abst_type="non_null",cutoff=None):    
         
         # Setting cutoff
@@ -446,8 +452,10 @@ class RNSRW(CRNS):
             abst=abst.set_index('time')
         return abst
     
-    
-    def getComplexityArray(self,abstDf,abst_type="species",elem_type="basics"):
+    # Generates a complexity array from the getComplexityFloat function, 
+    # from a Dataframe of abstractions (abstDf). It receives the same 
+    # parameters as the getComplexityFloat function.
+    def getComplexityArray(self,abstDf,abst_type="species",elem_type="generators"):
         
         comp_v=[]
         for i in abstDf.iterrows():
@@ -584,43 +592,66 @@ class RNSRW(CRNS):
     # activation of components of v (changing values from 0 to 1 or from >0 to 0), mask (defaults to all components) 
     # n total active components required, up to p active components to be preserved (defaults to all active components)
     def getPertActivation(self,v,mask=None,n=None,p=None):
+        
         v_out=v.copy()
+        
         if mask is None:
             mask=np.repeat(True,len(v_out))
+        
         if n is None:
             n = np.sum(mask)
         if p is None:
             p = np.sum(v_out[mask]>0)
         
-        w = v_out[mask]
+        w = v_out[mask].copy()
         l = len(w)
         a = np.sum(w>0)
         n = np.max([np.min([n,l]),0])
         p = np.max([np.min([p,a]),0])
+        
         if n==0: 
             w = 0*w
         elif n<=p:
             if a==1: 
                 k = np.where(w>0)[0] 
             else: 
-                k = np.random.choice(np.where(w>0)[0],n)+1
-            w[-k] = 0
+                k = np.random.choice(np.where(w>0)[0],n)
+            ind=np.delete(np.arange(0, l, 1, dtype=int),k,None)
+            w[ind] = 0
         elif p==0:
             if l==1: 
-                k = 1 
+                k = 0 
             else: 
-                k = np.random.choice(l,n)+1
-            w[-k] = 0
-            w[k[w[k-1]==0]-1] = 1
+                k = np.random.choice(l,n)
+            
+            ind=np.delete(np.arange(0, l, 1, dtype=int),k,None)
+            w[ind] = 0
+            if isinstance(k,int):
+                if w[k]==0:
+                    w[k]=1
+            else:
+                w[k[w[k]==0]]=1
         else :  # n>p and p>0
             i = np.where(w>0)[0]
             if len(i)>1: 
-                i = np.random.choice(i,p)+1  # the ones we keep
-            j = np.array(range(l))[-i]  # the remaining components
-            k = np.random.choice(len(j),n-p)+1
-            w[j[-k]] = 0
-            k <- j[k-1]-1
-            w[k[w[k-1]==0]-1] = 1
+                i = np.random.choice(i,p)  # the ones we keep
+            j=np.delete(np.arange(0, l, 1, dtype=int),i,None) # the remaining components
+            k = np.random.choice(len(j),n-p)
+            ind=np.delete(np.arange(0, len(j), 1, dtype=int),k,None)
+            
+            if isinstance(j,int):
+                w[j]=1
+                k=j
+            else:
+                w[j[ind]] = 0
+                k = j[k]
+            
+            if isinstance(k,int):
+                if w[k]==0:
+                    w[k]=1
+            else:
+                w[k[w[k]==0]]=1
+            
   
         v_out[mask] = w
         return v_out
@@ -635,8 +666,9 @@ class RNSRW(CRNS):
         return v_out
 
     # perturb a vector by adding or substracting components and randomizing the result
-    # v vector respect at his current position, d component gamma, at least nmin active components, 
-    # min_epsilon minimun random size perturmation, max_epsilon maximum random size pertubartion
+    # v vector respect at his current position, d added active components to the current state, 
+    # the least nmin active components, min_epsilon minimun random size perturmation, 
+    # max_epsilon maximum random size pertubartion
     def getPertAddAndState(self,v,d=1,nmin=5,max_epsion=1,min_epsilon=0.1):
         n = np.max([np.sum(v>0)+d,nmin])
         v_out = self.getPertActivation(v,n=n)
@@ -644,14 +676,40 @@ class RNSRW(CRNS):
         v_out = self.getStatePert(v_out,epsilon=epsilon)
         return v_out    
 
+    # Function that generates a structural perturbation in terms of generators 
+    # instead of species, considers the same parameters d and nmin of the 
+    # function getPertAddAndRandomize, the conn imput correspond to choose as 
+    # mask only connected generators.
+    def getGPert(self,g,d=1,nmin=3,conn=True):
+        
+        # Choosing only connceted generators
+        if conn:
+            mask=self.getGBtConnectedToBBt(g)
+            mask|=g
+            for j in [i for i in self.GInBListBt if i.count()==1]:
+                mask|=j
+        else:
+            mask=None
+        
+        # Generating the perturbation using existing functions
+        v=np.array(g.tolist())
+        mask=np.array(mask.tolist()).astype(bool)
+        n = np.max([np.sum(v>0)+d,nmin])
+        v_out = self.getPertActivation(v,mask=mask,n=n)
+        v_out[v_out>0]=1
+        v_out[v_out==0]=0
+        
+        # Transforming the output to bitarray
+        return bt("".join(v_out.astype(str)))
+
     # creates a structure to study evolutive paths of a reaction network rn
     # result: the reaction network rn, a random walk list rw
     # each rw[[i]] contains matrices f, s, p, c, a and r were each column stores
     # the starting state (f,s), the perturbed state p, its convergence (c), its abstraction (a) and used species (u)
     # for each perturbation and simulation step applied
-    def resetRw(self):
-      self.RwListDictDf=[]
-      self.RwListDictDf.append(dict(sim=None,f=None,s=None,p=None,c=None,a=None,ac=None,u=None))
+    def resetMakRw(self):
+      self.RwMakListDictDf=[]
+      self.RwMakListDictDf.append(dict(sim=None,f=None,s=None,p=None,c=None,a=None,ac=None,u=None))
     
     
        
@@ -676,21 +734,21 @@ class RNSRW(CRNS):
     # co a dataframe of the complexity (closure)
     # u a dataframe of the active species in the random walk (used species)
     # sim a list of dataframe whit the simulation data (con, rate, abst, a_sp and a_r dataframes)
-    def setRw(self,w=range(10),l=10,cutoff=.1,rt=None,n=5000,trys=10,sim_save=True,fname="rand_walk.json"):
+    def setMakRw(self,w=range(10),l=10,cutoff=.1,rt=None,n=5000,trys=10,sim_save=True,fname="rand_walk.json"):
                 
         try:
-            self.RwListDictDf
+            self.RwMakListDictDf
         except:
-            self.resetRw() # the starting structure to store the random walks to be generated
+            self.resetMakRw() # the starting structure to store the random walks to be generated
         
         if w==None or w==1 or w==0:
             w=range(0,1)
             
         for i in w:  # for each random walk
             
-            if i>len(self.RwListDictDf)-1: # this is a new random walk
-                    self.RwListDictDf.append(dict(f=None,s=None,p=None,c=None,a=None,ac=None,u=None,ca=None,cac=None,cu=None,t=None)) # matrices are created to store the steps in columns
-            if self.RwListDictDf[i]['f'] is None: # this is a void random walk (0 steps)
+            if i>len(self.RwMakListDictDf)-1: # this is a new random walk
+                    self.RwMakListDictDf.append(dict(f=None,s=None,p=None,c=None,a=None,ac=None,u=None,ca=None,cac=None,cu=None,t=None)) # matrices are created to store the steps in columns
+            if self.RwMakListDictDf[i]['f'] is None: # this is a void random walk (0 steps)
                 s = np.zeros(len(self.SpIdStrArray)) # the current state is zeroed
                 if rt is None:
                     f = self.getRandomizePert(np.ones(self.MrDf.shape[1])) # the flow vector is randomized (each random walk has a different f)
@@ -709,9 +767,9 @@ class RNSRW(CRNS):
                     self.setMakParam(i_sp=s ,rt=f,init=True)
                     
             else: # this is a random walk with a number of steps already accumulated
-              j = self.RwListDictDf[i]['c'].shape[1]  # the number of steps up to now
-              s = self.RwListDictDf[i]['c'][:,j] # the exploration continues from the last convergence state in the random walk
-              f = self.RwListDictDf[i]['f'][:,j] # the last flow vector is conserved
+              j = self.RwMakListDictDf[i]['c'].shape[1]  # the number of steps up to now
+              s = self.RwMakListDictDf[i]['c'][:,j] # the exploration continues from the last convergence state in the random walk
+              f = self.RwMakListDictDf[i]['f'][:,j] # the last flow vector is conserved
             
             fail=False
             for k in range(l):  # for each j step in random walk i
@@ -731,7 +789,7 @@ class RNSRW(CRNS):
                     # end perturbations, start simulation:
                     self.setMakParam(s)
                     start = time.time() 
-                    self.runModel(n*k,n*(k+1),n,cutoff) # the perturbed state is simulated reaching a convergence state
+                    self.runMakModel(n*k,n*(k+1),n,cutoff) # the perturbed state is simulated reaching a convergence state
                     end = time.time()
                     st=end-start 
                         # end simulation
@@ -746,55 +804,55 @@ class RNSRW(CRNS):
                     break
                         
                 if k==0:
-                    self.RwListDictDf[i]['s']=c_st
-                    self.RwListDictDf[i]['f'] = self.RpRateDf.iloc[-1].copy() # the flow vector is stored in the random walk
-                    self.RwListDictDf[i]['p'] = pd.DataFrame(s,index=self.SpIdStrArray)  # the perturbed current state is stored in the random walk
-                    self.RwListDictDf[i]['c'] = self.SpConDf.iloc[-1].copy() # the convergent state is stored in the random walk
-                    self.RwListDictDf[i]['a'] = pd.DataFrame(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),
+                    self.RwMakListDictDf[i]['s']=c_st
+                    self.RwMakListDictDf[i]['f'] = self.RpRateDf.iloc[-1].copy() # the flow vector is stored in the random walk
+                    self.RwMakListDictDf[i]['p'] = pd.DataFrame(s,index=self.SpIdStrArray)  # the perturbed current state is stored in the random walk
+                    self.RwMakListDictDf[i]['c'] = self.SpConDf.iloc[-1].copy() # the convergent state is stored in the random walk
+                    self.RwMakListDictDf[i]['a'] = pd.DataFrame(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),
                                                              index=self.SpIdStrArray) # the abstraction is stored  
-                    self.RwListDictDf[i]['ac'] = pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
+                    self.RwMakListDictDf[i]['ac'] = pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
                                                              index=self.SpIdStrArray) # a second abstraction is stored (active species)
-                    self.RwListDictDf[i]['u'] = pd.DataFrame(s>0,index=self.SpIdStrArray)  # a thrid abstraction is stored (active species)
-                    self.RwListDictDf[i]['ca'] = [self.getComplexityFloat(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff))] # complexity of abstraction is stored  
-                    self.RwListDictDf[i]['cac'] = [self.getComplexityFloat(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff))] # complexity of second abstraction is stored (active species)
-                    self.RwListDictDf[i]['cu'] = [self.getComplexityFloat(s>0)] # complexity of thrid abstraction is stored (active species
-                    self.RwListDictDf[i]['t'] = [st] # the time elapsed in the dynamic simulation is stored in the random walk
+                    self.RwMakListDictDf[i]['u'] = pd.DataFrame(s>0,index=self.SpIdStrArray)  # a thrid abstraction is stored (active species)
+                    self.RwMakListDictDf[i]['ca'] = [self.getComplexityFloat(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),abst_type="species")] # complexity of abstraction is stored  
+                    self.RwMakListDictDf[i]['cac'] = [self.getComplexityFloat(self.getActiveRpArray(self.SpConDf.iloc[-1],cutoff))] # complexity of second abstraction is stored (active species)
+                    self.RwMakListDictDf[i]['cu'] = [self.getComplexityFloat(s>0,abst_type="species")] # complexity of thrid abstraction is stored (active species
+                    self.RwMakListDictDf[i]['t'] = [st] # the time elapsed in the dynamic simulation is stored in the random walk
                 else:
-                    self.RwListDictDf[i]['s'] = pd.concat([self.RwListDictDf[i]['s'],self.SpConDf.iloc[-1]],axis=1)
-                    self.RwListDictDf[i]['f'] = pd.concat([self.RwListDictDf[i]['f'],self.RpRateDf.iloc[-1]],axis=1) # the flow vector is stored in the random walk
-                    self.RwListDictDf[i]['p'] = pd.concat([self.RwListDictDf[i]['p'],pd.DataFrame(s,index=self.SpIdStrArray)],axis=1)  # the perturbed current state is stored in the random walk
-                    self.RwListDictDf[i]['c'] = pd.concat([self.RwListDictDf[i]['c'],self.SpConDf.iloc[-1]],axis=1) # the convergent state is stored in the random walk
-                    self.RwListDictDf[i]['a'] = pd.concat([self.RwListDictDf[i]['a'],pd.DataFrame(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),
+                    self.RwMakListDictDf[i]['s'] = pd.concat([self.RwMakListDictDf[i]['s'],self.SpConDf.iloc[-1]],axis=1)
+                    self.RwMakListDictDf[i]['f'] = pd.concat([self.RwMakListDictDf[i]['f'],self.RpRateDf.iloc[-1]],axis=1) # the flow vector is stored in the random walk
+                    self.RwMakListDictDf[i]['p'] = pd.concat([self.RwMakListDictDf[i]['p'],pd.DataFrame(s,index=self.SpIdStrArray)],axis=1)  # the perturbed current state is stored in the random walk
+                    self.RwMakListDictDf[i]['c'] = pd.concat([self.RwMakListDictDf[i]['c'],self.SpConDf.iloc[-1]],axis=1) # the convergent state is stored in the random walk
+                    self.RwMakListDictDf[i]['a'] = pd.concat([self.RwMakListDictDf[i]['a'],pd.DataFrame(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),
                                                                                                   index=self.SpIdStrArray)],axis=1) # the abstraction is stored  
-                    self.RwListDictDf[i]['ac'] = pd.concat([self.RwListDictDf[i]['ac'],pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
+                    self.RwMakListDictDf[i]['ac'] = pd.concat([self.RwMakListDictDf[i]['ac'],pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
                                                                                                     index=self.SpIdStrArray)],axis=1) # a second abstraction is stored (active species) 
-                    self.RwListDictDf[i]['u'] = pd.concat([self.RwListDictDf[i]['u'],pd.DataFrame(s>0,index=self.SpIdStrArray)],axis=1) # a thrid abstraction is stored (used species)
-                    self.RwListDictDf[i]['ca'].append(self.getComplexityFloat(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff))) # complexity of abstraction is stored  
-                    self.RwListDictDf[i]['cac'].append(self.getComplexityFloat(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff))) # complexity of second abstraction is stored (active species)
-                    self.RwListDictDf[i]['cu'].append(self.getComplexityFloat(s>0)) # complexity of thrid abstraction is stored (active species)
-                    self.RwListDictDf[i]['t'].append(st) # the time elapsed in the dynamic simulation is stored in the random walk
+                    self.RwMakListDictDf[i]['u'] = pd.concat([self.RwMakListDictDf[i]['u'],pd.DataFrame(s>0,index=self.SpIdStrArray)],axis=1) # a thrid abstraction is stored (used species)
+                    self.RwMakListDictDf[i]['ca'].append(self.getComplexityFloat(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),abst_type="species")) # complexity of abstraction is stored  
+                    self.RwMakListDictDf[i]['cac'].append(self.getComplexityFloat(self.getActiveRpArray(self.SpConDf.iloc[-1],cutoff))) # complexity of second abstraction is stored (active species)
+                    self.RwMakListDictDf[i]['cu'].append(self.getComplexityFloat(s>0,abst_type="species")) # complexity of thrid abstraction is stored (active species)
+                    self.RwMakListDictDf[i]['t'].append(st) # the time elapsed in the dynamic simulation is stored in the random walk
                     
             
             if sim_save:
                 h=0
-                self.RwListDictDf[i]['sim']=[]
+                self.RwMakListDictDf[i]['sim']=[]
                 for k in range(l):
-                    self.RwListDictDf[i]['sim'].append(dict(con=self.SpConDf.iloc[n*(k+h):n*(k+h+1)],rate=self.RpRateDf.iloc[n*(k+h):n*(k+h+1)]))
+                    self.RwMakListDictDf[i]['sim'].append(dict(con=self.SpConDf.iloc[n*(k+h):n*(k+h+1)],rate=self.RpRateDf.iloc[n*(k+h):n*(k+h+1)]))
                     h+=1
             
             if fail:
                 if iter_steps != 0:
                     iter_steps-=1
                     
-            self.RwListDictDf[i]['f'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['s'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['p'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['c'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['a'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['ac'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['u'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['f'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['s'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['p'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['c'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['a'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['ac'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['u'].columns=range(iter_steps+1)
             
-        out=copy.deepcopy(self.RwListDictDf)
+        out=copy.deepcopy(self.RwMakListDictDf)
         for i in out:
             
             i['s']=i['s'].to_json()
@@ -834,10 +892,10 @@ class RNSRW(CRNS):
     # ac a dataframe of the active species of the convergent state (closure)
     # u a dataframe of the active species in the random walk (used species)
     # sim a list of dataframe whit the simulation data (con, rate, abst, a_sp and a_r dataframes)
-    def setRwMulticore(self,w=range(10),l=10,cutoff=.1,rt=None,n=5000,trys=10,sim_save=True,fname="rand_walk.json"):
+    def setRwMakMulticore(self,w=range(10),l=10,cutoff=.1,rt=None,n=5000,trys=10,sim_save=True,fname="rand_walk.json"):
                 
         try:
-            self.RwListDictDf
+            self.RwMakListDictDf
         except:
             self.resetRw() # the starting structure to store the random walks to be generated
         
@@ -846,9 +904,9 @@ class RNSRW(CRNS):
             
         for i in w:  # for each random walk
             
-            if i>len(self.RwListDictDf)-1: # this is a new random walk
-                    self.RwListDictDf.append(dict(f=None,s=None,p=None,c=None,a=None,u=None,t=None)) # matrices are created to store the steps in columns
-            if self.RwListDictDf[i]['f'] is None: # this is a void random walk (0 steps)
+            if i>len(self.RwMakListDictDf)-1: # this is a new random walk
+                    self.RwMakListDictDf.append(dict(f=None,s=None,p=None,c=None,a=None,u=None,t=None)) # matrices are created to store the steps in columns
+            if self.RwMakListDictDf[i]['f'] is None: # this is a void random walk (0 steps)
                 s = np.zeros(len(self.SpIdStrArray)) # the current state is zeroed
                 if rt is None:
                     f = self.getRandomizePert(np.ones(self.MrDf.shape[1])) # the flow vector is randomized (each random walk has a different f)
@@ -866,9 +924,9 @@ class RNSRW(CRNS):
                     self.setMakParam(i_sp=s ,rt=f,init=True)
                     
             else: # this is a random walk with a number of steps already accumulated
-              j = self.RwListDictDf[i]['c'].shape[1]  # the number of steps up to now
-              s = self.RwListDictDf[i]['c'][:,j] # the exploration continues from the last convergence state in the random walk
-              f = self.RwListDictDf[i]['f'][:,j] # the last flow vector is conserved
+              j = self.RwMakListDictDf[i]['c'].shape[1]  # the number of steps up to now
+              s = self.RwMakListDictDf[i]['c'][:,j] # the exploration continues from the last convergence state in the random walk
+              f = self.RwMakListDictDf[i]['f'][:,j] # the last flow vector is conserved
             
             fail=False
             for k in range(l):  # for each j step in random walk i
@@ -888,7 +946,7 @@ class RNSRW(CRNS):
                     # end perturbations, start simulation:
                     self.setMakParam(s)
                     start = time.time() 
-                    self.runModel(n*k,n*(k+1),n,cutoff) # the perturbed state is simulated reaching a convergence state
+                    self.runMakModel(n*k,n*(k+1),n,cutoff) # the perturbed state is simulated reaching a convergence state
                     end = time.time()
                     st=end-start 
                         # end simulation
@@ -903,50 +961,50 @@ class RNSRW(CRNS):
                     break
                         
                 if k==0:
-                    self.RwListDictDf[i]['s']=c_st
-                    self.RwListDictDf[i]['f'] = self.RpRateDf.iloc[-1].copy() # the flow vector is stored in the random walk
-                    self.RwListDictDf[i]['p'] = pd.DataFrame(s,index=self.SpIdStrArray)  # the perturbed current state is stored in the random walk
-                    self.RwListDictDf[i]['c'] = self.SpConDf.iloc[-1].copy() # the convergent state is stored in the random walk
-                    self.RwListDictDf[i]['a'] = pd.DataFrame(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),
+                    self.RwMakListDictDf[i]['s']=c_st
+                    self.RwMakListDictDf[i]['f'] = self.RpRateDf.iloc[-1].copy() # the flow vector is stored in the random walk
+                    self.RwMakListDictDf[i]['p'] = pd.DataFrame(s,index=self.SpIdStrArray)  # the perturbed current state is stored in the random walk
+                    self.RwMakListDictDf[i]['c'] = self.SpConDf.iloc[-1].copy() # the convergent state is stored in the random walk
+                    self.RwMakListDictDf[i]['a'] = pd.DataFrame(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),
                                                              index=self.SpIdStrArray) # the abstraction is stored  
-                    self.RwListDictDf[i]['ac'] = pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
+                    self.RwMakListDictDf[i]['ac'] = pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
                                                              index=self.SpIdStrArray) # a second abstraction is stored (active species)
-                    self.RwListDictDf[i]['u'] = pd.DataFrame(s>0,index=self.SpIdStrArray)  # a thrid abstraction is stored (active species)
-                    self.RwListDictDf[i]['t'] = [st] # the time elapsed in the dynamic simulation is stored in the random walk
+                    self.RwMakListDictDf[i]['u'] = pd.DataFrame(s>0,index=self.SpIdStrArray)  # a thrid abstraction is stored (active species)
+                    self.RwMakListDictDf[i]['t'] = [st] # the time elapsed in the dynamic simulation is stored in the random walk
                 else:
-                    self.RwListDictDf[i]['s'] = pd.concat([self.RwListDictDf[i]['s'],self.SpConDf.iloc[-1]],axis=1)
-                    self.RwListDictDf[i]['f'] = pd.concat([self.RwListDictDf[i]['f'],self.RpRateDf.iloc[-1]],axis=1) # the flow vector is stored in the random walk
-                    self.RwListDictDf[i]['p'] = pd.concat([self.RwListDictDf[i]['p'],pd.DataFrame(s,index=self.SpIdStrArray)],axis=1)  # the perturbed current state is stored in the random walk
-                    self.RwListDictDf[i]['c'] = pd.concat([self.RwListDictDf[i]['c'],self.SpConDf.iloc[-1]],axis=1) # the convergent state is stored in the random walk
-                    self.RwListDictDf[i]['a'] = pd.concat([self.RwListDictDf[i]['a'],pd.DataFrame(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),
+                    self.RwMakListDictDf[i]['s'] = pd.concat([self.RwMakListDictDf[i]['s'],self.SpConDf.iloc[-1]],axis=1)
+                    self.RwMakListDictDf[i]['f'] = pd.concat([self.RwMakListDictDf[i]['f'],self.RpRateDf.iloc[-1]],axis=1) # the flow vector is stored in the random walk
+                    self.RwMakListDictDf[i]['p'] = pd.concat([self.RwMakListDictDf[i]['p'],pd.DataFrame(s,index=self.SpIdStrArray)],axis=1)  # the perturbed current state is stored in the random walk
+                    self.RwMakListDictDf[i]['c'] = pd.concat([self.RwMakListDictDf[i]['c'],self.SpConDf.iloc[-1]],axis=1) # the convergent state is stored in the random walk
+                    self.RwMakListDictDf[i]['a'] = pd.concat([self.RwMakListDictDf[i]['a'],pd.DataFrame(self.getSpAbstracArray(self.SpConDf.iloc[-1],cutoff),
                                                                                                   index=self.SpIdStrArray)],axis=1) # the abstraction is stored  
-                    self.RwListDictDf[i]['ac'] = pd.concat([self.RwListDictDf[i]['ac'],pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
+                    self.RwMakListDictDf[i]['ac'] = pd.concat([self.RwMakListDictDf[i]['ac'],pd.DataFrame(self.getActiveSpArray(self.SpConDf.iloc[-1],cutoff),
                                                                                                     index=self.SpIdStrArray)],axis=1) # a second abstraction is stored (active species) 
-                    self.RwListDictDf[i]['u'] = pd.concat([self.RwListDictDf[i]['u'],pd.DataFrame(s>0,index=self.SpIdStrArray)],axis=1) # a thrid abstraction is stored (used species)
-                    self.RwListDictDf[i]['t'].append(st) # the time elapsed in the dynamic simulation is stored in the random walk
+                    self.RwMakListDictDf[i]['u'] = pd.concat([self.RwMakListDictDf[i]['u'],pd.DataFrame(s>0,index=self.SpIdStrArray)],axis=1) # a thrid abstraction is stored (used species)
+                    self.RwMakListDictDf[i]['t'].append(st) # the time elapsed in the dynamic simulation is stored in the random walk
                  
             
             if sim_save:
                 h=0
-                self.RwListDictDf[i]['sim']=[]
+                self.RwMakListDictDf[i]['sim']=[]
                 for k in range(l):
-                    self.RwListDictDf[i]['sim'].append(dict(con=self.SpConDf.iloc[n*(k+h):n*(k+h+1)],rate=self.RpRateDf.iloc[n*(k+h):n*(k+h+1)]))
+                    self.RwMakListDictDf[i]['sim'].append(dict(con=self.SpConDf.iloc[n*(k+h):n*(k+h+1)],rate=self.RpRateDf.iloc[n*(k+h):n*(k+h+1)]))
                     h+=1
             
             if fail:
                 if iter_steps != 0:
                     iter_steps-=1
                     
-            self.RwListDictDf[i]['f'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['s'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['p'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['c'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['a'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['ac'].columns=range(iter_steps+1)
-            self.RwListDictDf[i]['u'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['f'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['s'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['p'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['c'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['a'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['ac'].columns=range(iter_steps+1)
+            self.RwMakListDictDf[i]['u'].columns=range(iter_steps+1)
            
             
-        out=copy.deepcopy(self.RwListDictDf)
+        out=copy.deepcopy(self.RwMakListDictDf)
         for i in out:
             
             i['s']=i['s'].to_json()
@@ -963,3 +1021,74 @@ class RNSRW(CRNS):
             
         with open(fname, "w") as outfile:
             json.dump(out, outfile)
+    
+    
+    # p a dataframe the perturbed states before the simulation starts in the random walk
+    # c a dataframe of the convergent states in the random walk
+    def setRwSimple(self,w=range(10),l=10,d=1,nmin=3,fname="rand_walk.json"):
+        
+        try:
+            self.SetsDictOrgsBelow
+        except:
+            self.SetsDictOrgsBelow={}
+            
+        try:
+            self.RwSimpleListDictDf
+        except:
+            self.RwSimpleListDictDf={}
+        
+        if w[0] > len(self.RwSimpleListDictDf):
+            RuntimeError("w out of range")
+        
+        for i in w:
+            X=self.GInBListBt[0].copy()
+            X.setall(0)
+            X=self.getGPert(X,d=d,nmin=nmin)
+            X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
+            
+            PerturbStates=[]
+            PerturbStatesComplex=[]
+            ConvStates=[]
+            ConvStatesComplex=[]
+            for i in range(l):
+                PerturbStates.append(X.tolist())
+                PerturbStatesComplex.append(self.getComplexityFloat(np.array(self.getRpFromSp(X).tolist())))
+                if X in self.SynStrOrgListBtArray:
+                    ConvStates.append(X.tolist())
+                    ConvStatesComplex.append(self.getComplexityFloat(np.array(self.getRpFromSp(X).tolist())))
+                else:
+                    try:
+                        Orgs_below=self.SetsDictOrgsBelow[fbt(X)]
+                    except:
+                        Orgs_below=self.getDirectlyBelowBtList(X,self.SynStrOrgListBtArray+[X])
+                        self.SetsDictOrgsBelow[fbt(X)]=Orgs_below
+                    if len(Orgs_below)==0:
+                        ConvStates.append([0]*self.MrDf.shape[0])
+                        ConvStatesComplex.append(0)
+                    elif len(Orgs_below)==1:
+                        ConvStates.append(Orgs_below[0].tolist())
+                        ConvStatesComplex.append(self.getComplexityFloat(np.array(self.getRpFromSp(Orgs_below[0]).tolist())))
+                    else:
+                        print("Orgs_below:",Orgs_below)
+                        ind=np.random.choice(range(len(Orgs_below)))
+                        ConvStates.append(Orgs_below[ind].tolist())
+                        ConvStatesComplex.append(self.getComplexityFloat(np.array(self.getRpFromSp(Orgs_below[ind]).tolist())))
+                
+                X=bt("".join(list(map(str,ConvStates[-1]))))
+                X=self.getGBtInSpBt(X)
+                X=self.getGPert(X,d=d,nmin=nmin)
+                X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
+                
+                self.RwSimpleListDictDf[i]={}
+                self.RwSimpleListDictDf[i]['p']=PerturbStates
+                self.RwSimpleListDictDf[i]['c']=ConvStates
+                self.RwSimpleListDictDf[i]['pc']=PerturbStatesComplex
+                self.RwSimpleListDictDf[i]['cc']=ConvStatesComplex
+                
+            out=copy.deepcopy(self.RwSimpleListDictDf)
+            with open(fname, "w") as outfile:
+                json.dump(out, outfile)
+            
+        
+        
+        

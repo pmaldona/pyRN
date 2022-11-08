@@ -9,9 +9,10 @@ General Reaction Network Class
 """
 
 from .RNLI import RNLI
+from .RNSEA import RNSEA
 import copy
     
-class pyRN(RNLI):
+class pyRN(RNLI,RNSEA):
     
     def copy(self):
         return pyRN(copy.copy(self))

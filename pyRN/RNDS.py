@@ -154,28 +154,28 @@ class RNDS(RNIRG):
         S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
         S=S.to_numpy()
         S=np.column_stack((np.identity(Ns),np.column_stack((-np.identity(Ns),S))))
-        print("S:",S)
+        #print("S:",S)
         S=S.tolist()
        
         
         # production of every species = 0, always possible because of additional creation and destruction reactions
         f=np.zeros(Ns) 
         f=f.tolist()
-        print("f:",f)
+        #print("f:",f)
         # original reactions with rate>=1 (any positive), prepended reactions with rate>=0
         h=-np.ones(2*Ns+len(rc))
         h[0:2*Ns]=0
         h=h.tolist()
-        print("h:",h)
+        #print("h:",h)
         
         # cost 0 for every reaction
         cost=np.zeros(2*Ns+len(rc)) #norm of porcess vector for minimization
         cost[0:Ns+Ns*destruct]=1
         cost=cost.tolist()
-        print("cost:",cost)
+        #print("cost:",cost)
         
         G=-np.identity(2*Ns+len(rc))
-        print("G:",G)
+        #print("G:",G)
         G=G.tolist()
         
         res = linprog(cost, A_eq=S, b_eq=f, A_ub=G, b_ub=h, method='highs')

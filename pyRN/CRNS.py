@@ -15,6 +15,9 @@ from bitarray import frozenbitarray as fbt
 import networkx as nx
 import matplotlib.pyplot as plt
 from pyvis.network import Network
+from bitarray.util import subset
+from collections import Counter as count
+import json
 
 # Class that calculates the synergistic and organizational structure 
 # of the closed reactants of a reaction network. 
@@ -324,7 +327,8 @@ class CRNS(RNIRG):
         return p
     
     
-    # Function of generator that returns the contains the species
+    # Function that returns the contains the species contained in a Bitarray of
+    # generators
     def getSpBtInGBt(self, p):
         sp=bt(len(self.SpIdStrArray))
         sp.setall(0)
@@ -418,7 +422,7 @@ class CRNS(RNIRG):
     # The function also creates the class member (SynStrSsmListSpArray) and (SynStrOrgListSpArray) which 
     # corresponds to a list of the closed semi-self-maintained set and 
     # organizations respectively
-    def setSynStr(self,org_cal=False):
+    def setSynStr(self):
         if not hasattr(self, 'GInBListBt'):
             print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
@@ -426,7 +430,9 @@ class CRNS(RNIRG):
         G = nx.MultiDiGraph()
         # Initialization of the list of semi-self-maintained sets and organizations
         ssms=[]
+        ssms_bt=[]
         org=[]
+        org_bt=[]
         # step measure
         st=0
         # The nodes corresponding to the basic sets are generated.
@@ -439,8 +445,10 @@ class CRNS(RNIRG):
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
                 ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                ssms_bt.append(self.BSpListBt[i])
                 if is_org:
                     org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                    org_bt.append(self.BSpListBt[i])
             else:           
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
@@ -473,8 +481,10 @@ class CRNS(RNIRG):
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org,is_basic=False)
                             ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                            ssms_bt.append(cr_sp)
                             if is_org:
                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                                org_bt.append(cr_sp)
                         else:           
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
@@ -493,6 +503,9 @@ class CRNS(RNIRG):
         self.SynStrNx=G
         self.SynStrSsmListSpArray=ssms
         self.SynStrOrgListSpArray=org
+        self.SynStrSsmListBtArray=ssms_bt
+        self.SynStrOrgListBtArray=org_bt
+        
         return(st)
                     
 
@@ -520,7 +533,9 @@ class CRNS(RNIRG):
         G = nx.MultiDiGraph()
         # Initialization of the list of semi-self-maintained sets and organizations
         ssms=[]
+        ssms_bt=[]
         org=[]
+        org_bt=[]
         # step measure
         st=0
         
@@ -534,8 +549,10 @@ class CRNS(RNIRG):
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
                 ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                ssms_bt.append(self.BSpListBt[i])
                 if is_org:
                     org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                    org_bt.append(self.BSpListBt[i])
             else:           
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
@@ -579,8 +596,10 @@ class CRNS(RNIRG):
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org,is_basic=False)
                             ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                            ssms_bt.append(cr_sp)
                             if is_org:
                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                                org_bt.append(cr_sp)
                          else:           
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
@@ -595,6 +614,8 @@ class CRNS(RNIRG):
         self.SsmStrNx=G
         self.SsmStrSsmListSpArray=ssms
         self.SsmStrOrgListSpArray=org
+        self.SsmStrSsmListBtArray=ssms_bt
+        self.SsmStrOrgListBtArray=org_bt
         return(st)
     
     
@@ -622,7 +643,9 @@ class CRNS(RNIRG):
         G = nx.MultiDiGraph()
         # Initialization of the list of semi-self-maintained sets and organizations
         ssms=[]
+        ssms_bt=[]
         org=[]
+        org_bt=[]
         # number of steps
         st=0
         # The nodes corresponding to the basic sets are generated.
@@ -635,8 +658,10 @@ class CRNS(RNIRG):
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
                 ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                ssms_bt.append(self.BSpListBt[i])
                 if is_org:
                     org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                    org_bt.append(self.BSpListBt[i])
             else:           
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
@@ -672,8 +697,10 @@ class CRNS(RNIRG):
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org,is_basic=False)
                             ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                            ssms_bt.append(cr_sp)
                             if is_org:
                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                                org.append(cr_sp)
                          else:           
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
@@ -688,6 +715,9 @@ class CRNS(RNIRG):
         self.ConnectedStrNx=G
         self.ConnectedStrSsmListSpArray=ssms
         self.ConnectedStrOrgListSpArray=org
+        self.ConnectedStrSsmListBtArray=ssms_bt
+        self.ConnectedStrOrgListBtArray=org_bt
+
         return(st)
     
     # Synergistic structure calculation function, requires the setGenerators() 
@@ -716,7 +746,9 @@ class CRNS(RNIRG):
         G = nx.MultiDiGraph()
         # Initialization of the list of semi-self-maintained sets and organizations
         ssms=[]
+        ssms_bt=[]
         org=[]
+        org_bt=[]
         # number of steps
         st=0
         # The nodes corresponding to the basic sets are generated.
@@ -729,8 +761,10 @@ class CRNS(RNIRG):
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
                        is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
                 ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                ssms_bt.append(self.BSpListBt[i])
                 if is_org:
                     org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                    org_bt.append(self.BSpListBt[i])
             else:           
                 G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
                        sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
@@ -772,8 +806,10 @@ class CRNS(RNIRG):
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
                                    is_ssm=is_ssm,is_org=is_org,is_basic=False)
                             ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                            ssms_bt.append(cr_sp)
                             if is_org:
                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                                org_bt.append(cr_sp)
                          else:           
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
@@ -788,6 +824,8 @@ class CRNS(RNIRG):
         self.ConnectedSsmStrNx=G
         self.ConnectedSsmStrSsmListSpArray=ssms
         self.ConnectedSsmStrOrgListSpArray=org
+        self.ConnectedSsmStrSsmListBtArray=ssms_bt
+        self.ConnectedSsmStrOrgListBtArray=org_bt
         return(st)
     
     # Function that generates a network of the structures. It receives as 
@@ -845,7 +883,73 @@ class CRNS(RNIRG):
         # nt.show('str.html')
         return(nt)
     
+    # Function that returns the set directly below for a set (BtSet) of 
+    # list of sets (BtList). BtSet is a bitarray object, and BtList  is a 
+    # list of bitarrays.
+    def getDirectlyBelowBtList(self,BtSet,BtList):
         
+        # conversion for hasable bitarray object
+        SortedSets=list(map(fbt,BtList))
+        # Sorting elements by size (biggest to smallest)
+        SortedSets=sorted(SortedSets,key= lambda x: -x.count())
+        # subsetig for only contained sets 
+        SortedSets=[x for x in SortedSets if subset(x, BtSet)]
+        SortedSets.remove(fbt(BtSet))
+        DirectlyBelowSets=[]
+        while SortedSets:
+            i=SortedSets[0]
+            # Appendig bisgest set of the collection
+            DirectlyBelowSets.append(i)
+            # Removing all sets that contain currently appeded set i
+            SortedSets=[x for x in SortedSets if not subset(x, i)]
+
+            
+        return DirectlyBelowSets
+    
+    # Generates a networkx Hasse diagram of a form a list of bitarrays 
+    # Blist       
+    def getHasseNxFromBtList(self,BtList,setlabel="O"):
+        
+        NSpSetsDict=count(list(map(lambda x: x.count(),BtList)))
+        
+        # conversion for hasable bitarray object
+        SortedSets=list(map(fbt,BtList))
+        # Sorting elements by size (smallest to biggest)
+        SortedSets=sorted(SortedSets,key= lambda x: x.count())
+        
+        # creation of the Graph object
+        Hasse=nx.Graph()
+        c = 0
+        node_id_count=0
+        for i in SortedSets:
+            size=i.count()
+            
+            NSpSets = NSpSetsDict[size]
+            x = 0
+            if NSpSets > 1:
+                x = -(75*(NSpSets-1)/2) + c*(75*(NSpSets-1))
+                c += 1
+            else:
+                c = 0
+            
+            y = -75*(size-1)
+
+            Hasse.add_node(i,x=x,y=y,group=1,label=setlabel+str(node_id_count),
+                           title=str(self.SpIdStrArray[self.getIndArrayFromBt(i)]),
+                           fixed = json.loads('{ "x":false, "y":true}'))
+            node_id_count+=1
+        
+        for i in SortedSets:
+            
+            DirectlyBelowSets=self.getDirectlyBelowBtList(i, BtList)
+            if DirectlyBelowSets:
+                for j in DirectlyBelowSets:
+                    Hasse.add_edge(j, i,color="gray", smooth = False)
+            
+        return Hasse
+    
+
+    
     # Minimal generators generation function, to be started once the basic sets
     # have been generated by the setGenerators() function.  It returns a list
     # (MgenListListSpArray) of bitarray list of species that correspond to the sets so that 
