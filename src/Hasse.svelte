@@ -10,6 +10,8 @@
     let edges;
     let options = {};
     
+    let cur_org = "";
+
     let graphs = [
 		{ id: 1, text: `Reactive Organisation Structures` },
 		{ id: 2, text: `Synergistic Structures` }
@@ -65,6 +67,7 @@
                 var clickedNode = nodes.get(ids)[0];
                 if (clickedNode) {
                     console.log('clicked nodes:', clickedNode);
+                    cur_org = clickedNode.title;
                 }
             });
         });
@@ -219,6 +222,7 @@
             <textarea readonly style="resize: none; width: 300px; height: 100px;">
 Avg. #Species: {statistics.species_count}
 Avg. #Reactions: {statistics.reaction_count}
+Selected Org: {cur_org}
             </textarea>
         {:else}
             <textarea readonly style="resize: none; width: 300px; height: 100px;">
