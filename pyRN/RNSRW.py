@@ -1040,7 +1040,7 @@ class RNSRW(CRNS):
         if w[0] > len(self.RwSimpleListDictDf):
             RuntimeError("w out of range")
         
-        for i in w:
+        for j in w:
             X=self.GInBListBt[0].copy()
             X.setall(0)
             X=self.getGPert(X,d=d,nmin=nmin)
@@ -1079,11 +1079,11 @@ class RNSRW(CRNS):
                 X=self.getGPert(X,d=d,nmin=nmin)
                 X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
                 
-                self.RwSimpleListDictDf[i]={}
-                self.RwSimpleListDictDf[i]['p']=PerturbStates
-                self.RwSimpleListDictDf[i]['c']=ConvStates
-                self.RwSimpleListDictDf[i]['pc']=PerturbStatesComplex
-                self.RwSimpleListDictDf[i]['cc']=ConvStatesComplex
+                self.RwSimpleListDictDf[j]={}
+                self.RwSimpleListDictDf[j]['p']=PerturbStates
+                self.RwSimpleListDictDf[j]['c']=ConvStates
+                self.RwSimpleListDictDf[j]['pc']=PerturbStatesComplex
+                self.RwSimpleListDictDf[j]['cc']=ConvStatesComplex
                 
             out=copy.deepcopy(self.RwSimpleListDictDf)
             with open(fname, "w") as outfile:
