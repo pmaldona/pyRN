@@ -282,8 +282,51 @@ def add_extra_species(add_obj = {
             RN.setExtraRandomgenerated(Nse=add_obj["Nse"], p=add_obj["p"], extra=add_obj["extra"], m=add_obj["m"], l=add_obj["l"][0])
         return True
 
+@eel.expose
+def add_inflow(extra=0.1):
+    if RN:
+        RN.setExtraRandomgeneratedInflow(extra=0.1)
+        return True
+    return False
+
+@eel.expose
+def add_outflow(extra=0.1):
+    if RN:
+        RN.setExtraRandomgeneratedOutflow(extra=0.1)
+        return True
+    return False
 #say_hello_py('Python World!')
 #eel.say_hello_js('Python World!')   # Call a Javascript function
+
+@eel.expose
+def simple_random_walk(w, l, d, nmin, fname):
+    if RN:
+        RN.setRwSimple(w=range(w), l=l, d=d, nmin=nmin, fname=fname)
+        print(RN.RwSimpleListDictDf)
+        return list(RN.RwSimpleListDictDf.keys())
+    return False
+
+@eel.expose
+def plot_simple_random_walk_raw(index):
+    if RN:
+        fig, ax = plt.subplots(1, 1, figsize = (10, 5))
+        RN.plotRawSimpleRw(ax, walk_index=index, abstractions_type='c', title='') #cmap=mpl.colormaps['viridis'])
+        tmpfile = BytesIO()
+        fig.savefig(tmpfile, format='png')
+        encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
+
+        return encoded
+
+@eel.expose
+def plot_abstraction(index):
+    if RN:
+        fig, ax = plt.subplots(1, 1, figsize = (10, 5))
+        RN.plotChangeSimpleRw(ax, walk_index=index, abstractions_type='c', title='', show_indices=True, index_spacing=1, legend=True) #cmap=mpl.colormaps['viridis'])
+        tmpfile = BytesIO()
+        fig.savefig(tmpfile, format='png')
+        encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
+
+        return encoded
 
 print("[eel]: Start");
 

@@ -32,8 +32,8 @@ child.stderr.on('data', function(data) {
 
 async function createWindow () {
     const win = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1024,
+        height: 960,
         webPreferences: {
             enableRemoteModule: true,
             preload: path.join(app.getAppPath(), 'preload.js')

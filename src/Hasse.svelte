@@ -59,6 +59,14 @@
             statistics.species_count = result.species_count;
             statistics.reaction_count = result.reaction_count;
             hasse.set_hasse({nodes: nodes, edges: edges, options: options});
+            let netw = hasse.get_hasse();
+            netw.on('click', function(properties) {
+                var ids = properties.nodes;
+                var clickedNode = nodes.get(ids)[0];
+                if (clickedNode) {
+                    console.log('clicked nodes:', clickedNode);
+                }
+            });
         });
     }
 
@@ -200,6 +208,7 @@
             <br>
             <!-- svelte-ignore a11y-missing-attribute -->
             <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawLattice}>redraw lattice</a>
+            <br>
             <!-- svelte-ignore a11y-missing-attribute -->
             <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportSvg()}>Export to SVG</a>
         </div>
@@ -256,8 +265,8 @@ Avg. #Reactions: {statistics.reaction_count}
 
 <style>
     #hasse {
-        width: 450px;
-        height: 450px;
+        width: 650px;
+        height: 650px;
         border: 1px solid lightgray;
         margin: 2px;
     }

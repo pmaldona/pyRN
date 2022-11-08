@@ -9,6 +9,8 @@
     export let genProtoSyn;
     export let addSpecies;
     export let expNetwork;
+    export let randInflow;
+    export let randOutflow;
 
     let with_inflow = false;
 	let new_extra = 1;
@@ -216,6 +218,16 @@
     function exportNetwork() {
         expNetwork();
     }
+
+    function addInflow() {
+        randInflow(extra_inflow);
+        drawNetwork();
+    }
+
+    function addOutflow() {
+        randOutflow(extra_outflow);
+        drawNetwork();
+    }
     
 </script>
 
@@ -230,20 +242,32 @@
                     </option>
                 {/each}
             </select>
-            <!-- svelte-ignore a11y-missing-attribute -->
-            <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawNetwork}>redraw</a>
-            <div>
-                {#if $filename != ""}
-                    {#if selected.id == 1}
-                        <!-- svelte-ignore a11y-missing-attribute -->
-                        <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => getModal().open()}>Add Extra Species</a>
+            <div style="margin-top: 5px; height: 250px; overflow-y: auto;">
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawNetwork}>redraw</a>
+                <div>
+                    {#if $filename != ""}
+                        {#if selected.id == 1}
+                            <!-- svelte-ignore a11y-missing-attribute -->
+                            <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => getModal().open()}>Add Extra Species</a>
+                            <div>
+                                <input type="number" id="perc_species" min="2" max="1" bind:value={extra_inflow} style="width: 20%;">
+                                <!-- svelte-ignore a11y-missing-attribute -->
+                                <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => addInflow}>Add Inflow</a>
+                            </div>
+                            <div>
+                                <input type="number" id="perc_species" min="0" max="1" bind:value={extra_outflow} style="width: 20%;">
+                                <!-- svelte-ignore a11y-missing-attribute -->
+                                <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => addOutflow}>Add Outflow</a>
+                            </div>
+                        {/if}
                     {/if}
-                {/if}
+                </div>
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportSvg()}>Export to SVG</a>
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportNetwork()}>Export Network</a>
             </div>
-            <!-- svelte-ignore a11y-missing-attribute -->
-            <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportSvg()}>Export to SVG</a>
-            <!-- svelte-ignore a11y-missing-attribute -->
-            <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportNetwork()}>Export Network</a>
         </div>
     </div>
     
@@ -339,8 +363,8 @@
 
 <style>
     #network {
-        width: 450px;
-        height: 450px;
+        width: 650px;
+        height: 650px;
         border: 1px solid lightgray;
         margin: 2px;
     }

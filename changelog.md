@@ -4,3 +4,4 @@ windows should work.
 fixed linux.
 Naming redone.
 added export functionallity.
+Added Change Plot.

@@ -142,6 +142,28 @@
 		return false;
 	}
 
+	const addRandomInflow = async (extra) => {
+		let promise = eel.add_inflow(extra)();
+		let addedNew = await promise.then(result => {
+			return result;
+		});
+		if(addedNew) {
+			return true;
+		}
+		return false;
+	}
+
+	const addRandomOutflow = async (extra) => {
+		let promise = eel.add_outflow(extra)();
+		let addedNew = await promise.then(result => {
+			return result;
+		});
+		if(addedNew) {
+			return true;
+		}
+		return false;
+	}
+
 	const exportNetwork = async() => {
 		let exported = window.electron.save().then(result => {
             let path = result;
@@ -155,6 +177,32 @@
 			return true;
 		}
 		return false;
+	}
+
+	const simpleRandomWalk = async(w, l, d, nmin, fname) => {
+		let promise = eel.simple_random_walk(w, l, d, nmin, fname)();
+		console.debug(promise);
+		let value = await promise.then(result => {
+			console.log(result);
+			return result;
+		});
+		return value;
+	}
+
+	const plotRandomWalkRaw = async(index) => {
+		let promise = eel.plot_simple_random_walk_raw(index)();
+		let plot = await promise.then(result => {
+			return result;
+		});
+		return plot;
+	}
+
+	const plotAbstraction = async(index) => {
+		let promise = eel.plot_abstraction(index)();
+		let plot = await promise.then(result => {
+			return result;
+		});
+		return plot;
 	}
 </script>
 
@@ -186,6 +234,11 @@
   	initialValues={state}
 	genRandNet={generateRandomNetwork}
 	expNetwork={exportNetwork}
+	randInflow={addRandomInflow}
+	randOutflow={addRandomOutflow}
+	randSimpleWalk={simpleRandomWalk}
+	plotSimpleWalk={plotRandomWalkRaw}
+	plotAbstraction={plotAbstraction}
 />
 
 <footer>
