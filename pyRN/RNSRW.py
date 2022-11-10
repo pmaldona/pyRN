@@ -684,10 +684,15 @@ class RNSRW(CRNS):
         
         # Choosing only connceted generators
         if conn:
-            mask=self.getGBtConnectedToBBt(g)
-            mask|=g
+            mask_i=g.copy()
             for j in [i for i in self.GInBListBt if i.count()==1]:
-                mask|=j
+                mask_i|=j
+            
+            mask=mask_i|self.getGBtConnectedToBBt(mask_i)
+            while mask!=mask_i:
+                mask_i=mask.copy()
+                mask=mask_i|self.getGBtConnectedToBBt(mask_i)
+                
         else:
             mask=None
         

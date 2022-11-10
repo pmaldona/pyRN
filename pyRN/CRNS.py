@@ -700,7 +700,7 @@ class CRNS(RNIRG):
                             ssms_bt.append(cr_sp)
                             if is_org:
                                 org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
-                                org.append(cr_sp)
+                                org_bt.append(cr_sp)
                          else:           
                             G.add_node(cr_a,level=cr_a.count(),
                                    sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],

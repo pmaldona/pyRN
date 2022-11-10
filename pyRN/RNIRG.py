@@ -461,20 +461,21 @@ class RNIRG:
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
-        if (r_set.size==0):
-            r=self.MpDf.columns
-            r_i=range(len(r))
+
+        if (isinstance(r_set,bt)):
+           r_i=self.getIndArrayFromBt(r_set)
+           r=self.MpDf.columns[r_i]
         else:
-            if (isinstance(r_set,bt)):
-               r_i=self.getIndArrayFromBt(r_set)
-               r=self.MpDf.columns[r_i]
+            if (r_set.size==0):
+                r=self.MpDf.columns
+                r_i=range(len(r))
             else:
                 r_i=[]
                 for i in r_set:
                     if i in self.MpDf.columns:
                         r_i.append(i)
                 r=r_set
-             
+                 
         for i in r_i:
             p_text="r"+str(i)+":   "
             for j in np.where(self.MrDf.iloc[:,i]!=0)[0]:
