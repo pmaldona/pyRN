@@ -1109,22 +1109,22 @@ class RNIRG:
               prod.append(p_sp)
               
         #sorting mp and mr dataframes
-        sp_i=mp.columns.values.tolist()
-        sorted_sp_i=mp.sort_index(axis=1).columns.values.tolist()
+        sp_i=mp.index.values.tolist()
+        sorted_sp_i=mp.sort_index(axis=0).index.values.tolist()
         sorted_ind = [sp_i.index(i) for i in sorted_sp_i]
         
         for i in range(len(prod)):
-            tmp_prod=bt(len(mr.columns))
-            tmp_reac=bt(len(mr.columns))
-            for j in range(len(mr.columns)):
+            tmp_prod=bt(len(mr.index))
+            tmp_reac=bt(len(mr.index))
+            for j in range(len(mr.index)):
                 tmp_prod[j]=prod[i][sorted_ind[j]]
                 tmp_reac[j]=reac[i][sorted_ind[j]]
             
             prod[i]=tmp_prod
             reac[i]=tmp_reac
         
-        mp=mp.sort_index(axis=1)
-        mr=mr.sort_index(axis=1)
+        mp=mp.sort_index(axis=0)
+        mr=mr.sort_index(axis=0)
         
         out =cls()
         out.MrDf=mr
@@ -1154,7 +1154,15 @@ class RNIRG:
 
         # (1) adding extra species
         me=np.zeros((Nr,Nse))
-        me=pd.DataFrame(me,columns=list(map(lambda x: l+str(x+1),range(Nse))))
+        
+        # fidin if prefix l is alredy used.
+        add_species=self.SpIdStrArray[list(map(lambda x: x.find(l)!=-1,self.SpIdStrArray))]
+        if any(add_species):
+            begin_idx=max(list(map(lambda x: int(x.replace("x","")),add_species)))
+        else:
+            begin_idx=0
+        
+        me=pd.DataFrame(me,columns=list(map(lambda x: l+str(x+1),range(begin_idx,Nse+begin_idx))))
         me=me.T
         mr = pd.concat([mr, me])
         mp = pd.concat([mp, me])
