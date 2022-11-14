@@ -70,7 +70,7 @@ def transition_matrix_from_dataframes(abstractions_df, transitions_df):
         transitions_from_start = transitions_df.loc[transitions_df['a_1']==start]
         for x in transitions_from_start.index.tolist():
             end = transitions_from_start.loc[x, 'a_2']
-            print(end)
+            # print(end)
             j = abstractions_df.index[abstractions_df['a']==end][0]
             p = transitions_df.loc[(transitions_df['a_1']==start) & (transitions_df['a_2']==end), 'probability'].tolist()[0]
             t_matrix[i][j]=p

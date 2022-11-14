@@ -1038,11 +1038,11 @@ class RNSRW(CRNS):
             self.SetsDictOrgsBelow={}
             
         try:
-            self.RwSimpleListDictDf
+            self.RwSimpleDict
         except:
-            self.RwSimpleListDictDf={}
+            self.RwSimpleDict={}
         
-        if w[0] > len(self.RwSimpleListDictDf):
+        if w[0] > len(self.RwSimpleDict):
             RuntimeError("w out of range")
         
         for j in w:
@@ -1084,13 +1084,13 @@ class RNSRW(CRNS):
                 X=self.getGPert(X,d=d,nmin=nmin)
                 X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
                 
-                self.RwSimpleListDictDf[j]={}
-                self.RwSimpleListDictDf[j]['p']=PerturbStates
-                self.RwSimpleListDictDf[j]['c']=ConvStates
-                self.RwSimpleListDictDf[j]['pc']=PerturbStatesComplex
-                self.RwSimpleListDictDf[j]['cc']=ConvStatesComplex
+                self.RwSimpleDict[j]={}
+                self.RwSimpleDict[j]['p']=PerturbStates
+                self.RwSimpleDict[j]['c']=ConvStates
+                self.RwSimpleDict[j]['pc']=PerturbStatesComplex
+                self.RwSimpleDict[j]['cc']=ConvStatesComplex
                 
-            out=copy.deepcopy(self.RwSimpleListDictDf)
+            out=copy.deepcopy(self.RwSimpleDict)
             with open(fname, "w") as outfile:
                 json.dump(out, outfile)
             

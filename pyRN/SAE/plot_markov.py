@@ -1,7 +1,7 @@
 import matplotlib.pyplot
 import networkx
 import pandas
-import sos
+from . import sos
 
 def nodes(G, abstractions_df):
     '''
@@ -148,21 +148,27 @@ def draw_transition_probabilities(G, ax):
     networkx.draw_networkx_edges(G, pos, edgelist=transitions, edge_color="#ff0000", node_size=2500, connectionstyle='arc3, rad = 0.05', width=probabilities, arrowstyle='->', ax=ax)
     return matplotlib.lines.Line2D(range(3), range(3), color="white", marker="_", mec="#ff0000", markersize=20)
 
-def draw_graph(G, abstractions_df):
+def draw_graph(subplot, G, abstractions_df):
     
-    fig, ax = matplotlib.pyplot.subplots()
+    # fig, ax = matplotlib.pyplot.subplots()
 
     # Draw nodes with markov properties
-    layer1, layer2 = draw_nodes(G, abstractions_df)
+    # layer1, layer2 = draw_nodes(G, abstractions_df,ax)
+    layer1, layer2 = draw_nodes(G, abstractions_df,subplot)
 
     # Draw subset relationships
-    layer3 = draw_subset_relationships(G)
+    # layer3 = draw_subset_relationships(G,ax)
+    layer3 = draw_subset_relationships(G,subplot)
 
     # Draw transitions with probability
-    layer4 = draw_transition_probabilities(G)
+    # layer4 = draw_transition_probabilities(G,ax)
+    layer4 = draw_transition_probabilities(G,subplot)
     
     # Display polt with matplolib.pyplot
-    ax.tick_params(left=True, labelleft=True)
-    ax.set_ylabel('Number of species')
+    # ax.tick_params(left=True, labelleft=True)
+    # ax.set_ylabel('Number of species')
+    subplot.tick_params(left=True, labelleft=True)
+    subplot.set_ylabel('Number of species')
     matplotlib.pyplot.legend((layer1,layer2,layer3, layer4),("Reachability","Maintainability","Subset relationship","Transition (width~probability)"))
-    matplotlib.pyplot.show()
+    # matplotlib.pyplot.show()
+    # return fig, ax

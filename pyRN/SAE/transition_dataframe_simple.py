@@ -5,19 +5,33 @@ import pandas
 from . import sos
 import time
 
-def transitions_dataframe_from_rndws(rndws, x):
+def transitions_dataframe_from_SimpleRWDict(SimpleRWDict, w=None, abstraction_type='c'):
     '''
-    In:  path (string), path to a .json-file with random walks in the file-system
-         x    (string), single character giving the definition of abstraction to be used
+    In:  SimpleRWDict: Dictonary of simple random walk 
+         w: Kyes of SimpleRWDict Dictonary considered, if w=None, it use all the 
+         Dictionary
+         abstraction_type: corrspond to the type of abstraction to be considered, if 
+         its 'all' used both perturbation and convegence states
     Out: pandas dataframe with transitions
     '''  
 
     # Find all observed transitions
     transitions    = []
     counts         = []
-
-    for rndw in rndws:
-        abstractions = [list(step.values()) for step in list(json.loads(rndw[x]).values())] # Converts nested dictionary to 2-dimensional array
+    
+    if w is None:
+        w=SimpleRWDict.keys()
+        
+    for i in w:
+        
+        if abstraction_type=='all':
+            
+            abs_1 = SimpleRWDict[i]['p']# Converts nested dictionary to 2-dimensional array
+            abs_2 = SimpleRWDict[i]['c']# Converts nested dictionary to 2-dimensional array 
+            abstractions = [item for sublist in zip(abs_1, abs_2) for item in sublist]
+        else:
+            abstractions = SimpleRWDict[i][abstraction_type]# Converts nested dictionary to 2-dimensional array
+        
         for i in range(len(abstractions)-1):
             a_1 = str([int(s) for s in abstractions[i]])
             a_2 = str([int(s) for s in abstractions[i+1]])
@@ -45,19 +59,35 @@ def transitions_dataframe_from_rndws(rndws, x):
 
     return df
 
-def abstractions_dataframe_from_rndws_and_transitions_dataframe(rndws, x, transitions_df):
+def abstractions_dataframe_from_SimpleRWDict_and_transitions_dataframe(SimpleRWDict,transitions_df,w=None,abstraction_type='c'):
     '''
-    In:  path (string), path to a .json-file with random walks in the file-system
-        x    (string), single character (a or u) giving the definition of abstraction to be used
+    In:  SimpleRWDict: Dictonary of simple random walk 
+         w: Kyes of SimpleRWDict Dictonary considered, if w=None, it use all the 
+         Dictionary
+         abstraction_type: corrspond to the type of abstraction to be considered, if 
+         its 'all' used both perturbation and convegence states 
+         transitions_df: Transition DataFrame obtaind form the 
+         transitions_dataframe_from_SimpleRWDict function 
     Out: pandas dataframe with abstrac
     '''
 
     # Find unique abstractions and sort them by the number of species
+    
+    if w is None:
+        w=SimpleRWDict.keys()
+    
     abstractions = []
-    for rndw in rndws:
-        new = [list(step.values()) for step in list(json.loads(rndw[x]).values())] # Converts nested dictionary to 2-dimensional array
-        for i in range(len(new)):
-            abstractions.append(str([int(s) for s in new[i]]))
+    for i in w:
+        
+        if abstraction_type=='all':
+            
+            abs_1 = SimpleRWDict[i]['p']# Converts nested dictionary to 2-dimensional array
+            abs_2 = SimpleRWDict[i]['c']# Converts nested dictionary to 2-dimensional array 
+            abstractions += [item for sublist in zip(abs_1, abs_2) for item in sublist]
+        else:
+            abstractions += SimpleRWDict[i][abstraction_type]# Converts nested dictionary to 2-dimensional array
+    
+    abstractions=list(map(lambda x: str([int(s) for s in x]),abstractions))
     abstractions = list(set(abstractions)) # Filters duplicates
     abstractions = [sos.from_string(a) for a in abstractions]
     abstractions.sort(key=sos.n_elements)
@@ -67,8 +97,13 @@ def abstractions_dataframe_from_rndws_and_transitions_dataframe(rndws, x, transi
 
     # Determine how often abstractions occur as initial abstractions
     initials = [0 for i in range(n)]
-    for rndw in rndws:
-        init = str([int(s) for s in (list(json.loads(rndw[x])['0'].values()))])
+    for i in w:
+        
+        if abstraction_type=='c':
+            init=str([int(s) for s in SimpleRWDict[i]['c'][0]])
+        else:
+            init=str([int(s) for s in SimpleRWDict[i]['p'][0]])
+            
         for i,a in enumerate(abstractions):
             if abstractions[i]==init:
                 initials[i]+=1
@@ -78,13 +113,28 @@ def abstractions_dataframe_from_rndws_and_transitions_dataframe(rndws, x, transi
     # Determine complexity of each abstraction
     abstractions_df = abstractions_df.assign(complexity=[0 for i in range(n)])
     for i in range(n):
-        for j, rndw in enumerate(rndws):
-            rndw_abstractions = [list(step.values()) for step in list(json.loads(rndw[x]).values())]
+        for j in w:
+            
+            if abstraction_type=='all':
+                abs_1 = SimpleRWDict[j]['p']# Converts nested dictionary to 2-dimensional array
+                abs_2 = SimpleRWDict[j]['c']# Converts nested dictionary to 2-dimensional array 
+                rndw_abstractions = [item for sublist in zip(abs_1, abs_2) for item in sublist]
+                
+                com_1 = SimpleRWDict[j]['cp']# Converts nested dictionary to 2-dimensional array
+                com_2 = SimpleRWDict[j]['cc']# Converts nested dictionary to 2-dimensional array 
+                complexity = [item for sublist in zip(com_1, com_2) for item in sublist]
+                
+                
+            else:
+                 rndw_abstractions = SimpleRWDict[j][abstraction_type]# Converts nested dictionary to 2-dimensional array
+                 complexity = SimpleRWDict[j]['c'+abstraction_type]
+                 
             rndw_abstractions = [str([int(s) for s in a]) for a in rndw_abstractions]
+
             for k, abstraction in enumerate(rndw_abstractions):
                 #print(rndws[j]['c'+x][k])
                 if(abstractions_df.loc[i, 'a']==abstraction):
-                    abstractions_df.loc[i, 'complexity']=rndws[j]['c'+x][k]
+                    abstractions_df.loc[i, 'complexity']=complexity[k]
 
 
     # Indegree
@@ -121,23 +171,24 @@ def add_plasticity_and_smoothness_to_transitions_dataframe(rndws, x, transitions
 
 #add_complexity_changes(abstractions_df, transitions_df):
 
-def data_from_json(json_path, x, save=False, file_path=None):
+def dataFromSimpleRwDict(SimpleRWDict, w=None, abstraction_type='c', save=False, file_path=None):
     '''
-    In:  json_path (string),  path to rndw file (json) in the file system
-         x         (string),  single character giving the definition of abstraction to be used
-         save      (boolean), if True: Stores the dataframes in the same directory as the input file
-         file_path (string),  path were dataframes are to be stored
+        In:  SimpleRWDict: Dictonary of simple random walk 
+             w: Kyes of SimpleRWDict Dictonary considered, if w=None, it use all the 
+             Dictionary
+             abstraction_type: corrspond to the type of abstraction to be considered, if 
+             its 'all' used both perturbation and convegence states 
+             transitions_df: Transition DataFrame obtaind form the 
+             transitions_dataframe_from_SimpleRWDict function          
+             save      (boolean), if True: Stores the dataframes in the same directory as the input file
+             file_path (string),  path were dataframes are to be stored
+             
     '''
 
-    # Read data from the files and create data frames with meta data
-    with open(json_path, 'r') as f:
-        rndws = json.loads(f.read())
-
-    transitions_df  = transitions_dataframe_from_rndws(rndws, x)
-    abstractions_df = abstractions_dataframe_from_rndws_and_transitions_dataframe(rndws, x, transitions_df)
+    transitions_df  = transitions_dataframe_from_SimpleRWDict(SimpleRWDict, w=w, abstraction_type=abstraction_type)
+    abstractions_df = abstractions_dataframe_from_SimpleRWDict_and_transitions_dataframe(SimpleRWDict, transitions_df, w=w, abstraction_type=abstraction_type)
     transitions_df  = add_abstraction_indices_to_transitions_dataframe(abstractions_df, transitions_df)
     #transitions_df = add_complexity_changes(abstractions_df, transitions_df)
-
 
     if(save):
         transitions_df.to_csv(file_path+'_transitions.csv')
