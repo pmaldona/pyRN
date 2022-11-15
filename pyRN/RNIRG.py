@@ -592,7 +592,7 @@ class RNIRG:
     #Function that plot the stochimetric matirx, it recives as imput a vector
     # or bit arrar of species (sp_set) and reaction (r_set), and plot the stochimetric 
     # matrix With colors
-    def plotS(self,sp_set=np.array([]) ,r_set=np.array([])):
+    def plotS(self,sp_set=np.array([]) ,r_set=np.array([]), return_figure=False):
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
         if (sp_set.size==0):
@@ -643,7 +643,12 @@ class RNIRG:
        
         plt.yticks(sp_ticks,sp)
         plt.xticks(r_ticks,r)
-        plt.show()
+        
+        # Needed for plotting matplotlab figures in the UI
+        if return_figure == True:
+            return fig
+        else:
+            plt.show()
             
 
     # Function that use a input the existing species and return, the reaction
