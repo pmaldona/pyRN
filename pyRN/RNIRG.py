@@ -646,7 +646,7 @@ class RNIRG:
         
         # Needed for plotting matplotlab figures in the UI
         if return_figure == True:
-            return fig
+            return plt
         else:
             plt.show()
             
