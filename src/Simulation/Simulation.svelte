@@ -7,7 +7,7 @@
         { id: 1, text: `Stoichiometry`, disabled: false},
         { id: 2, text: `Concentrations`, disabled: true},
         { id: 3, text: `Rates`, disabled: true},
-        { id: 4, text: `Simple Random Walk`, disabled: false},
+        { id: 4, text: `Abstraction Evolution`, disabled: false},
         { id: 5, text: `Abstraction Size`, disabled: true},
         { id: 6, text: `Trajectory Hasse`, disabled: true},
         { id: 7, text: `RW Histogramm`, disabled: true},
@@ -114,7 +114,7 @@
                     plots[4].disabled = false;
                     plots[5].disabled = false;
                     plots[6].disabled = false;
-                    plots[7].disabled = false;
+                    //plots[7].disabled = false;
                 }
             }
         });

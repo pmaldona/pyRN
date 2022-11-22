@@ -8,3 +8,4 @@ Added Change Plot.
 Added Trajectory Plot.
 added more plots.
 added overlay for Orgs.
+Release 1.0

@@ -68,8 +68,7 @@
                 if (clickedNode) {
                     console.log('clicked nodes:', clickedNode);
                     cur_org = clickedNode.options;
-                    let reactions = await modal.init(cur_org);
-                    console.log(reactions);
+                    await modal.init(cur_org);
                     //modal.setReactions(reactions);
                     getModal().open();
                 }
