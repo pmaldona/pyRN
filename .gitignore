@@ -5,5 +5,8 @@ crns
 package-lock.json
 pyRN
 dist
-build
+build/**/*
+static/build/bundle.*
+*/**/__pycache__
 out
+*/**/rand_walk.json

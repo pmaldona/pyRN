@@ -6,3 +6,5 @@ Naming redone.
 added export functionallity.
 Added Change Plot.
 Added Trajectory Plot.
+added more plots.
+added overlay for Orgs.
