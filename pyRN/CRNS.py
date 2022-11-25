@@ -18,6 +18,7 @@ from pyvis.network import Network
 from bitarray.util import subset
 from collections import Counter as count
 import json
+import pickle as pk
 
 # Class that calculates the synergistic and organizational structure 
 # of the closed reactants of a reaction network. 
@@ -422,7 +423,7 @@ class CRNS(RNIRG):
     # The function also creates the class member (SynStrSsmListSpArray) and (SynStrOrgListSpArray) which 
     # corresponds to a list of the closed semi-self-maintained set and 
     # organizations respectively
-    def setSynStr(self):
+    def setSynStr(self,partial_save=None):
         if not hasattr(self, 'GInBListBt'):
             print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
@@ -499,7 +500,12 @@ class CRNS(RNIRG):
                    #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=True,added_basic=k)
                    # else:
                    #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=False,added_basic=k)
-                
+           
+            if not partial_save is None:
+                file = open(partial_save+".pkl", "wb") 
+                pk.dump(self, file)
+                file.close     
+        
         self.SynStrNx=G
         self.SynStrSsmListSpArray=ssms
         self.SynStrOrgListSpArray=org
@@ -525,7 +531,7 @@ class CRNS(RNIRG):
     # This algorithm differs from setSynStr() by considering the basic to 
     # be conjugated which can contribute to be semi-self maintained by use of 
     # the getGBtContribBBt() function.
-    def setSsmStr(self):
+    def setSsmStr(self,partial_save=None):
         if not hasattr(self, 'GInBListBt'):
             print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
@@ -610,7 +616,12 @@ class CRNS(RNIRG):
                         G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
                      else:
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
-                
+            
+            if not partial_save is None:
+                file = open(partial_save+".pkl", "wb") 
+                pk.dump(self, file)
+                file.close    
+        
         self.SsmStrNx=G
         self.SsmStrSsmListSpArray=ssms
         self.SsmStrOrgListSpArray=org
@@ -635,7 +646,7 @@ class CRNS(RNIRG):
     # This algorithm differs from setSynStr() by considering the connected basic 
     # by use of the function getGBtConnectedToBBt(), The result is a structrure 
     # where the nodes only connected closed sets.
-    def setConnectedStr(self):
+    def setConnectedStr(self,partial_save=None):
         if not hasattr(self, 'GInBListBt'):
             print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
@@ -713,7 +724,12 @@ class CRNS(RNIRG):
                         G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
                      else:
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
-                
+            
+            if not partial_save is None:
+                file = open(partial_save+".pkl", "wb") 
+                pk.dump(self, file)
+                file.close      
+        
         self.ConnectedStrNx=G
         self.ConnectedStrSsmListSpArray=ssms
         self.ConnectedStrOrgListSpArray=org
@@ -740,7 +756,7 @@ class CRNS(RNIRG):
     # the getGBtContribBBt() function and use of the function getGBtConnectedToBBt(), which 
     # only connect to basics if there are reactively connected. The result is a structrure 
     # where the nodes are semi-self-mantianed and only dynamically connected.
-    def setSsmConnectedStr(self):
+    def setSsmConnectedStr(self,partial_save=None):
         if not hasattr(self, 'GInBListBt'):
             print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
@@ -824,6 +840,10 @@ class CRNS(RNIRG):
                         G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
                      else:
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
+            if not partial_save is None:
+                file = open(partial_save+".pkl", "wb") 
+                pk.dump(self, file)
+                file.close  
                 
         self.ConnectedSsmStrNx=G
         self.ConnectedSsmStrSsmListSpArray=ssms
