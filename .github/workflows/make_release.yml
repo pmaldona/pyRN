@@ -51,7 +51,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: pdfs/*
-          asset_name: docs.tar.gz
-          asset_content_type: application/gzip
+          asset_path: pdfs/main.pdf
+          asset_name: main.pdf
+          # asset_content_type: application/gzip
   
