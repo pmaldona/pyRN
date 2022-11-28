@@ -172,3 +172,19 @@ def draw_graph(subplot, G, abstractions_df):
     matplotlib.pyplot.legend((layer1,layer2,layer3, layer4),("Reachability","Maintainability","Subset relationship","Transition (width~probability)"))
     # matplotlib.pyplot.show()
     # return fig, ax
+    
+def create_trivial(n_species):
+    '''
+    Create trivial graph for only one abstraction
+    '''
+    G = networkx.DiGraph()
+    G.add_node(0,pos=(1,n_species))
+    G.add_edge(0,0, type='transition', probability=1)
+    return G
+
+def plot_markov(subplot, abstractions_df, transitions_df):
+    if abstractions_df.shape[0] == 1:
+        G = create_trivial(abstractions_df.loc[0, 'n_species'])
+    else:
+        G = create_graph(abstractions_df, transitions_df)
+    draw_graph(subplot, G, abstractions_df)
