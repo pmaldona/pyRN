@@ -126,7 +126,7 @@ class State:
                 net=self.reaction_network.getHasseNxFromBtList(self.reaction_network.SynStrOrgListBtArray,setlabel="L")
                 rn: pyRN = self.reaction_network
                 net = nx.relabel_nodes(net, lambda x: str(rn.getIndArrayFromBt(bt(x))))
-                nt = Network('500px', '500px',directed=False,notebook=True)
+                nt = Network('500px', '500px',directed=False,notebook=False)
                 nt.toggle_physics(False)
                 nt.from_nx(net)
                 self.hasse_graph = nt
