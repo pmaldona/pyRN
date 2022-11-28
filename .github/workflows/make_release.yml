@@ -44,13 +44,14 @@ jobs:
           build_html: false
       - run: ls 
       - run: ls docs
+      - run: ls pdfs
       - name: upload docs artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./docs/pdfs/*
+          asset_path: pdfs/*
           asset_name: docs.tar.gz
           asset_content_type: application/gzip
   
