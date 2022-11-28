@@ -4,7 +4,7 @@ on:
     branches:
       - 'UI-Refactor'
     tags:
-      - 'test'
+      - 't*'
     paths:
       - 'docs/**.md'
       - 'docs/images/**'
