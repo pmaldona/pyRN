@@ -3,8 +3,8 @@ on:
   push:
     branches:
       - 'UI-Refactor'
-    tags:
-      - 'v*.*.*'
+    # tags:
+    #   - 'v*.*.*'
     paths:
       - 'docs/**.md'
       - 'docs/images/**'
@@ -42,13 +42,15 @@ jobs:
           image_import: ./images
           # Default is true, can set to false to only get PDF files
           build_html: false
+      - run: ls 
+      - run: ls docs
       - name: upload docs artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./pdfs/*
+          asset_path: ./docs/pdfs/*
           asset_name: docs.tar.gz
           asset_content_type: application/gzip
   
