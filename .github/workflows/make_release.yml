@@ -1,0 +1,53 @@
+name: release-pipeline
+on:
+  push:
+    branches:
+      - 'UI-Refactor'
+    tags:
+      - 'test'
+    paths:
+      - 'docs/**.md'
+      - 'docs/images/**'
+  # workflow_run:
+  #   workflows: ["CI build"]
+  #   types:
+  #     - completed
+jobs:
+  make_release:
+    - name: version
+      run: echo "::set-output name=version::${GITHUB_REF#refs/*/}"
+      id: version
+    - name: release
+      uses: actions/create-release@v1
+      id: create_release
+      with:
+        draft: true
+        prerelease: false
+        release_name: ${{ steps.version.outputs.version }}
+        tag_name: ${{ github.ref }}
+        body_path: changelog.md
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+    - name: Build PDF
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v2
+        - uses: baileyjm02/markdown-to-pdf@v1
+          with:
+            input_dir: docs
+            output_dir: pdfs
+            images_dir: docs/images
+            # for example <img src="./images/file-name.png">
+            image_import: ./images
+            # Default is true, can set to false to only get PDF files
+            build_html: false
+        - name: upload docs artifact
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_TOKEN: ${{ github.token }}
+          with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./pdfs/*
+            asset_name: docs.tar.gz
+            asset_content_type: application/gzip
+  

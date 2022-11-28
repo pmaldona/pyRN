@@ -96,7 +96,6 @@
             if(ids.includes(node.id)){
                 let from = [];
                 let to = [];
-                let possible = [];
                 node.edges.forEach(edge => {
                     if(!from.includes(edge.fromId) && node.id != edge.fromId) {
                         from.push(edge.fromId)
@@ -181,14 +180,14 @@
                 <p>Total: {reaction_ids.length}</p>
                 <hr class="solid">
                 <p>Number of Catalists: {catalystSpecies.length}</p>
-                <!-- <hr class="solid">
+                <hr class="solid">
                 <p>Size of inflow: {inflowReactions.length}</p>
                 <hr class="solid">
                 <p>Size of outflow: {outflowReactions.length}</p>
                 <hr class="solid">
                 <p>Number of Basic Sets: {reaction_ids.length}</p>
                 <hr class="solid">
-                <p>Number of Synergies: {reaction_ids.length}</p> -->
+                <p>Number of Synergies: {reaction_ids.length}</p>
             </div>
         </div>
     </div>

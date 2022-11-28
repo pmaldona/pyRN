@@ -3,8 +3,8 @@ on:
   push:
     branches:
       - 'UI-Refactor'
-    paths:
-      - 'changelog.md'
+    tags:
+      - 'v*.*.*'
 jobs:
   build-linux:
     runs-on: ubuntu-latest
@@ -130,8 +130,3 @@ jobs:
         with:
           name: pyRN_GUI-macos
           path: pyRN_GUI-macos.zip
-  test-mac-12:
-    runs-on: macos-12
-    steps:
-      - name: Architecure
-        run: sysctl -a | grep machdep.cpu
