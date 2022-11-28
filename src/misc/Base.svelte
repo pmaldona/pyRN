@@ -40,9 +40,9 @@
 	async function action(e) {
 		e.preventDefault();
 		let promise = eel.random_network(with_inflow, random_species, random_reactions, extra, distribution, pr, pp, inflow, outflow)();
-		await promise.then();
-		let promise_gen = eel.random_network()();
-		let randomNetwork = await promise_gen.then(result => {
+		//await promise.then();
+		//let promise_gen = eel.random_network()();
+		let randomNetwork = await promise.then(result => {
 			return result;
 		});
 		getModal().close();

@@ -103,6 +103,7 @@ def plot_rates(SpConFileNameStr=None, KConstFileNameStr=None, ti=0, tf=50, steps
     
 @eel.expose
 def random_network(has_inflow= False, random_species= 2, random_reactions= 2, extra=0.4, distribution= "x*0+1", pr= 0, pp= 0, inflow= 0.1, outflow= 0.1):
+    print(random_species)
     return state.generate_random_network(has_inflow, random_species, random_reactions, extra, distribution, pr, pp, inflow, outflow)
 
 @eel.expose
