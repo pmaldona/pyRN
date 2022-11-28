@@ -5,9 +5,9 @@ on:
       - 'UI-Refactor'
     # tags:
     #   - 'v*.*.*'
-    paths:
-      - 'docs/**.md'
-      - 'docs/images/**'
+    # paths:
+    #   - 'docs/**.md'
+    #   - 'docs/images/**'
   # workflow_run:
   #   workflows: ["CI build"]
   #   types:
