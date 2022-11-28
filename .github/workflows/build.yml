@@ -3,10 +3,8 @@ on:
   push:
     branches:
       - 'UI-Refactor'
-    workflow_run:
-      workflows: ["CI build"]
-      types:
-        - completed
+    paths:
+      - 'changelog.md'
     # tags:
     #   - 'v*.*.*'
 jobs:
