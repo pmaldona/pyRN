@@ -108,8 +108,10 @@ def draw_nodes(G, abstractions_df, ax):
     nodes = list(G.nodes())
 
     maintainabilities = [abstractions_df.loc[n, 'maintainability'] for n in nodes]
-    reachabilities    = [abstractions_df.loc[n, 'reachability'] for n in nodes]
+    #reachabilities    = [abstractions_df.loc[n, 'reachability'] for n in nodes]
     scaled_maintainability  = [maintainabilities[i]/max(maintainabilities)*2500 for i in range(len(maintainabilities))]
+    
+    '''
     scaled_reachability     = [reachabilities[i]/max(reachabilities)*2500 for i in range(len(reachabilities))]
     scaled_reachability     = [2500-r for r in scaled_reachability]
 
@@ -127,11 +129,15 @@ def draw_nodes(G, abstractions_df, ax):
     networkx.draw_networkx_nodes(G, pos, nodelist=rb, node_size=rbs, node_color="#00ff00", alpha=0.8, ax=ax)
     networkx.draw_networkx_nodes(G, pos, nodelist=rs, node_size=rss, node_color="#00ff00", alpha=0.8, ax=ax)
     networkx.draw_networkx_nodes(G, pos, nodelist=ms, node_size=mss, node_color="#b000b0", alpha=0.8, ax=ax)
-
-    line1 = matplotlib.lines.Line2D(range(5), range(5), color="white", marker='o', markerfacecolor="#00ff00")
+    '''
+    
+    networkx.draw_networkx_nodes(G, pos, nodelist=nodes, node_size=scaled_maintainability, node_color="#b000b0", alpha=0.8, ax=ax)
+    
+    #line1 = matplotlib.lines.Line2D(range(5), range(5), color="white", marker='o', markerfacecolor="#00ff00")
     line2 = matplotlib.lines.Line2D(range(5), range(5), color="white", marker='o', markerfacecolor="#b000b0")
 
-    return (line1, line2)
+    #return (line1, line2)
+    return line2
 
 def draw_subset_relationships(G, ax):
 
@@ -154,7 +160,8 @@ def draw_graph(subplot, G, abstractions_df):
 
     # Draw nodes with markov properties
     # layer1, layer2 = draw_nodes(G, abstractions_df,ax)
-    layer1, layer2 = draw_nodes(G, abstractions_df,subplot)
+    # layer1, layer2 = draw_nodes(G, abstractions_df,subplot)
+    layer1 = draw_nodes(G, abstractions_df,subplot)
 
     # Draw subset relationships
     # layer3 = draw_subset_relationships(G,ax)
@@ -169,7 +176,8 @@ def draw_graph(subplot, G, abstractions_df):
     # ax.set_ylabel('Number of species')
     subplot.tick_params(left=True, labelleft=True)
     subplot.set_ylabel('Number of species')
-    matplotlib.pyplot.legend((layer1,layer2,layer3, layer4),("Reachability","Maintainability","Subset relationship","Transition (width~probability)"))
+    #matplotlib.pyplot.legend((layer1,layer2,layer3, layer4),("Reachability","Maintainability","Subset relationship","Transition (width~probability)"))
+    matplotlib.pyplot.legend((layer1,layer3, layer4),("Maintainability","Subset relationship","Transition (width~probability)"))
     # matplotlib.pyplot.show()
     # return fig, ax
     
