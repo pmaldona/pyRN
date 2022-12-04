@@ -237,3 +237,13 @@ def frequencies(elements):
                 ue[1] += 1
                 
     return unique_elements
+
+def to_CRNS_format(array):
+    '''
+    Converts representation ofthe set to CRNS format
+    '''
+    a = []
+    for i in range(len(array)):
+        if array[i]==1:
+            a.append(f's{i}')
+    return numpy.array(a)
