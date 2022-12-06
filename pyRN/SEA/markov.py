@@ -66,12 +66,12 @@ def transition_matrix_from_dataframes(abstractions_df, transitions_df):
     n = abstractions_df.shape[0]
     t_matrix = [ [0 for j in range(n)] for i in range(n)]
     for i in range(n):
-        start = abstractions_df.loc[i,'a']
+        start = abstractions_df.loc[i,'abstraction']
         transitions_from_start = transitions_df.loc[transitions_df['a_1']==start]
         for x in transitions_from_start.index.tolist():
             end = transitions_from_start.loc[x, 'a_2']
             # print(end)
-            j = abstractions_df.index[abstractions_df['a']==end][0]
+            j = abstractions_df.index[abstractions_df['abstraction']==end][0]
             p = transitions_df.loc[(transitions_df['a_1']==start) & (transitions_df['a_2']==end), 'probability'].tolist()[0]
             t_matrix[i][j]=p
     T = numpy.transpose(numpy.array(t_matrix))
@@ -88,16 +88,16 @@ def add_markov_properties_to_dataframe(abstractions_df, transitions_df):
     stricts           = []
 
     n = abstractions_df.shape[0]
-
-    sum_inits = abstractions_df['n_init'].sum()
-    init      = [(abstractions_df.loc[i, 'n_init']/sum_inits) for i in range(n)]
-
+    
+    sum_inits = abstractions_df['initial_distribution'].sum()
+    init      = [(abstractions_df.loc[i, 'initial_distribution']/sum_inits) for i in range(n)]
+    
     for i in range(n):
         state    = [0 for i in range(n)]
         state[i] = 1
         reachabilities.append(reachability(init, i, T, 0.2))
         maintainabilities.append(numpy.matmul(T_stat, state)[i])
-        s = list(transitions_df.loc[(transitions_df['a_1']==abstractions_df.loc[i, 'a']) & (transitions_df['a_2']==abstractions_df.loc[i, 'a']), 'probability'])
+        s = list(transitions_df.loc[(transitions_df['a_1']==abstractions_df.loc[i, 'abstraction']) & (transitions_df['a_2']==abstractions_df.loc[i, 'abstraction']), 'probability'])
         if len(s) > 0:
             stricts.append(s[0])
         else:

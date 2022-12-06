@@ -4,7 +4,6 @@
 
 '''
 This library provides various set operations and related functions.
-
 For a fixed set S={x1,...xn} each subsets S' is represented by a list L,
 where L[i]=1 if xi ∈ S' and L[i]=0 else. 
 '''
@@ -247,3 +246,5 @@ def to_CRNS_format(array):
         if array[i]==1:
             a.append(f's{i}')
     return numpy.array(a)
+
+

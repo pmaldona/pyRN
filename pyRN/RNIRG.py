@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 from pyvis.network import Network
 import networkx as nx
 
+
+
 # Class definition: It consist to an object generates an stoichiometric matrix 
 # for the reactants (RN.mr) as for the products (RN.mp). The default initialization
 # is considered form a text file which represents the reaction network as 
@@ -1026,8 +1028,251 @@ class RNIRG:
         
         return self.getIndArrayFromBt(out)
     
-    # random generation of reaction networks
+    def getRandNat(self,Sum,size):
+        '''
+        
 
+        Parameters
+        ----------
+        Sum : int > 0
+            How much the components sums.
+        size : int > 0
+            size of the vector.
+
+        Returns
+        -------
+        A vector of naturals of size size, hows componennts sums Sum.
+
+        '''
+        
+        if isinstance(Sum, int) and isinstance(size, int) and (size>0) and (Sum>0):
+            return np.random.multinomial(Sum, [1/float(size)] * size)
+                    
+        else:
+            raise TypeError("Only naturals numbers are allowed")
+            
+        
+    # random generation of reaction networks
+    @classmethod
+    def setSimpleRandomgenerate(cls,Ns=12,rv=None):
+        '''
+        
+    
+        Parameters
+        ----------
+        Ns : int, optional
+            Number of species. The default is 12.
+        rv : vector or int, optional
+            Either a natural number or a vector of dimension 7. If rv is a vector of
+            dimension 7, its components correspond to the number of reactions of type i
+            with respect to the proposition. If rv is a natural number, it will
+            be used to generate a randomized vector of dimension 7 for the total number
+            of reactions rv . Finally if rv =None, rv is a random vector of dimension 7 and
+            total components sum equals to Ns. The default is None.
+    
+        Returns
+        -------
+        Simple generated random network.
+    
+        '''
+        
+        # Chacking consistensy of number of species
+        if (Ns > 0) and isinstance(Ns, int):
+            
+            if rv is None :
+                rv=np.random.multinomial(Ns, [1/7.] * 7)
+            elif isinstance(rv,int) and (rv>0):
+                rv=np.random.multinomial(rv, [1/7.] * 7)
+            elif (len(rv)<7) or (not all(isinstance(n, int) for n in rv)):
+                raise TypeError("inconsistency of input variables")
+        else:
+            raise TypeError("Ns in not a natrual number")
+        
+        # Creating species 
+        sp=list(map(lambda x: "s"+str(x+1).zfill(1+int(np.floor(np.log10(Ns)))),range(Ns)))
+        
+        #Cratinng
+        Nr=sum(rv)
+        mr=np.zeros([Nr,Ns])
+        mr=pd.DataFrame(mr,columns=sp)
+
+        mp=copy.copy(mr)
+        
+        k=0 #reaction counter
+        # Adding type 0 reactions
+        if rv[0]!=0:
+            rsp=np.random.choice(Ns, size=rv[0], replace=False)
+            
+            for i in rsp:
+                mr.iloc[k,i]=1
+                k+=1
+    
+        # Adding type 1 reactions
+        if rv[1]!=0:
+            rsp=np.random.choice(Ns, size=rv[1], replace=False)
+            
+            for i in rsp:
+                mp.iloc[k,i]=1
+                k+=1
+            
+        # Adding type 2 reactions
+        if rv[2]!=0:
+            
+            l=0
+            while l<rv[2]:
+            
+                rsp=np.random.choice(Ns, size=2, replace=False)
+                
+                reac=np.zeros(Ns)
+                reac[rsp[0]]=1
+                prod=np.zeros(Ns)
+                prod[rsp[1]]=1
+                if not ((mr == reac).all(1).any() and (mp == prod).all(1).any()):
+                    
+                    mr.iloc[k,rsp[0]]=1
+                    mp.iloc[k,rsp[1]]=1
+                    l+=1
+                    k+=1
+        
+        # Adding type 3 reactions
+        if rv[3]!=0:
+            
+            l=0
+            while l<rv[3]:
+            
+                rsp=np.random.choice(Ns, size=3, replace=False)
+                
+                reac=np.zeros(Ns)
+                reac[rsp[0]]=1
+                reac[rsp[1]]=1
+                prod=np.zeros(Ns)
+                prod[rsp[2]]=1
+                if not ((mr == reac).all(1).any() and (mp == prod).all(1).any()):
+                    
+                    mr.iloc[k,rsp[0]]=1
+                    mr.iloc[k,rsp[1]]=1
+                    mp.iloc[k,rsp[2]]=1
+                    l+=1
+                    k+=1
+        
+        # Adding type 4 reactions
+        if rv[4]!=0:
+            
+            l=0
+            while l<rv[4]:
+            
+                rsp=np.random.choice(Ns, size=3, replace=False)
+                
+                reac=np.zeros(Ns)
+                reac[rsp[0]]=1
+                prod=np.zeros(Ns)
+                prod[rsp[1]]=1
+                prod[rsp[2]]=1
+                if not ((mr == reac).all(1).any() and (mp == prod).all(1).any()):
+                    
+                    mr.iloc[k,rsp[0]]=1
+                    mp.iloc[k,rsp[1]]=1
+                    mp.iloc[k,rsp[2]]=1
+                    l+=1
+                    k+=1
+
+        # Adding type 5 reactions
+        if rv[5]!=0:
+            
+            l=0
+            while l<rv[5]:
+            
+                rsp=np.random.choice(Ns, size=3, replace=False)
+                
+                reac=np.zeros(Ns)
+                reac[rsp[0]]=1
+                reac[rsp[1]]=1
+                prod=np.zeros(Ns)
+                prod[rsp[0]]=1
+                prod[rsp[2]]=1
+                if not ((mr == reac).all(1).any() and (mp == prod).all(1).any()):
+                    
+                    mr.iloc[k,rsp[0]]=1
+                    mr.iloc[k,rsp[1]]=1
+                    mp.iloc[k,rsp[0]]=1
+                    mp.iloc[k,rsp[2]]=1
+                    l+=1
+                    k+=1
+                    
+        # Adding type 6 reactions
+        if rv[6]!=0:
+            
+            l=0
+            while l<rv[6]:
+            
+                rsp=np.random.choice(Ns, size=4, replace=False)
+                
+                reac=np.zeros(Ns)
+                reac[rsp[0]]=1
+                reac[rsp[1]]=1
+                prod=np.zeros(Ns)
+                prod[rsp[2]]=1
+                prod[rsp[3]]=1
+                if not ((mr == reac).all(1).any() and (mp == prod).all(1).any()):
+                    
+                    mr.iloc[k,rsp[0]]=1
+                    mr.iloc[k,rsp[1]]=1
+                    mp.iloc[k,rsp[2]]=1
+                    mp.iloc[k,rsp[3]]=1
+                    l+=1
+                    k+=1
+                    
+            
+            mr=mr.T
+            mp=mp.T
+            
+            reac=[]
+            prod=[]
+            for i in range(mp.shape[1]):
+                
+                r_sp=bt(mr.shape[0])
+                r_sp.setall(0)
+                p_sp=r_sp.copy()
+                
+                for j in np.where(mr.iloc[:,i]!=0)[0]:
+                    r_sp[j]=1
+                for j in np.where(mp.iloc[:,i]!=0)[0]:
+                    p_sp[j]=1
+                
+                reac.append(r_sp)
+                prod.append(p_sp)
+                
+            #sorting mp and mr dataframes
+            sp_i=mp.index.values.tolist()
+            sorted_sp_i=mp.sort_index(axis=0).index.values.tolist()
+            sorted_ind = [sp_i.index(i) for i in sorted_sp_i]
+            
+            for i in range(len(prod)):
+                tmp_prod=bt(len(mr.index))
+                tmp_reac=bt(len(mr.index))
+                for j in range(len(mr.index)):
+                    tmp_prod[j]=prod[i][sorted_ind[j]]
+                    tmp_reac[j]=reac[i][sorted_ind[j]]
+                
+                prod[i]=tmp_prod
+                reac[i]=tmp_reac
+            
+            mp=mp.sort_index(axis=0)
+            mr=mr.sort_index(axis=0)
+            
+            out =cls()
+            out.MrDf=mr
+            out.MpDf=mp
+            out.SpIdStrArray=np.array(mr.index)
+            out.SpNameStrArray=out.SpIdStrArray.copy()
+            out.ReacListBt=reac
+            out.ProdListBt=prod
+            out.FilenameStr=None
+            out.IsTextBool=False
+            out.IsSbmlbool=False
+            
+            return out
+            
     # the most simple random network generator, Nr reactions (>1), Ns species (>1)
     # a minimal reaction network is randomly created where each reaction has one reactant and one product and each species
     # is used at least once as reactant and once as product, extra assignments are carried out randomly over reactions
@@ -1050,7 +1295,7 @@ class RNIRG:
         usr = np.zeros(Ns)
         usp = usr.copy() # int vectors to count uses of species as reactants and products (initially the counts are 0)
         # (1) creation of the reactants and products Ns X Nr matrices of the reaction network with no species assigned
-        sp=list(map(lambda x: "s"+str(x+1),range(Ns)))
+        sp=list(map(lambda x: "s"+str(x+1).zfill(1+int(np.floor(np.log10(Ns)))),range(Ns)))
         mr=np.zeros([Nr,Ns])
         mr=pd.DataFrame(mr,columns=sp)
         mr=mr.T
@@ -1097,22 +1342,22 @@ class RNIRG:
           else: 
               mp.iloc[s,r] = mp.iloc[s,r] + 1
           
-          reac=[]
-          prod=[]
-          for i in range(mp.shape[1]):
-              
-              r_sp=bt(mr.shape[0])
-              r_sp.setall(0)
-              p_sp=r_sp.copy()
-              
-              for j in np.where(mr.iloc[:,i]!=0)[0]:
-                  r_sp[j]=1
-              for j in np.where(mp.iloc[:,i]!=0)[0]:
-                  p_sp[j]=1
-              
-              reac.append(r_sp)
-              prod.append(p_sp)
-              
+        reac=[]
+        prod=[]
+        for i in range(mp.shape[1]):
+            
+            r_sp=bt(mr.shape[0])
+            r_sp.setall(0)
+            p_sp=r_sp.copy()
+            
+            for j in np.where(mr.iloc[:,i]!=0)[0]:
+                r_sp[j]=1
+            for j in np.where(mp.iloc[:,i]!=0)[0]:
+                p_sp[j]=1
+            
+            reac.append(r_sp)
+            prod.append(p_sp)
+            
         #sorting mp and mr dataframes
         sp_i=mp.index.values.tolist()
         sorted_sp_i=mp.sort_index(axis=0).index.values.tolist()
@@ -1167,7 +1412,7 @@ class RNIRG:
         else:
             begin_idx=0
         
-        me=pd.DataFrame(me,columns=list(map(lambda x: l+str(x+1),range(begin_idx,Nse+begin_idx))))
+        me=pd.DataFrame(me,columns=list(map(lambda x: l+str(x+1).zfill(1+int(np.floor(np.log10(Nse)))),range(begin_idx,Nse+begin_idx))))
         me=me.T
         mr = pd.concat([mr, me])
         mp = pd.concat([mp, me])

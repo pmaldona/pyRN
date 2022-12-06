@@ -23,9 +23,9 @@ def plot_complexitychange(subplot, abstractions, abstractions_df, title='', show
     strict_maintainabilities = []
     maintainabilities = []
     for a in abstractions:
-        complexities.append(float(abstractions_df.loc[abstractions_df['a']==str(a),'complexity']))
-        strict_maintainabilities.append(float(abstractions_df.loc[abstractions_df['a']==str(a),'strict_maintainability']))
-        maintainabilities.append(float(abstractions_df.loc[abstractions_df['a']==str(a),'maintainability'])*1000)  
+        complexities.append(float(abstractions_df.loc[abstractions_df['abstraction']==str(a),'complexity']))
+        strict_maintainabilities.append(float(abstractions_df.loc[abstractions_df['abstraction']==str(a),'strict_maintainability']))
+        maintainabilities.append(float(abstractions_df.loc[abstractions_df['abstraction']==str(a),'maintainability'])*1000)  
     strict_maintainabilities.pop(0)
     maintainabilities.pop(0)
 

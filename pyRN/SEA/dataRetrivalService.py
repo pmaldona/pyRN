@@ -7,7 +7,7 @@ def get_RNDWs(path, x):
 
     # 1.2. Converting data
     # 1.2.1. Converting nested dictionary to 2-D arrays
-    data = [[list(step.values()) for step in list(json.loads(rndws[i][x]).values())] for i in range(len(rndws))]
+    data = [[list(step.values()) for step in list(json.loads(rndws[i][x]).values())] for i in rndws.keys()]
     # 1.2.2. Converting 2-D array from {True, False} to {0,1}
     abstractions = []
     for i in range(len(data)):
@@ -24,5 +24,6 @@ def get_CPs(path, x):
 
     # 1.2. Converting data
     # 1.2.1. Converting nested dictionary to 2-D arrays
-    complexities = [rndws[i][x] for i in range(len(rndws))]
+    print(rndws.keys())
+    complexities = [rndws[i][x] for i in rndws.keys()]
     return complexities

@@ -10,7 +10,7 @@ def nodes(G, abstractions_df):
     Out: G with nodes from abstractions_df added
     '''
 
-    abstractions = [sos.from_string(a) for a in list(abstractions_df['a'])]
+    abstractions = [sos.from_string(a) for a in list(abstractions_df['abstraction'])]
 
     bins = [[] for i in range(len(abstractions[0])+1)]
     for i,abstraction in enumerate(abstractions):
@@ -27,7 +27,7 @@ def nodes(G, abstractions_df):
         if (i>0) and (len(bins[i])==len(bins[i-1])):
             shift = 0.5
         for j,abstraction in enumerate(bin):       
-            G.add_node(list(abstractions_df.index[abstractions_df['a']==str(abstraction)])[0],
+            G.add_node(list(abstractions_df.index[abstractions_df['abstraction']==str(abstraction)])[0],
                 pos=(max_bin_size-(max_bin_size/(len(bin)+1)*(j+shift)),sos.n_elements(abstraction)))
         shift = 1
     return G
@@ -60,7 +60,7 @@ def transitivity_elimination(relationship_matrix):
 
 def subset_relationships(G, abstractions_df):
 
-    abstractions = [sos.from_string(a) for a in list(abstractions_df['a'])]
+    abstractions = [sos.from_string(a) for a in list(abstractions_df['abstraction'])]
 
     proper_subset_matrix = proper_subset_relationship_matrix(abstractions)
 
@@ -99,8 +99,8 @@ def create_graph(abstractions_df, transitions_df):
 
 def draw_nodes(G, abstractions_df, ax):
 
-    print('Node legend:')
-    print(abstractions_df['a'])
+    # print('Node legend:')
+    # print(abstractions_df['abstraction'])
 
     pos=networkx.get_node_attributes(G,'pos')
     networkx.draw_networkx(G, pos, edgelist=[],node_size=0, ax=ax)
