@@ -584,7 +584,7 @@ class RNIRG:
                 G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="gray",
                            label=label,title=label)
         
-        nt = Network('500px', '500px',directed=True,notebook=notebook,cdn_resources=cdn_resources)
+        nt = Network(x_size, y_size ,directed=True,notebook=notebook,cdn_resources=cdn_resources)
         nt.from_nx(G)
         nt.toggle_physics(False)
         # nt.show('proto.html')
