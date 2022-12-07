@@ -1081,6 +1081,7 @@ class RNIRG:
             
             if rv is None :
                 rv=np.random.multinomial(Ns, [1/7.] * 7)
+                
             elif isinstance(rv,int) and (rv>0):
                 rv=np.random.multinomial(rv, [1/7.] * 7)
             elif (len(rv)<7) or (not all(isinstance(n, int) for n in rv)):
@@ -1088,11 +1089,14 @@ class RNIRG:
         else:
             raise TypeError("Ns in not a natrual number")
         
+
         # Creating species 
         sp=list(map(lambda x: "s"+str(x+1).zfill(1+int(np.floor(np.log10(Ns)))),range(Ns)))
-        
+
         #Cratinng
         Nr=sum(rv)
+
+        
         mr=np.zeros([Nr,Ns])
         mr=pd.DataFrame(mr,columns=sp)
 
@@ -1101,6 +1105,7 @@ class RNIRG:
         k=0 #reaction counter
         # Adding type 0 reactions
         if rv[0]!=0:
+
             rsp=np.random.choice(Ns, size=rv[0], replace=False)
             
             for i in rsp:
@@ -1109,6 +1114,7 @@ class RNIRG:
     
         # Adding type 1 reactions
         if rv[1]!=0:
+
             rsp=np.random.choice(Ns, size=rv[1], replace=False)
             
             for i in rsp:
@@ -1117,7 +1123,7 @@ class RNIRG:
             
         # Adding type 2 reactions
         if rv[2]!=0:
-            
+
             l=0
             while l<rv[2]:
             
@@ -1136,7 +1142,7 @@ class RNIRG:
         
         # Adding type 3 reactions
         if rv[3]!=0:
-            
+
             l=0
             while l<rv[3]:
             
@@ -1223,55 +1229,55 @@ class RNIRG:
                     k+=1
                     
             
-            mr=mr.T
-            mp=mp.T
+        mr=mr.T
+        mp=mp.T
+        
+        reac=[]
+        prod=[]
+        for i in range(mp.shape[1]):
             
-            reac=[]
-            prod=[]
-            for i in range(mp.shape[1]):
-                
-                r_sp=bt(mr.shape[0])
-                r_sp.setall(0)
-                p_sp=r_sp.copy()
-                
-                for j in np.where(mr.iloc[:,i]!=0)[0]:
-                    r_sp[j]=1
-                for j in np.where(mp.iloc[:,i]!=0)[0]:
-                    p_sp[j]=1
-                
-                reac.append(r_sp)
-                prod.append(p_sp)
-                
-            #sorting mp and mr dataframes
-            sp_i=mp.index.values.tolist()
-            sorted_sp_i=mp.sort_index(axis=0).index.values.tolist()
-            sorted_ind = [sp_i.index(i) for i in sorted_sp_i]
+            r_sp=bt(mr.shape[0])
+            r_sp.setall(0)
+            p_sp=r_sp.copy()
             
-            for i in range(len(prod)):
-                tmp_prod=bt(len(mr.index))
-                tmp_reac=bt(len(mr.index))
-                for j in range(len(mr.index)):
-                    tmp_prod[j]=prod[i][sorted_ind[j]]
-                    tmp_reac[j]=reac[i][sorted_ind[j]]
-                
-                prod[i]=tmp_prod
-                reac[i]=tmp_reac
+            for j in np.where(mr.iloc[:,i]!=0)[0]:
+                r_sp[j]=1
+            for j in np.where(mp.iloc[:,i]!=0)[0]:
+                p_sp[j]=1
             
-            mp=mp.sort_index(axis=0)
-            mr=mr.sort_index(axis=0)
+            reac.append(r_sp)
+            prod.append(p_sp)
             
-            out =cls()
-            out.MrDf=mr
-            out.MpDf=mp
-            out.SpIdStrArray=np.array(mr.index)
-            out.SpNameStrArray=out.SpIdStrArray.copy()
-            out.ReacListBt=reac
-            out.ProdListBt=prod
-            out.FilenameStr=None
-            out.IsTextBool=False
-            out.IsSbmlbool=False
+        #sorting mp and mr dataframes
+        sp_i=mp.index.values.tolist()
+        sorted_sp_i=mp.sort_index(axis=0).index.values.tolist()
+        sorted_ind = [sp_i.index(i) for i in sorted_sp_i]
+        
+        for i in range(len(prod)):
+            tmp_prod=bt(len(mr.index))
+            tmp_reac=bt(len(mr.index))
+            for j in range(len(mr.index)):
+                tmp_prod[j]=prod[i][sorted_ind[j]]
+                tmp_reac[j]=reac[i][sorted_ind[j]]
             
-            return out
+            prod[i]=tmp_prod
+            reac[i]=tmp_reac
+        
+        mp=mp.sort_index(axis=0)
+        mr=mr.sort_index(axis=0)
+        
+        out =cls()
+        out.MrDf=mr
+        out.MpDf=mp
+        out.SpIdStrArray=np.array(mr.index)
+        out.SpNameStrArray=out.SpIdStrArray.copy()
+        out.ReacListBt=reac
+        out.ProdListBt=prod
+        out.FilenameStr=None
+        out.IsTextBool=False
+        out.IsSbmlbool=False
+        
+        return out
             
     # the most simple random network generator, Nr reactions (>1), Ns species (>1)
     # a minimal reaction network is randomly created where each reaction has one reactant and one product and each species

@@ -741,7 +741,7 @@ class RNSRW(CRNS):
         if w==None or w==1 or w==0:
             w=range(0,1)
         
-        if w[0] > len(self.RwDict['simple']):
+        if w[0] > len(self.RwDict['mak']):
             RuntimeError("w out of range")
                     
             
@@ -1089,7 +1089,7 @@ class RNSRW(CRNS):
             self.RwDict['simple'][j]={}
             self.RwDict['simple'][j]['p']=PerturbStates
             self.RwDict['simple'][j]['c']=ConvStates
-            self.RwDict['simple'][j]['pc']=PerturbStatesComplex
+            self.RwDict['simple'][j]['cp']=PerturbStatesComplex
             self.RwDict['simple'][j]['cc']=ConvStatesComplex
             
             out=copy.deepcopy(self.RwDict['simple'])
