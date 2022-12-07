@@ -2,9 +2,20 @@ import numpy
 import copy
 
 def T_inf(T):
-    for i in range(10):
-        T = numpy.matmul(T,T)
-    return T
+    '''
+    In:  T     (2D-array), the transition matrix for a finite number of steps
+    Out: T_inf (2D-array), the transition matrix for infinitive steps
+    Calculates the transition matrix for infinitive steps by multiplying 
+    transition matrix for a finite number of steps with itself until
+    it doesn't change significantly anymore
+    (Waiting for it to not chang at all could lead to bad results
+    due to numerical errors)
+    '''
+    while True:
+        T_inf = [[T[i][j] for j in range(len(T))] for i in range(len(T))]
+        T     = numpy.matmul(T,T)
+        if (numpy.all(numpy.round(T,10)==numpy.round(T_inf,10))):
+            return T_inf
 
 def pn(p0,T,n):
     Tn = T
