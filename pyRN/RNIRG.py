@@ -530,7 +530,7 @@ class RNIRG:
         
                    
     
-    def getRnDisplayPv(self,r_set=np.array([]),notebook=False):
+    def getRnDisplayPv(self,r_set=np.array([]),x_size='500px',y_size='500px',notebook=False,cdn_resources='local'):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
@@ -584,7 +584,7 @@ class RNIRG:
                 G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="gray",
                            label=label,title=label)
         
-        nt = Network('500px', '500px',directed=True,notebook=notebook)
+        nt = Network('500px', '500px',directed=True,notebook=notebook,cdn_resources=cdn_resources)
         nt.from_nx(G)
         nt.toggle_physics(False)
         # nt.show('proto.html')
