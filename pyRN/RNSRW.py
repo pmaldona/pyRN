@@ -615,14 +615,14 @@ class RNSRW(CRNS):
             if a==1: 
                 k = np.where(w>0)[0] 
             else: 
-                k = np.random.choice(np.where(w>0)[0],n)
+                k = np.random.choice(np.where(w>0)[0],n,replace=False)
             ind=np.delete(np.arange(0, l, 1, dtype=int),k,None)
             w[ind] = 0
         elif p==0:
             if l==1: 
                 k = 0 
             else: 
-                k = np.random.choice(l,n)
+                k = np.random.choice(l,n,replace=False)
             
             ind=np.delete(np.arange(0, l, 1, dtype=int),k,None)
             w[ind] = 0
@@ -634,23 +634,23 @@ class RNSRW(CRNS):
         else :  # n>p and p>0
             i = np.where(w>0)[0]
             if len(i)>1: 
-                i = np.random.choice(i,p)  # the ones we keep
+                i = np.random.choice(i,p,replace=False)  # the ones we keep
             j=np.delete(np.arange(0, l, 1, dtype=int),i,None) # the remaining components
-            k = np.random.choice(len(j),n-p)
+            k = np.random.choice(len(j),n-p,replace=False)
             ind=np.delete(np.arange(0, len(j), 1, dtype=int),k,None)
             
-            if isinstance(j,int):
-                w[j]=1
-                k=j
-            else:
-                w[j[ind]] = 0
-                k = j[k]
+            # if isinstance(j,int):
+            #     w[j] = 0
+            #     k=j
+            # else:
+            w[j[ind]] = 0
+            k = j[k]
             
-            if isinstance(k,int):
-                if w[k]==0:
-                    w[k]=1
-            else:
-                w[k[w[k]==0]]=1
+            # if isinstance(k,int):
+            #     if w[k]==0:
+            #         w[k]=1
+            # else:
+            w[k[w[k]==0]]=1
             
   
         v_out[mask] = w
@@ -693,14 +693,20 @@ class RNSRW(CRNS):
                 mask_i=mask.copy()
                 mask=mask_i|self.getGBtConnectedToBBt(mask_i)
                 
+            mask=np.array(mask.tolist()).astype(bool)
         else:
             mask=None
         
         # Generating the perturbation using existing functions
         v=np.array(g.tolist())
-        mask=np.array(mask.tolist()).astype(bool)
-        n = np.max([np.sum(v>0)+d,nmin])
-        v_out = self.getPertActivation(v,mask=mask,n=n)
+        # n = np.max([np.sum(v>0)+d,nmin])
+        n_size=np.random.choice(np.arange(
+            np.max([0,np.sum(v>0)-d]),
+            np.min([np.sum(v>0)+d,len(v)]),
+            1, dtype=int))
+        print("n_size:",n_size)
+        n = np.max([n_size,nmin])
+        v_out = self.getPertActivation(v,mask=mask,n=n,p=0)
         v_out[v_out>0]=1
         v_out[v_out==0]=0
         
@@ -728,7 +734,7 @@ class RNSRW(CRNS):
     # co a dataframe of the complexity (closure)
     # u a dataframe of the active species in the random walk (used species)
     # sim a list of dataframe whit the simulation data (con, rate, abst, a_sp and a_r dataframes)
-    def setMakRw(self,w=range(10),l=10,cutoff=.1,rt=None,n=5000,trys=10,sim_save=True,fname="rand_walk.json"):
+    def setMakRw(self,sp=None,w=range(10),l=10,cutoff=.1,rt=None,n=5000,trys=10,sim_save=True,fname="rand_walk.json"):
                 
         try:
             self.RwDict
@@ -753,8 +759,11 @@ class RNSRW(CRNS):
             
             
                 self.RwDict['mak'][i]={}
-            
-                s = np.zeros(len(self.SpIdStrArray)) # the current state is zeroed
+                if sp is None:
+                    s = np.zeros(len(self.SpIdStrArray)) # the current state is zeroed
+                else:
+                    s=sp
+                    
                 if rt is None:
                     f = self.getRandomizePert(np.ones(self.MrDf.shape[1])) # the flow vector is randomized (each random walk has a different f)
                 else:
@@ -1025,8 +1034,32 @@ class RNSRW(CRNS):
     
     # p a dataframe the perturbed states before the simulation starts in the random walk
     # c a dataframe of the convergent states in the random walk
-    def setRwSimple(self,w=range(10),l=10,d=1,nmin=3,fname="rand_walk.json"):
+    def setRwSimple(self, init_gen=None, w=range(10),l=10,d=3,nmin=1,conn=True, fname="rand_walk.json"):
+        '''
         
+
+        Parameters
+        ----------
+        init_gen : int array, optional
+            indexes of present generators as initial state. The default is None.
+        w : TYPE, int range
+            Dictonary index of random walk repetition. The default is range(10).
+        l : int, optional
+            Number of steps of each random walk. The default is 10.
+        d : int, optional
+            Perturbation size (number of added or sustracted generators). The default is 1.
+        nmin : int, optional
+            ;inimal number of generators that an perturbation can have. The default is 1.
+        conn : bool, optional
+            If True only opertubs with connected generators, if False with any. The default is True.
+        fname : string, optional
+            Name of the json file were the random walks will be stored. The default is "rand_walk.json".
+
+        Returns
+        -------
+        Add a RwDict Dictinary the simple random walks.
+
+        '''    
         try:
             self.SetsDictOrgsBelow
         except:
@@ -1046,14 +1079,21 @@ class RNSRW(CRNS):
         for j in w:
             X=self.GInBListBt[0].copy()
             X.setall(0)
-            X=self.getGPert(X,d=d,nmin=nmin)
-            X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
             
+            if not (init_gen is None):
+                for i in init_gen:
+                    X[i]=1
+            X=self.getGPert(X,d=d,nmin=nmin,conn=conn)
+            # print("perturbation:",self.getSpBtInGBt(X))
+            X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
+            # print("closure of perturbation:",X)
             PerturbStates=[]
             PerturbStatesComplex=[]
             ConvStates=[]
             ConvStatesComplex=[]
             for i in range(l):
+                print("walk:",j,"step",i)
+                
                 PerturbStates.append(X.tolist())
                 PerturbStatesComplex.append(self.getComplexityFloat(np.array(self.getRpFromSp(X).tolist())))
                 if X in self.SynStrOrgListBtArray:
@@ -1079,8 +1119,11 @@ class RNSRW(CRNS):
                 
                 X=bt("".join(list(map(str,ConvStates[-1]))))
                 X=self.getGBtInSpBt(X)
+                # print("before perturbation:",X)
                 X=self.getGPert(X,d=d,nmin=nmin)
+                # print("perturbation:",X)
                 X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
+                # print("closure of perturbation:",X)
                 
             PerturbStates=pd.DataFrame(PerturbStates,columns=self.SpIdStrArray).T
             ConvStates=pd.DataFrame(ConvStates,columns=self.SpIdStrArray).T
