@@ -58,7 +58,9 @@ onDestroy(()=>{
 	
 </script>
 
+<!-- svelte-ignore a11y-click-events-have-key-events -->
 <div id="topModal" class:visible bind:this={topDiv} on:click={()=>close(0)}>
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div id='modal' on:click|stopPropagation={()=>{}}>
 		<!-- <svg id="close" on:click={()=>close()} viewBox="0 0 12 12">
 			<circle cx=6 cy=6 r=6 />

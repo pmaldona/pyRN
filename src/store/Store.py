@@ -1,12 +1,13 @@
+from enum import Enum
 from typing import Union
 from pandas import DataFrame
 from pyRN import pyRN
 from pyvis.network import Network
 import networkx as nx
 from bitarray import bitarray as bt
+from .WalkTypes import WalkTypes
 
 from ..misc.CaptureOut import Capturing
-
 
 class State:
     def __init__(self) -> None:
@@ -25,6 +26,7 @@ class State:
         self.synergies_graph: Union[Network, None] = None
         self.model: bool = False
         self.simple_rw: bool = False
+        self.random_walk_type: WalkTypes = WalkTypes.SIMPLE_RANDOM_WALK
     
     def save_network(self, path: str) -> bool:
         if self.reaction_network != None:
@@ -192,19 +194,38 @@ class State:
         else:
             return False
     
+    def set_random_walk_type(self, random_walk_type: WalkTypes) -> bool:
+        self.random_walk_type = random_walk_type
+        return True
+
     def init_simple_random_walk(self, w=range(10),l=10,d=1,nmin=3, fname="rand_walk.json") -> bool:
         if self.reaction_network != None:
             if self.organizations == None:
                 if self.generate_organizations() == False:
                     return False
             try:
-                self.reaction_network.setRwSimple(w,l,d,nmin,fname)
+                self.reaction_network.setRwSimple(None,w,l,d,nmin,fname=fname)
                 self.simple_rw = True
             except:
                 return False
             else:
                 return True
-                
+        else:
+            return False
+    
+    def init_mak_random_walk(self, w=range(10),l=10,n=500, trys=10, save=True, fname="rand_mak_walk.json") -> bool:
+        if self.reaction_network != None:
+            if self.organizations == None:
+                if self.generate_organizations() == False:
+                    return False
+            
+            try:
+                self.reaction_network.setMakRw(None, w=w,l=l,n=n,trys=trys,sim_save=save,fname=fname)
+                self.simple_rw = True
+            except:
+                return False
+            else:
+                return True
         else:
             return False
         
@@ -221,6 +242,9 @@ class State:
             "synergies": self.synergies_graph
         }
     
+    def get_walk_type(self) -> WalkTypes:
+        return self.random_walk_type
+
     def get_reactions(self) -> list:
         if self.reaction_network:
             with Capturing() as output:
@@ -302,7 +326,17 @@ class State:
             if self.simple_rw == False:
                 if self.init_simple_random_walk(w=walk_range,l=l,d=d,nmin=nmin, fname=fname) == False:
                     return None
-            print(self.reaction_network.RwSimpleDict.keys())
-            return self.reaction_network.RwSimpleDict.keys()
+            print(self.reaction_network.RwDict[self.random_walk_type.value].keys())
+            return self.reaction_network.RwDict[self.random_walk_type.value].keys()
+    
+    def get_mak_rw(self, walk_range=range(10),l=10,n=500, trys=10, save=True, fname="rand_mak_walk.json"):
+        if self.reaction_network == None:
+            return None
+        else:
+            if self.simple_rw == False:
+                if self.init_mak_random_walk(w=walk_range,l=l,n=n,trys=trys,save=save, fname=fname) == False:
+                    return None
+            print(self.reaction_network.RwDict[self.random_walk_type.value].keys())
+            return self.reaction_network.RwDict[self.random_walk_type.value].keys()
             
 

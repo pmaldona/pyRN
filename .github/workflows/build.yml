@@ -17,6 +17,8 @@ jobs:
         with:
           node-version: 16
       - run: npm install
+      
+      - run: npm run svelte-build
 
       - uses: actions/setup-python@v4
         with:
@@ -61,6 +63,8 @@ jobs:
           node-version: 16
       - run: npm install
 
+      - run: npm run svelte-build
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -103,6 +107,8 @@ jobs:
         with:
           node-version: 16
       - run: npm install
+
+      - run: npm run svelte-build
 
       - uses: actions/setup-python@v4
         with:

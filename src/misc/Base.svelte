@@ -55,9 +55,11 @@
 <main>
 	<h1>CRNS UI</h1>
     <!-- svelte-ignore a11y-missing-attribute -->
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
     <a class="waves-effect waves-light btn" style="margin: 20px;" on:click={openFile}>Open File</a>
 	<br>
 	<!-- svelte-ignore a11y-missing-attribute -->
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<a class="waves-effect waves-light btn" style="margin: 20px;" on:click={genNetwork}>Generate Random Network</a>
 </main>
 

@@ -14,9 +14,14 @@
         { id: 8, text: `RW Markov`, disabled: true},
 	];
     let keys = [];
+    let walkTypes = [
+        { id: 0, text: `simple`},
+        { id: 1, text: `mak`}
+    ];
 
     let selected = plots[0];
     let selected_key = undefined;
+    let selectedWalk = walkTypes[0];
 
     let image_source;
 
@@ -28,6 +33,9 @@
     let l = 10;
     let d = 1;
     let nmin = 3;
+    let n = 500;
+    let trys = 10;
+    let save = true;
     let fname = "rand_walk.json";
     let has_random_walk = false;
     let convPert = false;
@@ -73,6 +81,10 @@
         });
     }
 
+    async function setWalkType() {
+        await eel.set_random_walk_type(selectedWalk.text)();
+    }
+
     async function plot() {
         if(selected.id == 2) {
             pltConcentrations();
@@ -101,7 +113,8 @@
         is_loaded().then(result => {
             has_file_open = result;
         });
-        let promise = eel.simple_random_walk(w, l, d, nmin, fname)();
+        let promise = eel.new_random_walk(w, l, d, nmin, n, trys, save, fname)();
+        console.log("new Random Walk");
         await promise.then(result => {
             console.log(result);
             if (result != false) {
@@ -224,14 +237,26 @@
                 <div>
                     Initial Concentrations:
                     <!-- svelte-ignore a11y-missing-attribute -->
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <a class="waves-effect waves-light btn" on:click={plot}>Init</a>
                     <br>
                     Rate Constants:
                     <!-- svelte-ignore a11y-missing-attribute -->
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <a class="waves-effect waves-light btn" on:click={plot}>Rate</a>
                 </div>
             {/if}
             {#if selected.id == 4}
+                <label>
+                    Walk type:
+                    <select bind:value={selectedWalk} on:change="{() => {setWalkType()}}" style="display:block;">
+                        {#each walkTypes as type}
+                            <option value={type}>
+                                {type.text}
+                            </option>
+                        {/each}
+                    </select>
+                </label>
                 <label>
                     Number of walks:
                     <input type=number min="1" step="1" bind:value={w}>
@@ -240,85 +265,90 @@
                     Steps per walk: 
                     <input type=number min="1" step="1" bind:value={l}>
                 </label>
-                <label>
-                    Change in active species: 
-                    <input type=number min="0" step="1" bind:value={d}>
-                </label>
-                <label>
-                    Minimal active species: 
-                    <input type=number min="0" step="1" bind:value={nmin}>
-                </label>
+                {#if selectedWalk.id == 0}
+                    <label>
+                        Change in active species: 
+                        <input type=number min="0" step="1" bind:value={d}>
+                    </label>
+                    <label>
+                        Minimal active species: 
+                        <input type=number min="0" step="1" bind:value={nmin}>
+                    </label>
+                {:else}
+                    <label>
+                        Number of simulation steps: 
+                        <input type=number min="0" step="1" bind:value={n}>
+                    </label>
+                    <label>
+                        Number of perturbations done if the integrator has covergence problems: 
+                        <input type=number min="0" step="1" bind:value={trys}>
+                    </label>
+                    <label>
+                        Save the random walk? 
+                        <input type=checkbox bind:checked={save}>
+                    </label>
+                {/if}
                 <label>
                     Save walks as: 
                     <input type=text bind:value={fname}>
                 </label>
                 <div>
                     <!-- svelte-ignore a11y-missing-attribute -->
-                    <a class="waves-effect waves-light btn" on:click={start_random_walk}>Simple Random Walk</a>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <a class="waves-effect waves-light btn" on:click={start_random_walk}>Start a {selectedWalk.text} Random Walk</a>
                 </div>
-                {#if keys.length == 0}
-                    <select value={0} disabled style="display:block;"></select>
-                    <div>
-                        <!-- svelte-ignore a11y-missing-attribute -->
-                        <a class="waves-effect waves-light btn" disabled>Plot Random Walk</a>
-                    </div>
-                {:else}
-                    <select bind:value={selected_key} on:change="{() => plot_simple_random_walk()}" style="display:block;">
+                <label>
+                    Plot random walk by id: 
+                    {#if keys.length == 0}
+                        <select value={0} disabled style="display:block;"></select>
+                    {:else}
+                        <select bind:value={selected_key} on:change="{() => plot_simple_random_walk()}" style="display:block;">
+                            {#each keys as key}
+                                <option value={key}>
+                                    {key}
+                                </option>
+                            {/each}
+                        </select>
+                    {/if}
+                </label>
+            {/if}
+            {#if selected.id == 5}
+                <label>
+                    Plot {selectedWalk.text} random walk by id:
+                    <select bind:value={selected_key} on:change="{() => plot_abstraction()}" style="display:block;">
                         {#each keys as key}
                             <option value={key}>
                                 {key}
                             </option>
                         {/each}
                     </select>
-                    <!-- svelte-ignore a11y-missing-attribute -->
-                    <div>
-                        <a class="waves-effect waves-light btn" on:click={plot_simple_random_walk}>Plot Random Walk</a>
-                    </div>
-                {/if}
-            {/if}
-            {#if selected.id == 5}
-                <select bind:value={selected_key} on:change="{() => plot_abstraction()}" style="display:block;">
-                    {#each keys as key}
-                        <option value={key}>
-                            {key}
-                        </option>
-                    {/each}
-                </select>
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <div>
-                    <a class="waves-effect waves-light btn" on:click={plot_abstraction}>Plot Abstraction Size</a>
-                </div>
+                </label>
             {/if}
             {#if selected.id == 6}
-                <select bind:value={selected_key} on:change="{() => plot_trajectory()}" style="display:block;">
-                    {#each keys as key}
-                        <option value={key}>
-                            {key}
-                        </option>
-                    {/each}
-                </select>
+                <label>
+                    Plot {selectedWalk.text} random walk by id:
+                    <select bind:value={selected_key} on:change="{() => plot_trajectory()}" style="display:block;">
+                        {#each keys as key}
+                            <option value={key}>
+                                {key}
+                            </option>
+                        {/each}
+                    </select>
+                </label>
                 <label>
                     Show Convergence and Peretubations: 
-                    <input type="checkbox" bind:checked={convPert} style="opacity: 1; position: relative;">
+                    <input type="checkbox" bind:checked={convPert} on:change={() => plot_trajectory()} style="opacity: 1; position: relative;">
                 </label>
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <div>
-                    <a class="waves-effect waves-light btn" on:click={plot_trajectory}>Plot Trajectory</a>
-                </div>
             {/if}
             {#if selected.id == 7}
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <div>
-                    <a class="waves-effect waves-light btn" on:click={plot_histogramm_rw}>Plot Histogramm</a>
-                </div>
+                <div></div>
             {/if}
             {#if selected.id == 8}
-                <!-- svelte-ignore a11y-missing-attribute -->
                 <div>
-                    <a class="waves-effect waves-light btn" on:click={plot_markov}>Plot Markov</a>
                 </div>
             {/if}
             <!-- svelte-ignore a11y-missing-attribute -->
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
             <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={plot}>replot</a>
         </div>
     </div>

@@ -14,7 +14,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[(_p, 'eel'), ('static', 'static')],
+    datas=[(_p, 'eel'), ('static', 'static'), ('pyversion', 'pyversion')],
     hiddenimports=['bottle_websocket'],
     hookspath=[],
     hooksconfig={},

@@ -3,6 +3,7 @@ import eel
 from src.Simulation.Simulation import plot_abstractions_callable, plot_df, plot_hist_simple_rw, plot_markov_callable, plot_random_walk_callable, plot_stoich, plot_trajectory_callable
 from src.Network.Network import get_network_from_set
 from src.store.Store import State
+from src.store.WalkTypes import WalkTypes
 
 print("[eel]: Init");
 
@@ -119,10 +120,42 @@ def add_outflow(extra=0.1):
     return state.add_outflow(extra)
 
 @eel.expose
-def simple_random_walk(w, l, d, nmin, fname):
+def set_random_walk_type(walk_type = 'simple'):
     rn = state.reaction_network
     if rn != None:
-        keys = state.get_simple_rw(range(w), l, d, nmin, fname)
+        if walk_type == 'simple':
+            return state.set_random_walk_type(WalkTypes.SIMPLE_RANDOM_WALK)
+        else:
+            return state.set_random_walk_type(WalkTypes.MAK_RANDOM_WALK)
+    else:
+        return False
+
+@eel.expose
+def random_walk(w, l, d, nmin, n, trys, save, fname):
+    rn = state.reaction_network
+    if rn != None:
+        keys = None
+        if state.get_walk_type() == WalkTypes.SIMPLE_RANDOM_WALK:
+            keys = state.get_simple_rw(range(w), l, d, nmin, fname)
+        else:
+            keys = state.get_mak_rw(range(w), l, n, trys, save, fname)
+        if keys != None:
+            return list(keys)
+        else:
+            return False
+    else:
+        return False
+
+@eel.expose
+def new_random_walk(w, l, d, nmin, n, trys, save, fname):
+    rn = state.reaction_network
+    if rn != None:
+        keys = None
+        state.simple_rw = False
+        if state.get_walk_type() == WalkTypes.SIMPLE_RANDOM_WALK:
+            keys = state.get_simple_rw(range(w), l, d, nmin, fname)
+        else:
+            keys = state.get_mak_rw(range(w), l, n, trys, save, fname)
         if keys != None:
             return list(keys)
         else:
@@ -138,7 +171,7 @@ def plot_simple_random_walk_raw(index) -> Union[str, bool]:
         if state.simple_rw == False:
             if state.init_simple_random_walk() == False:
                 return False
-        return plot_random_walk_callable(state.reaction_network.plotRawSimpleRw, index)
+        return plot_random_walk_callable(state.reaction_network.plotRawRw, state.get_walk_type().value, index)
 
 @eel.expose
 def plot_abstraction(index):
@@ -148,7 +181,7 @@ def plot_abstraction(index):
         if state.simple_rw == False:
             if state.init_simple_random_walk() == False:
                 return False
-        plot = plot_abstractions_callable(state.reaction_network.plotChangeSimpleRw, index)
+        plot = plot_abstractions_callable(state.reaction_network.plotChangeRw, state.get_walk_type().value, index)
         return plot
 
 @eel.expose
@@ -160,9 +193,9 @@ def plot_trajectory(index, conv_pert, title=''):
             if state.init_simple_random_walk() == False:
                 return False
         if conv_pert == True:
-            return plot_trajectory_callable(state.reaction_network.plotHasseConvergenceAndPerturbationSimpleRw,conv_pert, index)
+            return plot_trajectory_callable(state.reaction_network.plotHasseConvergenceAndPerturbationRw, state.get_walk_type().value,conv_pert, index)
         else:
-            return plot_trajectory_callable(state.reaction_network.plotHasseSimpleRw, conv_pert, index)
+            return plot_trajectory_callable(state.reaction_network.plotHasseRw, state.get_walk_type().value, conv_pert, index)
 
 @eel.expose
 def plot_histogramm_random_walk():
@@ -172,7 +205,7 @@ def plot_histogramm_random_walk():
         if state.simple_rw == False:
             if state.init_simple_random_walk() == False:
                 return False
-        return plot_hist_simple_rw(state.reaction_network.plotHistSimpleRw)
+        return plot_hist_simple_rw(state.reaction_network.plotHistAbstRw, state.get_walk_type().value)
 
 @eel.expose
 def plot_markov():
@@ -182,7 +215,7 @@ def plot_markov():
         if state.simple_rw == False:
             if state.init_simple_random_walk() == False:
                 return False
-        return plot_markov_callable(state.reaction_network.plotMarkovSimpleRw)
+        return plot_markov_callable(state.reaction_network.plotMarkovRw, state.get_walk_type().value)
 
 
 print("[eel]: Start");

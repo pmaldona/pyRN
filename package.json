@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "cross-env NODE_ENV=development & npm run svelte-build & electron .",
+    "start-test": "cross-env NODE_ENV=development & electron .",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
@@ -52,8 +53,12 @@
     "cross-env": "^7.0.3",
     "electron-is-dev": "^2.0.0",
     "icmp": "^2.0.1",
+    "node-fetch": "^2.6.7",
+    "node-fetch-progress": "^1.0.2",
+    "semver": "^7.3.8",
     "sirv-cli": "^2.0.0",
-    "vis-network": "^9.1.2"
+    "vis-network": "^9.1.2",
+    "yauzl": "^2.10.0"
   },
   "devDependencies": {
     "@bulatdashiev/svelte-slider": "^1.0.3",
