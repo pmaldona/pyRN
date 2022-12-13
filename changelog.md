@@ -13,3 +13,4 @@ Self-Updater
 updated dependencies
 Archiving Before Upload
 Only upload Archive
+Upload Error
