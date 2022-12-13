@@ -43,10 +43,10 @@ jobs:
           ls out/*/ | grep pyrn_gui
           sudo chmod a+x out/*/pyrn_gui
       
-      # - uses: vimtor/action-zip@v1.1
-      #   with:
-      #     files: out/
-      #     dest: pyRN_GUI-linux.zip
+      - uses: vimtor/action-zip@v1.1
+        with:
+          files: out/
+          dest: pyRN_GUI-linux.zip
       
       - name: Archive build
         uses: actions/upload-artifact@v3
@@ -85,10 +85,10 @@ jobs:
       - name: build electron app
         run: npm run package
       
-      # - uses: vimtor/action-zip@v1.1
-      #   with:
-      #     files: out/
-      #     dest: pyRN_GUI-win.zip
+      - uses: vimtor/action-zip@v1.1
+        with:
+          files: out/
+          dest: pyRN_GUI-win.zip
       
       - name: Archive build
         uses: actions/upload-artifact@v3
@@ -128,10 +128,10 @@ jobs:
       - name: build electron app
         run: npm run package
 
-      # - uses: vimtor/action-zip@v1.1
-      #   with:
-      #     files: out/
-      #     dest: pyRN_GUI-macos.zip
+      - uses: vimtor/action-zip@v1.1
+        with:
+          files: out/
+          dest: pyRN_GUI-macos.zip
       
       - name: Archive build
         uses: actions/upload-artifact@v3
