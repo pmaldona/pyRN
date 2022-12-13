@@ -10,3 +10,4 @@ added more plots.
 added overlay for Orgs.
 Release 1.0
 Self-Updater
+updated dependencies
