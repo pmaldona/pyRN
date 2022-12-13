@@ -11,3 +11,4 @@ added overlay for Orgs.
 Release 1.0
 Self-Updater
 updated dependencies
+Archiving Before Upload
