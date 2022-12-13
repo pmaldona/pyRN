@@ -12,3 +12,4 @@ Release 1.0
 Self-Updater
 updated dependencies
 Archiving Before Upload
+Only upload Archive
