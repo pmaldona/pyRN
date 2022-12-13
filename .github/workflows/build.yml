@@ -52,7 +52,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: pyRN_GUI-linux
-          path: out/*
+          path: out/pyRN_GUI-linux.zip
   
   build-windows:
     runs-on: windows-latest
@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: pyRN_GUI-win
-          path: out/*
+          path: out/pyRN_GUI-win.zip
   
   build-macos:
     runs-on: macos-latest
@@ -137,4 +137,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: pyRN_GUI-macos
-          path: out/*
+          path: out/pyRN_GUI-macos.zip
