@@ -22,15 +22,15 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.9'
+      - name: Install dep-packages
+        run: sudo apt-get install build-essential libxml2-dev libxslt-dev python3-dev libglpk-dev
+      - run: pip install cython
       - run: pip install eel
       - run: pip install pyinstaller
       - run: pip install pycddlib
       - run: pip install pypoman
       - run: pip install git+https://github.com/pmaldona/pyRN.git
-
-      - name: Install dep-packages
-        run: sudo apt-get install libxml2-dev libxslt-dev python-dev cython libglpk-dev
 
       - name: build python module
         run: |
