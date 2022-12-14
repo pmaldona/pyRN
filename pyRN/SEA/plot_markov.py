@@ -107,7 +107,7 @@ def draw_nodes(G, abstractions_df, ax):
 
     nodes = list(G.nodes())
 
-    maintainabilities = [abstractions_df.loc[n, 'maintainability'] for n in nodes]
+    maintainabilities = [abstractions_df.loc[n, 'global_resilience'] for n in nodes]
     reachabilities    = [abstractions_df.loc[n, 'reachability'] for n in nodes]
     scaled_maintainability  = [maintainabilities[i]/max(maintainabilities)*2500 for i in range(len(maintainabilities))]
     scaled_reachability     = [reachabilities[i]/max(reachabilities)*2500 for i in range(len(reachabilities))]
@@ -169,7 +169,7 @@ def draw_graph(subplot, G, abstractions_df):
     # ax.set_ylabel('Number of species')
     subplot.tick_params(left=True, labelleft=True)
     subplot.set_ylabel('Number of species')
-    matplotlib.pyplot.legend((layer1,layer2,layer3, layer4),("Reachability","Maintainability","Subset relationship","Transition (width~probability)"))
+    matplotlib.pyplot.legend((layer1,layer2,layer3, layer4),("Reachability","Global resilience","Subset relationship","Transition (width~probability)"))
     # matplotlib.pyplot.show()
     # return fig, ax
     
