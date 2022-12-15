@@ -114,6 +114,6 @@ def add_markov_properties_to_dataframe(abstractions_df, transitions_df):
         else:
             stricts.append(0)
     
-    abstractions_df = abstractions_df.assign(reachability=reachabilities, maintainability=maintainabilities, strict_maintainability=stricts)
+    abstractions_df = abstractions_df.assign(reachability=reachabilities, global_resilience=maintainabilities, local_resilience=stricts)
 
     return abstractions_df
