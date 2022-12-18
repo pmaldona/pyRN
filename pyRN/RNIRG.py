@@ -960,12 +960,11 @@ class RNIRG:
         return ind
     
     # Function that returns Bitarray for postition from a 0 and 1 array 
-    def getBtFromIndArray(self,v):
-        btarray=bt(len(v))
+    def getBtFromIndArray(self,ind,size):
+        btarray=bt(size)
         btarray.setall(0)
-        for i in range(len(v)):
-            if v[i]==1:
-                btarray[i]=1
+        for i in ind:
+           btarray[i]=1
         
         return btarray
     

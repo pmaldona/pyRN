@@ -16,6 +16,7 @@ import json
 import copy
 from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
+from itertools import combinations
 
 class RNSRW(CRNS):
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
@@ -1042,14 +1043,14 @@ class RNSRW(CRNS):
         ----------
         init_gen : int array, optional
             indexes of present generators as initial state. The default is None.
-        w : TYPE, int range
+        w : int range, optional
             Dictonary index of random walk repetition. The default is range(10).
         l : int, optional
             Number of steps of each random walk. The default is 10.
         d : int, optional
             Perturbation size (number of added or sustracted generators). The default is 1.
         nmin : int, optional
-            ;inimal number of generators that an perturbation can have. The default is 1.
+            Minimal number of generators that an perturbation can have. The default is 1.
         conn : bool, optional
             If True only opertubs with connected generators, if False with any. The default is True.
         fname : string, optional
@@ -1112,7 +1113,7 @@ class RNSRW(CRNS):
                         ConvStates.append(Orgs_below[0].tolist())
                         ConvStatesComplex.append(self.getComplexityFloat(np.array(self.getRpFromSp(Orgs_below[0]).tolist())))
                     else:
-                        print("Orgs_below:",Orgs_below)
+                        # print("Orgs_below:",Orgs_below)
                         ind=np.random.choice(range(len(Orgs_below)))
                         ConvStates.append(Orgs_below[ind].tolist())
                         ConvStatesComplex.append(self.getComplexityFloat(np.array(self.getRpFromSp(Orgs_below[ind]).tolist())))
@@ -1144,6 +1145,121 @@ class RNSRW(CRNS):
             with open(fname, "w") as outfile:
                 json.dump(out, outfile)
             
+    
+    def getallGPert(self,g,pert_size=4,conn=True):
+        '''
         
+
+        Parameters
+        ----------
+        g: bitarray
+            Generator vector to be perturbed.
+        pert_size : int, optional
+            Size of the perturbation (generators). The default is 4.
+        conn : bool, optional
+            If True only perturbations with connected generators, if False with any. The default is True.
+
+        Returns
+        -------
+        List of all posible perturbations for the bitarray g.
+
+        '''
         
+        # Choosing only connceted generators
+        if conn:
+            mask_i=g.copy()
+            for j in [i for i in self.GInBListBt if i.count()==1]:
+                mask_i|=j
+            
+            mask=mask_i|self.getGBtConnectedToBBt(mask_i)
+            while mask!=mask_i:
+                mask_i=mask.copy()
+                mask=mask_i|self.getGBtConnectedToBBt(mask_i)
+                
+        else:
+            mask=g.copy()
+            mask.setall(1)
+            
+        
+        # selection of the diferrent size of the components to select 
+        pert_range=range(max(0,g.count()-pert_size),min(g.count()+pert_size+1,mask.count()+1))
+        
+        # list of position of all permurtations
+        res = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
+        res = list(map(lambda x: self.getBtFromIndArray(x,len(g)),res))
+        
+        return res
+
+        
+    
+    def setSimpleTransDict(self,orglist,pert_size=4,conn=True,closure=True):
+        '''
+        
+
+        Parameters
+        ----------
+        orglist : list of bitsets.
+            list of organization as species.
+        pert_size : int, optional
+            Maximum size of the perturbation (generators). The default is 4.
+        conn : bool, optional
+            If True only perturbations with connected generators, if False with any. The default is True.
+        closure : bool, optional
+            If True closure of the pertrubartion are considered, if False perturbation as any combiantion of generators. The default is True.
+        Returns
+        -------
+        Dictionary of starting organization, which contains all pertrubation 
+        for the current starting organization, for the corresponding size pert_size, and the resulting covergent organization.
+
+        '''
+        try:
+            self.SetsDictOrgsBelow
+        except:
+            self.SetsDictOrgsBelow={}
+            
+        # variable of orgs to be used
+        orgs=orglist.copy()
+        
+        # creation of the emptyset if it's not present in the orglist
+        emptyset=self.GSpListBt[0].copy()
+        emptyset.setall(0)
+        
+        if not (emptyset in orgs):
+            orgs.append(emptyset)
+        
+        # creation of the dictionary of all organization and current perturbations and convergengt states
+        orgs_dict={}
+        for i in orgs:
+                
+                orgs_dict[fbt(self.getGBtInSpBt(i))]=[]
+                # itereting all posible perturbations
+                pert=self.getallGPert(self.getGBtInSpBt(i),pert_size=pert_size,conn=conn)
+                
+                if closure:
+                    pert=list(set(map(lambda x: fbt(self.getClosureFromSp(self.getSpBtInGBt(x),bt_type=True)),pert)))
+                    pert=list(map(lambda x: bt(self.getGBtInSpBt(x)),pert))
+                    pert = [item for item in pert if item.count() <= (self.getGBtInSpBt(i).count() + pert_size)]
+                for j in pert:
+                    # print("org:",self.getGBtInSpBt(i),"pert",j)
+                    if not self.getSpBtInGBt(j) in orgs:
+                        # verifing if the pertrubation is already search
+                        try:
+                            Orgs_below=self.SetsDictOrgsBelow[fbt(self.getSpBtInGBt(j))]
+                        # if not is added to the convergent states dictionary
+                        except:
+                            Orgs_below=self.getDirectlyBelowBtList(self.getSpBtInGBt(j),orgs+[self.getSpBtInGBt(j)])
+                            self.SetsDictOrgsBelow[fbt(self.getSpBtInGBt(j))]=Orgs_below
+                        
+                        # if len(Orgs_below)==0:
+                        #     orgs_dict[fbt(self.getSpBtInGBt(i))].append([self.getSpBtInGBt(i),emptyset])
+                        # # elif len(Orgs_below)==1:
+                        # #     orgs_dict[fbt(i)].append([i,Orgs_below[0]])
+                        # else:
+                        # iterating all convergent states and adding them to de dictonary
+                        for k in Orgs_below:
+                            orgs_dict[fbt(self.getGBtInSpBt(i))].append([j,bt(self.getGBtInSpBt(k))])
+                    else:
+                        orgs_dict[fbt(self.getGBtInSpBt(i))].append([j,j])
+        # creating the class variable
+        self.SimpleTransDict=orgs_dict
         
