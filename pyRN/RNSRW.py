@@ -1146,14 +1146,17 @@ class RNSRW(CRNS):
                 json.dump(out, outfile)
             
     
-    def getallGPert(self,g,pert_size=4,conn=True):
+    def getallGPert(self,init_state,pert_type="species",pert_size=4,conn=True):
         '''
         
 
         Parameters
         ----------
-        g: bitarray
+        init_state: bitarray
             Generator vector to be perturbed.
+        pert_type : string.
+                Type of perturbation, can be "species" they are considered as species, or "generators" if they are considered generators.
+                The default values is "species".
         pert_size : int, optional
             Size of the perturbation (generators). The default is 4.
         conn : bool, optional
@@ -1164,6 +1167,11 @@ class RNSRW(CRNS):
         List of all posible perturbations for the bitarray g.
 
         '''
+        
+        if pert_type=="species":
+            g=self.getGBtInSpBt(init_state)
+        elif pert_type=="generators":
+            g=init_state.copy()
         
         # Choosing only connceted generators
         if conn:
@@ -1180,19 +1188,24 @@ class RNSRW(CRNS):
             mask=g.copy()
             mask.setall(1)
             
+        if pert_type=="species":
+            mask=self.getSpBtInGBt(mask)
+        elif pert_type=="generators":
+            pass
+
         
         # selection of the diferrent size of the components to select 
-        pert_range=range(max(0,g.count()-pert_size),min(g.count()+pert_size+1,mask.count()+1))
+        pert_range=range(max(0,init_state.count()-pert_size),min(init_state.count()+pert_size+1,mask.count()+1))
         
         # list of position of all permurtations
         res = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
-        res = list(map(lambda x: self.getBtFromIndArray(x,len(g)),res))
+        res = list(map(lambda x: self.getBtFromIndArray(x,len(init_state)),res))
         
         return res
 
         
     
-    def setSimpleTransDict(self,orglist,pert_size=4,conn=True,closure=True):
+    def setSimpleTransDict(self,orglist,pert_type="species",pert_size=4,conn=True,closure=True):
         '''
         
 
@@ -1200,6 +1213,9 @@ class RNSRW(CRNS):
         ----------
         orglist : list of bitsets.
             list of organization as species.
+        pert_type : string.
+                Type of perturbation, can be "species" they are considered as species, or "generators" if they are considered generators.
+                The default values is "species".
         pert_size : int, optional
             Maximum size of the perturbation (generators). The default is 4.
         conn : bool, optional
@@ -1208,8 +1224,8 @@ class RNSRW(CRNS):
             If True closure of the pertrubartion are considered, if False perturbation as any combiantion of generators. The default is True.
         Returns
         -------
-        Dictionary of starting organization, which contains all pertrubation 
-        for the current starting organization, for the corresponding size pert_size, and the resulting covergent organization.
+        Dictionary of a tuple whit starting organization and pertubation, which contains a list of list with all the resulting pertrubed states 
+        for the current starting organization and the convert organization. For the corresponding perturbation type pert_type and size pert_size.
 
         '''
         try:
@@ -1229,37 +1245,63 @@ class RNSRW(CRNS):
         
         # creation of the dictionary of all organization and current perturbations and convergengt states
         orgs_dict={}
-        for i in orgs:
-                
-                orgs_dict[fbt(self.getGBtInSpBt(i))]=[]
-                # itereting all posible perturbations
-                pert=self.getallGPert(self.getGBtInSpBt(i),pert_size=pert_size,conn=conn)
-                
-                if closure:
-                    pert=list(set(map(lambda x: fbt(self.getClosureFromSp(self.getSpBtInGBt(x),bt_type=True)),pert)))
-                    pert=list(map(lambda x: bt(self.getGBtInSpBt(x)),pert))
-                    pert = [item for item in pert if item.count() <= (self.getGBtInSpBt(i).count() + pert_size)]
-                for j in pert:
-                    # print("org:",self.getGBtInSpBt(i),"pert",j)
-                    if not self.getSpBtInGBt(j) in orgs:
-                        # verifing if the pertrubation is already search
-                        try:
-                            Orgs_below=self.SetsDictOrgsBelow[fbt(self.getSpBtInGBt(j))]
-                        # if not is added to the convergent states dictionary
-                        except:
-                            Orgs_below=self.getDirectlyBelowBtList(self.getSpBtInGBt(j),orgs+[self.getSpBtInGBt(j)])
-                            self.SetsDictOrgsBelow[fbt(self.getSpBtInGBt(j))]=Orgs_below
-                        
-                        # if len(Orgs_below)==0:
-                        #     orgs_dict[fbt(self.getSpBtInGBt(i))].append([self.getSpBtInGBt(i),emptyset])
-                        # # elif len(Orgs_below)==1:
-                        # #     orgs_dict[fbt(i)].append([i,Orgs_below[0]])
-                        # else:
-                        # iterating all convergent states and adding them to de dictonary
-                        for k in Orgs_below:
-                            orgs_dict[fbt(self.getGBtInSpBt(i))].append([j,bt(self.getGBtInSpBt(k))])
-                    else:
-                        orgs_dict[fbt(self.getGBtInSpBt(i))].append([j,j])
-        # creating the class variable
-        self.SimpleTransDict=orgs_dict
         
+        if pert_type=="generators":
+
+            for i in orgs:
+                    # itereting all posible perturbations
+                    pert=self.getallGPert(self.getGBtInSpBt(i),pert_type=pert_type,pert_size=pert_size,conn=conn)
+                    pert=list(map(lambda x: (x&~self.getGBtInSpBt(i),x),pert))
+                    if closure:
+                        pert=list(map(lambda x: (x[0],self.getClosureFromSp(self.getSpBtInGBt(x[1]),bt_type=True)),pert))
+                        pert=list(map(lambda x: (x[0],bt(self.getGBtInSpBt(x[1]))),pert))
+                        pert = [item for item in pert if item[1].count() <= (self.getGBtInSpBt(i).count() + pert_size)]
+                    
+                    for j in pert:
+                        
+                        orgs_dict[(fbt(self.getGBtInSpBt(i)),fbt(j[0]))]=[]
+                        if not self.getSpBtInGBt(j[1]) in orgs:
+                            # verifing if the pertrubation is already search
+                            try:
+                                Orgs_below=self.SetsDictOrgsBelow[fbt(self.getSpBtInGBt(j[1]))]
+                            # if not is added to the convergent states dictionary
+                            except:
+                                Orgs_below=self.getDirectlyBelowBtList(self.getSpBtInGBt(j[1]),orgs+[self.getSpBtInGBt(j[1])])
+                                self.SetsDictOrgsBelow[fbt(self.getSpBtInGBt(j[1]))]=Orgs_below
+                            
+                            for k in Orgs_below:
+                                orgs_dict[(fbt(self.getGBtInSpBt(i)),fbt(j[0]))].append([j[1],bt(self.getGBtInSpBt(k))])
+                        else:
+                            orgs_dict[(fbt(self.getGBtInSpBt(i)),fbt(j[0]))].append([j[1],j[1]])
+                # creating the class variable
+            self.SimpleTransGDict=orgs_dict
+            
+        elif pert_type=="species":
+          
+            for i in orgs:
+                    # itereting all posible perturbations
+                    pert=self.getallGPert(i,pert_type=pert_type,pert_size=pert_size,conn=conn)
+                    pert=list(map(lambda x: (x&~i,x),pert))
+                    if closure:
+                        pert=list(map(lambda x: (x[0],self.getClosureFromSp(x[1],bt_type=True)),pert))
+                        pert = [item for item in pert if item[1].count() <= (self.getGBtInSpBt(i).count() + pert_size)]
+                    
+                    for j in pert:
+                        
+                        orgs_dict[(fbt(i),fbt(j[0]))]=[]
+                        if not j[1] in orgs:
+                            # verifing if the pertrubation is already search
+                            try:
+                                Orgs_below=self.SetsDictOrgsBelow[fbt(j[1])]
+                            # if not is added to the convergent states dictionary
+                            except:
+                                Orgs_below=self.getDirectlyBelowBtList(j[1],orgs+[j[1]])
+                                self.SetsDictOrgsBelow[fbt(j[1])]=Orgs_below
+                            
+                            for k in Orgs_below:
+                                orgs_dict[(fbt(i),fbt(j[0]))].append([j[1],bt(k)])
+                        else:
+                            orgs_dict[(fbt(i),fbt(j[0]))].append([j[1],j[1]])
+                # creating the class variable
+            self.SimpleTransSpDict=orgs_dict
+          
