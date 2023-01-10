@@ -1,7 +1,7 @@
 <script>
     import OrgModal from './OrgModal.svelte';
     import Slider from '@bulatdashiev/svelte-slider';
-    import Modal,{getModal} from '../misc/Modal.svelte'
+    import Modal,{getModal} from '../components/Modal.svelte'
     import { GraphType, setVisObject } from '../misc/drawNetwork';
     import exportSvg from '../misc/svg';
 

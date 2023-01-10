@@ -1,6 +1,6 @@
 <script>
     import { GraphType, setVisObject } from '../misc/drawNetwork';
-    import Modal,{getModal} from '../misc/Modal.svelte'
+    import Modal,{getModal} from '../components/Modal.svelte'
     import exportSvg from '../misc/svg';
     import { genRNStr } from './Network';
 

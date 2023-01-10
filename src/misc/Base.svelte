@@ -1,5 +1,8 @@
 <script>
-	import Modal,{getModal} from './Modal.svelte'
+	import Button from '../components/Button.svelte';
+	import { openFile, genNetwork, action } from '../actions/Base';
+	import Modal from '../components/Modal.svelte'
+    import { Form, Check, Table, Row, Cell, Number, Select } from '../components/Form/index';
 
 	export let openPage;
 
@@ -13,117 +16,68 @@
 	let pp = 0;
 	let inflow = 0.1;
 	let outflow = 0.1;
-
-    window.eel.expose(say_hello_js, 'say_hello_js');
-	function say_hello_js(x) {
-		console.log("Hello from " + x);
-	}
-
-    function openFile() {
-        window.electron.open().then(result => {
-            let name = result;
-            let success = eel.openFile(name)();
-            success.then(result => {
-                console.log(result);
-                if(result == true) {
-					openPage(1);
-                }
-            });
-            
-        });
-    }
-
-	function genNetwork() {
-		getModal().open();
-	}
-
-	async function action(e) {
-		e.preventDefault();
-		let promise = eel.random_network(with_inflow, random_species, random_reactions, extra, distribution, pr, pp, inflow, outflow)();
-		//await promise.then();
-		//let promise_gen = eel.random_network()();
-		let randomNetwork = await promise.then(result => {
-			return result;
-		});
-		getModal().close();
-		if(randomNetwork) {
-			openPage(1);
-		}
-	}
 </script>
 
 <main>
 	<h1>CRNS UI</h1>
-    <!-- svelte-ignore a11y-missing-attribute -->
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <a class="waves-effect waves-light btn" style="margin: 20px;" on:click={openFile}>Open File</a>
+	<Button text={"Open File"} action={openFile.bind(null, openPage.bind(null, 1))}/>
 	<br>
-	<!-- svelte-ignore a11y-missing-attribute -->
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<a class="waves-effect waves-light btn" style="margin: 20px;" on:click={genNetwork}>Generate Random Network</a>
+	<Button text={"Generate Random Network"} action={genNetwork} />
 </main>
 
 
-<Modal>
-	<h4>Initialise Random Network</h4>
-	<div style="height: 300px; overflow:auto;">
-		<form onsubmit="action(e)">
-			<label style="color: black; font-size: 14px;">
-				<input type="checkbox" bind:checked={with_inflow} style="opacity: 1; position: relative;">
-				with inflow?
-			</label>
-			<table>
-				<tr>
-					<td>Number of Species</td>
-					<td><input type="number" id="species" min="2" step="1" bind:value={random_species} style="width: 20%;"></td> 
-				</tr>
-				<tr>
-					<td>Number of Reactions</td>
-					<td>
-						<input type="number" id="reactions" min="2" step="1" bind:value={random_reactions} style="width: 20%;">
-					</td>
-					<td>
-						{#if random_reactions != random_species}
-							<label for="" style="color: red; font-size: 8px;">
-								Reactions and species must be equal.
-							</label>
-						{/if}
-					</td>
-				</tr>
-				<tr>
-					<td>Distribution</td>
-					<td>
-						<select bind:value={distribution} on:change="{() => console.log(distribution)}" style="display:block;">
-							{#each distributions as dist}
-								<option value={dist}>
-									{dist}
-								</option>
-							{/each}
-						</select>
-					</td>
-					<!-- <td><input type="number" id="reactions" min="1" step="1" bind:value={random_reactions} style="width: 20%;"></td>  -->
-				</tr>
-				{#if distribution = distributions[0]}
-					<tr>
-						<td>Scale penalties</td>
-						<td><input type="number" id="reactions" bind:value={pr} style="width: 20%;"></td>
-						<td><input type="number" id="reactions" bind:value={pp} style="width: 20%;"></td> 
-					</tr>
-				{/if}
-				{#if with_inflow}
-					<tr>
-						<td>Inflow</td>
-						<td><input type="number" id="inflow" min="0" max="1" bind:value={inflow} style="width: 20%;"></td> 
-					</tr>
-					<tr>
-						<td>Outflow</td>
-						<td><input type="number" id="outflow" min="0" max="1" bind:value={outflow} style="width: 20%;"></td> 
-					</tr>
-				{/if}
-			</table>
-			<input type="submit" value="Generate" on:click={action}>
-		</form>
-	</div>
+<Modal heading="Initialise Random Network" contentStyle="height: 300px; overflow:auto;">
+	<Form value={"Generate"} action={(e) => {
+		e.preventDefault();
+		action(
+			with_inflow, 
+			random_species, 
+			random_reactions, 
+			extra, 
+			distribution, 
+			pr, 
+			pp, 
+			inflow, 
+			outflow, 
+			openPage.bind(null, 1));
+		}
+	}>
+		<Check labelText={"with inflow: "} labelStyle={"color: black; font-size: 14px;"} bind={with_inflow} />
+		<Table>
+			<Row>
+				<Cell content={"Number of species"} />
+				<Cell><Number bind={random_species} min="2" step="1"/></Cell>
+			</Row>
+			<Row>
+				<Cell content={"Number of reactions"} />
+				<Cell><Number bind={random_reactions} min="2" step="1"/></Cell>
+			</Row>
+			<Row>
+				<Cell content={"Distribution"} />
+				<Cell>
+					<Select 
+						bind={distribution} 
+						callback={console.log.bind(null, distribution)} 
+						elements={distributions}
+					/></Cell>
+			</Row>
+			<Row>
+				<Cell content={"Scale penalties"} />
+				<Cell><Number bind={pr} /></Cell>
+				<Cell><Number bind={pp} /></Cell>
+			</Row>
+			{#if with_inflow}
+				<Row>
+					<Cell content={"Inflow"} />
+					<Cell><Number bind={inflow} min="0" max="1"/></Cell>
+				</Row>
+				<Row>
+					<Cell content={"Outflow"} />
+					<Cell><Number bind={outflow} min="0" max="1"/></Cell>
+				</Row>
+			{/if}
+		</Table>
+	</Form>
 </Modal>
 
 <style>
@@ -145,11 +99,5 @@
 		main {
 			max-width: none;
 		}
-	}
-
-	table, tr, td {
-		border: 0px solid black;
-		margin: 5px;
-		padding: 0px;
 	}
 </style>

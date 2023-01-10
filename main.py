@@ -152,11 +152,14 @@ def new_random_walk(w, l, d, nmin, n, trys, save, fname):
     if rn != None:
         keys = None
         state.simple_rw = False
+        state.reaction_network.RwDict = {}
         if state.get_walk_type() == WalkTypes.SIMPLE_RANDOM_WALK:
-            keys = state.get_simple_rw(range(w), l, d, nmin, fname)
+            keys = state.get_simple_rw(walk_range=range(w), l=l, d=d, nmin=nmin, fname=fname)
         else:
-            keys = state.get_mak_rw(range(w), l, n, trys, save, fname)
+            keys = state.get_mak_rw(walk_range = range(w), l=l, n=n, trys=trys, save=save, fname=fname)
         if keys != None:
+            print(range(w))
+            print(keys)
             return list(keys)
         else:
             return False

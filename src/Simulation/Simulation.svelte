@@ -113,11 +113,14 @@
         is_loaded().then(result => {
             has_file_open = result;
         });
+        console.log({w, l, d, nmin, n, trys, save, fname});
         let promise = eel.new_random_walk(w, l, d, nmin, n, trys, save, fname)();
         console.log("new Random Walk");
         await promise.then(result => {
             console.log(result);
+            keys = [];
             if (result != false) {
+                console.log(result)
                 keys = result;
                 console.log(keys);
                 if(keys.length > 0) {

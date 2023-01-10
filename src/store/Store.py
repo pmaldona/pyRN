@@ -327,6 +327,7 @@ class State:
                 if self.init_simple_random_walk(w=walk_range,l=l,d=d,nmin=nmin, fname=fname) == False:
                     return None
             print(self.reaction_network.RwDict[self.random_walk_type.value].keys())
+            print(walk_range)
             return self.reaction_network.RwDict[self.random_walk_type.value].keys()
     
     def get_mak_rw(self, walk_range=range(10),l=10,n=500, trys=10, save=True, fname="rand_mak_walk.json"):
