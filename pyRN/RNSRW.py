@@ -1245,7 +1245,8 @@ class RNSRW(CRNS):
         
         # creation of the dictionary of all organization and current perturbations and convergengt states
         orgs_dict={}
-        
+        orgs_df=pd.DataFrame(columns=["initial state",'perturbation',"final perturbed state","convergent state"])
+        counter=0
         if pert_type=="generators":
 
             for i in orgs:
@@ -1270,12 +1271,21 @@ class RNSRW(CRNS):
                                 self.SetsDictOrgsBelow[fbt(self.getSpBtInGBt(j[1]))]=Orgs_below
                             
                             for k in Orgs_below:
-                                orgs_dict[fbt(self.getGBtInSpBt(i))][fbt(j[0])].append([j[1],bt(self.getGBtInSpBt(k))])
+                                # orgs_dict[fbt(self.getGBtInSpBt(i))][fbt(j[0])].append([j[1],bt(self.getGBtInSpBt(k))])
+                                orgs_dict[fbt(self.getGBtInSpBt(i))][fbt(j[0])].append({"final pertubred state": j[1],
+                                                                                        "convergent state": bt(self.getGBtInSpBt(k))})
+                                orgs_df.loc[counter]=[self.getGBtInSpBt(i),j[0],j[1],bt(self.getGBtInSpBt(k))]
+                                counter+=1
                         else:
-                            orgs_dict[fbt(self.getGBtInSpBt(i))][fbt(j[0])].append([j[1],j[1]])
+                            # orgs_dict[fbt(self.getGBtInSpBt(i))][fbt(j[0])].append([j[1],j[1]])
+                            orgs_dict[fbt(self.getGBtInSpBt(i))][fbt(j[0])].append({"final pertubred state": j[1],
+                                                                                    "convergent state": j[1]})
+                            orgs_df.loc[counter]=[self.getGBtInSpBt(i),j[0],j[1],j[1]]
+                            counter+=1
                 # creating the class variable
             self.SimpleTransGDict=orgs_dict
-            
+            self.SimpleTransGDf=orgs_df
+        
         elif pert_type=="species":
           
             for i in orgs:
@@ -1299,9 +1309,17 @@ class RNSRW(CRNS):
                                 self.SetsDictOrgsBelow[fbt(j[1])]=Orgs_below
                             
                             for k in Orgs_below:
-                                orgs_dict[fbt(i)][fbt(j[0])].append([j[1],bt(k)])
+                                # orgs_dict[fbt(i)][fbt(j[0])].append([j[1],bt(k)])
+                                orgs_dict[fbt(i)][fbt(j[0])].append({"final perturbed state":j[1],
+                                                                     "convergent state":bt(k)})
+                                orgs_df.loc[counter]=[i,j[0],j[1],bt(k)]
+                                counter+=1
                         else:
-                            orgs_dict[fbt(i)][fbt(j[0])].append([j[1],j[1]])
+                            # orgs_dict[fbt(i)][fbt(j[0])].append([j[1],j[1]])
+                            orgs_dict[fbt(i)][fbt(j[0])].append({"final perturbed state":j[1],
+                                                                 "convergent state":j[1]})
+                            orgs_df.loc[counter]=[i,j[0],j[1],j[1]]
+                            counter+=1
                 # creating the class variable
             self.SimpleTransSpDict=orgs_dict
-          
+            self.SimpleTransSpDf=orgs_df

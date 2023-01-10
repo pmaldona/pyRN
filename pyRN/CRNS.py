@@ -321,8 +321,8 @@ class CRNS(RNIRG):
     def getGBtInSpBt(self, sp):
         p=bt(len(self.BSpListBt))
         p.setall(0)
-        for i in range(len(self.BSpListBt)):
-            if (sp & self.BSpListBt[i]) == self.BSpListBt[i]:
+        for i in range(len(self.GSpListBt)):
+            if (sp & self.GSpListBt[i]) == self.GSpListBt[i]:
                 p[i]=1
         
         return p

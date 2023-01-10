@@ -416,7 +416,54 @@ class RNIRG:
         except:
             print("error reading smbl file")
     
+    def getSpConnMat(self):
+        '''
+        
+
+        Returns
+        -------
+        Generates a connectivity graph of species via reactions.
+
+        '''
+        
+        #creation species coneted graph
+        self.SpRConnNx=nx.Graph()
+        
+        # adding nodes to the graph
+        for i in self.SpIdStrArray:
+            self.SpRConnNx.add_node(i)
+        
+        #generating directly connected species in a reaction
+        for i in range(len(self.ReacListBt)):
+            conn_sp=self.ReacListBt[i] | self.ProdListBt[i]     
+            sp_indx=conn_sp.search(1)
+            
+            for j in range(len(sp_indx)):
+                b_sp=self.SpIdStrArray[sp_indx[j]]
+                for k in sp_indx[i:]:
+                    f_sp=self.SpIdStrArray[k]
+                    if not self.SpRConnNx.has_edge(b_sp,f_sp):
+                        self.SpRConnNx.add_edge(b_sp,f_sp,w=1)
+                    else:                        
+                        self.SpRConnNx.edges[b_sp, f_sp]["w"]+=1
+        self.SpConnNx=nx.transitive_closure(self.SpRConnNx,reflexive=True)
+    def getSpConnFrac(self):
+        '''
+            
     
+        Returns
+        -------
+        Generates fraction of posible connectivity for species.
+    
+        '''
+        
+        # total edges
+        total_edges=self.SpConnNx.number_of_nodes() * (self.SpConnNx.number_of_nodes() + 1) / 2
+        
+        # Conneted fration
+        self.SpConnFrac = len(self.SpConnNx.edges) / total_edges
+
+        
     #Tomas fork
     #Function that displays the species as a list from a bit array or a list of bitarrays
     #representing a a set of species or a list of sets of species respectively
