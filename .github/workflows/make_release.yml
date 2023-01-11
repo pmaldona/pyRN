@@ -15,7 +15,7 @@ on:
 jobs:
   make_release:
     name: Make Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: version
@@ -32,6 +32,8 @@ jobs:
           body_path: changelog.md
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - name: glibc version
+        run: ldd --version
       - name: Build PDF
         uses: baileyjm02/markdown-to-pdf@v1
         with:
