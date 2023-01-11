@@ -1200,6 +1200,8 @@ class RNSRW(CRNS):
         # list of position of all permurtations
         res = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
         res = list(map(lambda x: self.getBtFromIndArray(x,len(init_state)),res))
+        res = [item for item in res if (item&~init_state).count() <= (pert_size)]
+        res = [item for item in res if item.count() => (init_state.count() - pert_size)]
         
         return res
 
@@ -1256,8 +1258,8 @@ class RNSRW(CRNS):
                     if closure:
                         pert=list(map(lambda x: (x[0],self.getClosureFromSp(self.getSpBtInGBt(x[1]),bt_type=True)),pert))
                         pert=list(map(lambda x: (x[0],bt(self.getGBtInSpBt(x[1]))),pert))
-                        pert = [item for item in pert if item[1].count() <= (self.getGBtInSpBt(i).count() + pert_size)]
-                    
+                        
+                    pert = [item for item in pert if item[1].count() <= (self.getGBtInSpBt(i).count() + pert_size)]
                     orgs_dict[fbt(self.getGBtInSpBt(i))]={}
                     for j in pert:
                         orgs_dict[fbt(self.getGBtInSpBt(i))][fbt(j[0])]=[]
@@ -1294,8 +1296,8 @@ class RNSRW(CRNS):
                     pert=list(map(lambda x: (x&~i,x),pert))
                     if closure:
                         pert=list(map(lambda x: (x[0],self.getClosureFromSp(x[1],bt_type=True)),pert))
-                        pert = [item for item in pert if item[1].count() <= (self.getGBtInSpBt(i).count() + pert_size)]
                     
+                    pert = [item for item in pert if item[1].count() <= (self.getGBtInSpBt(i).count() + pert_size)]
                     orgs_dict[fbt(i)]={}
                     for j in pert:
                         orgs_dict[fbt(i)][fbt(j[0])]=[]
