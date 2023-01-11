@@ -34,6 +34,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
       - name: glibc version
         run: ldd --version
+      - name: pip list
+        run: pip list
       - name: Build PDF
         uses: baileyjm02/markdown-to-pdf@v1
         with:
