@@ -9,7 +9,7 @@ on:
     #   - 'v*.*.*'
 jobs:
   build-linux:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v3
@@ -31,6 +31,8 @@ jobs:
       - run: pip install pycddlib
       - run: pip install pypoman
       - run: pip install git+https://github.com/pmaldona/pyRN.git
+      - run: pip uninstall Pillow
+      - run: pip install Pillow==9.3.0
 
       - name: build python module
         run: |
