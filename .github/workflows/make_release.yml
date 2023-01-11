@@ -34,6 +34,17 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
       - name: glibc version
         run: ldd --version
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: pip version
+        run: pip --version
+      - name: pip3 version
+        run: pip3 --version
+      - name: python version
+        run: python --version
+      - name: python3 version
+        run: python3 --version
       - name: pip list
         run: pip list
       - name: Build PDF
