@@ -31,7 +31,7 @@ jobs:
       - run: pip install pycddlib
       - run: pip install pypoman
       - run: pip install git+https://github.com/pmaldona/pyRN.git
-      - run: pip uninstall Pillow
+      - run: pip uninstall -y Pillow
       - run: pip install Pillow==9.3.0
 
       - name: build python module
