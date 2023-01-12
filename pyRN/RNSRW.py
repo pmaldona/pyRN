@@ -1201,7 +1201,7 @@ class RNSRW(CRNS):
         res = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
         res = list(map(lambda x: self.getBtFromIndArray(x,len(init_state)),res))
         res = [item for item in res if (item&~init_state).count() <= (pert_size)]
-        res = [item for item in res if item.count() => (init_state.count() - pert_size)]
+        res = [item for item in res if item.count() >= (init_state.count() - pert_size)]
         
         return res
 
