@@ -1200,11 +1200,6 @@ class RNSRW(CRNS):
         # list of position of all permurtations
         res = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
         res = list(map(lambda x: self.getBtFromIndArray(x,len(init_state)),res))
-<<<<<<< HEAD
-=======
-        res = [item for item in res if (item&~init_state).count() <= (pert_size)]
-        res = [item for item in res if item.count() >= (init_state.count() - pert_size)]
->>>>>>> 4b9ae6cc4bab2f647cc78534d238f4f16d3f49c6
         
         pert=list(map(lambda x: x&~init_state|init_state&~x ,res)) 
         pert_sizes=list(map(lambda x: x.count(),pert))
