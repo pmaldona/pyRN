@@ -1146,7 +1146,7 @@ class RNSRW(CRNS):
                 json.dump(out, outfile)
             
     
-    def getallGPert(self,init_state,pert_type="species",pert_size=4,conn=True):
+    def getallPert(self,init_state,pert_type="species",pert_size=4,conn=True):
         '''
         
 
@@ -1200,10 +1200,15 @@ class RNSRW(CRNS):
         # list of position of all permurtations
         res = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
         res = list(map(lambda x: self.getBtFromIndArray(x,len(init_state)),res))
-        res = [item for item in res if (item&~init_state).count() <= (pert_size)]
-        res = [item for item in res if item.count() => (init_state.count() - pert_size)]
         
-        return res
+        pert=list(map(lambda x: x&~init_state|init_state&~x ,res)) 
+        pert_sizes=list(map(lambda x: x.count(),pert))
+        
+        ind=np.where(np.array(pert_sizes)<=pert_size)[0]
+        res=[res[index] for index in ind]
+        pert=[pert[index] for index in ind] 
+        
+        return list(zip(pert,res))
 
         
     
@@ -1253,13 +1258,12 @@ class RNSRW(CRNS):
 
             for i in orgs:
                     # itereting all posible perturbations
-                    pert=self.getallGPert(self.getGBtInSpBt(i),pert_type=pert_type,pert_size=pert_size,conn=conn)
-                    pert=list(map(lambda x: (x&~self.getGBtInSpBt(i),x),pert))
+                    pert=self.getallPert(self.getGBtInSpBt(i),pert_type=pert_type,pert_size=pert_size,conn=conn)
+
                     if closure:
                         pert=list(map(lambda x: (x[0],self.getClosureFromSp(self.getSpBtInGBt(x[1]),bt_type=True)),pert))
                         pert=list(map(lambda x: (x[0],bt(self.getGBtInSpBt(x[1]))),pert))
-                        
-                    pert = [item for item in pert if item[1].count() <= (self.getGBtInSpBt(i).count() + pert_size)]
+
                     orgs_dict[fbt(self.getGBtInSpBt(i))]={}
                     for j in pert:
                         orgs_dict[fbt(self.getGBtInSpBt(i))][fbt(j[0])]=[]
@@ -1292,12 +1296,11 @@ class RNSRW(CRNS):
           
             for i in orgs:
                     # itereting all posible perturbations
-                    pert=self.getallGPert(i,pert_type=pert_type,pert_size=pert_size,conn=conn)
-                    pert=list(map(lambda x: (x&~i,x),pert))
+                    pert=self.getallPert(i,pert_type=pert_type,pert_size=pert_size,conn=conn)
+
                     if closure:
                         pert=list(map(lambda x: (x[0],self.getClosureFromSp(x[1],bt_type=True)),pert))
                     
-                    pert = [item for item in pert if item[1].count() <= (self.getGBtInSpBt(i).count() + pert_size)]
                     orgs_dict[fbt(i)]={}
                     for j in pert:
                         orgs_dict[fbt(i)][fbt(j[0])]=[]
