@@ -1212,10 +1212,8 @@ class RNSRW(CRNS):
 
         
     
-    def setSimpleTransDict(self,orglist,pert_type="species",pert_size=4,conn=True,closure=True):
+    def setSimpleTransDict(self,orglist,pert_type="species",pert_size=4,conn=True,closure=True,include_empty_set=False):
         '''
-        
-
         Parameters
         ----------
         orglist : list of bitsets.
@@ -1229,6 +1227,8 @@ class RNSRW(CRNS):
             If True only perturbations with connected generators, if False with any. The default is True.
         closure : bool, optional
             If True closure of the pertrubartion are considered, if False perturbation as any combiantion of generators. The default is True.
+        include_empty_set: bool, optional 
+          If True the empty set is added as a possible initial state, even if it is not an organization.
         Returns
         -------
         Dictionary of a tuple whit starting organization and pertubation, which contains a list of list with all the resulting pertrubed states 
@@ -1243,12 +1243,13 @@ class RNSRW(CRNS):
         # variable of orgs to be used
         orgs=orglist.copy()
         
-        # creation of the emptyset if it's not present in the orglist
-        emptyset=self.GSpListBt[0].copy()
-        emptyset.setall(0)
+        if include_empty_set==True:
+            # creation of the emptyset if it's not present in the orglist
+            emptyset=self.GSpListBt[0].copy()
+            emptyset.setall(0)
         
-        if not (emptyset in orgs):
-            orgs.append(emptyset)
+            if not (emptyset in orgs):
+                orgs.append(emptyset)
         
         # creation of the dictionary of all organization and current perturbations and convergengt states
         orgs_dict={}
