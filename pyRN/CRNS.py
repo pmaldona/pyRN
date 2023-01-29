@@ -502,9 +502,7 @@ class CRNS(RNIRG):
                    #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=False,added_basic=k)
            
             if not partial_save is None:
-                file = open(partial_save+".pkl", "wb") 
-                pk.dump(self, file)
-                file.close     
+                self.saveToPkl(partial_save)
         
         self.SynStrNx=G
         self.SynStrSsmListSpArray=ssms
@@ -618,9 +616,7 @@ class CRNS(RNIRG):
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
             
             if not partial_save is None:
-                file = open(partial_save+".pkl", "wb") 
-                pk.dump(self, file)
-                file.close    
+                self.saveToPkl(partial_save) 
         
         self.SsmStrNx=G
         self.SsmStrSsmListSpArray=ssms
@@ -726,9 +722,7 @@ class CRNS(RNIRG):
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
             
             if not partial_save is None:
-                file = open(partial_save+".pkl", "wb") 
-                pk.dump(self, file)
-                file.close      
+                self.saveToPkl(partial_save)    
         
         self.ConnectedStrNx=G
         self.ConnectedStrSsmListSpArray=ssms
@@ -841,9 +835,7 @@ class CRNS(RNIRG):
                      else:
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
             if not partial_save is None:
-                file = open(partial_save+".pkl", "wb") 
-                pk.dump(self, file)
-                file.close  
+                self.saveToPkl(partial_save)
                 
         self.ConnectedSsmStrNx=G
         self.ConnectedSsmStrSsmListSpArray=ssms
