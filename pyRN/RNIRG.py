@@ -729,6 +729,46 @@ class RNIRG:
             rbt[i]=1
         return(rbt)
     
+    def getTriggerableRpBtFromSp(self,sp_set):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : bitset or numpy array
+            Bitset of species of nupy array of present species.
+
+        Returns
+        -------
+        A bitarray of triggerable reaction by sp_set species set.
+
+        '''
+        
+        # Checks if input is or not a bitarray, If not, it make the 
+        # transformation to it
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set.copy()
+        
+        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+        
+        rc =[] # creating variable of available reaction 
+        for j in range(self.MpDf.shape[1]):
+            if (all(self.MrDf.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+        
+        rbt=bt(self.MpDf.shape[1])
+        rbt.setall(0)
+        for i in rc:
+            rbt[i]=1
+        return(rbt)
     
     # Generated closure of a given set, in bitarray or spices set. "sp_set" 
     # argument can be an numpy.array of species or a bitarray of percent species. 
