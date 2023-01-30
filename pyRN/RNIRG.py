@@ -447,6 +447,7 @@ class RNIRG:
                     else:                        
                         self.SpRConnNx.edges[b_sp, f_sp]["w"]+=1
         self.SpConnNx=nx.transitive_closure(self.SpRConnNx,reflexive=True)
+        
     def getSpConnFrac(self):
         '''
             
@@ -463,7 +464,63 @@ class RNIRG:
         # Conneted fration
         self.SpConnFrac = len(self.SpConnNx.edges) / total_edges
 
+    
+    def getConnSp(self,sp_set,bitout=False):
+        '''
         
+
+        Parameters
+        ----------
+        sp_set : bitarray ot SpId array
+            Candiadate species we want to explore.
+        bitout: bool,
+            If True, then it returns a bitarra of the present sepcies, if False, 
+            it return a numpty arrat of the species id.
+
+        Returns
+        -------
+        Connected species to sp_set.
+
+        '''
+        #Check type of file and set it to species array
+        if sp_set is None:
+            sp_set=self.SpIdStrArray
+            
+        if (isinstance(sp_set,bt)):
+            bit_list=sp_set.tolist()
+            sp=[]
+            for i in range(len(bit_list)):
+                if bit_list[i]==1:
+                    sp.append(self.MrDf.index[i])
+            # sp=np.array(sp)
+        
+        # print(sp)
+        # Add variables in consideration of the species connection graph 
+        out=set()
+        for i in sp:
+            # print(i)
+            # print(set(dict(self.SpConnNx['s1']).keys()))
+            out|=set(dict(self.SpConnNx['s1']).keys())
+        
+        out-=set(sp)
+        out=np.array(list(out))
+        
+        # Transform the output fo bitarray if asked
+        if bitout:
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(0)
+            
+            for i in out:
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
+                    sp[ind]=1
+            out=sp
+        
+        return(out)
+  
+    
+    
+    
     #Tomas fork
     #Function that displays the species as a list from a bit array or a list of bitarrays
     #representing a a set of species or a list of sets of species respectively

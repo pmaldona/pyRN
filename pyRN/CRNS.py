@@ -509,7 +509,6 @@ class CRNS(RNIRG):
         self.SynStrOrgListSpArray=org
         self.SynStrSsmListBtArray=ssms_bt
         self.SynStrOrgListBtArray=org_bt
-        
         return(st)
                     
 
@@ -729,7 +728,6 @@ class CRNS(RNIRG):
         self.ConnectedStrOrgListSpArray=org
         self.ConnectedStrSsmListBtArray=ssms_bt
         self.ConnectedStrOrgListBtArray=org_bt
-
         return(st)
     
     # Synergistic structure calculation function, requires the setGenerators() 
@@ -834,6 +832,7 @@ class CRNS(RNIRG):
                         G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
                      else:
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
+            
             if not partial_save is None:
                 self.saveToPkl(partial_save)
                 
