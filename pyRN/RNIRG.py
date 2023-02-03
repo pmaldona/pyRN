@@ -1109,11 +1109,22 @@ class RNIRG:
         Ns : int, optional
             Number of species. The default is 12.
         rv : vector or int, optional
-            Either a natural number or a vector of dimension 7. If rv is a vector of
-            dimension 7, its components correspond to the number of reactions of type i
-            with respect to the proposition. If rv is a natural number, it will
+            Either a natural number or a vector of dimension 7. 
+            If rv is a natural number, it will
             be used to generate a randomized vector of dimension 7 for the total number
-            of reactions rv . Finally if rv =None, rv is a random vector of dimension 7 and
+            of reactions rv
+            
+            If rv is a vector of
+            dimension 7, the network will contain rv[i] reactions of type i, where type i is:
+            i=0. inflow ∅ → x
+            i=1. outflow x → ∅
+            i=2. transformation x → y
+            i=3. synthesis x + y → z
+            i=4. decomposition z → x + y
+            i=5. single replacement x + y → x + z
+            i=6. double replacement x + y → z + w
+           
+           Finally if rv =None, rv is a random vector of dimension 7 and
             total components sum equals to Ns. The default is None.
     
         Returns
@@ -1122,7 +1133,7 @@ class RNIRG:
     
         '''
         
-        # Chacking consistensy of number of species
+        # Chacking consistency of number of species
         if (Ns > 0) and isinstance(Ns, int):
             
             if rv is None :
@@ -1133,7 +1144,7 @@ class RNIRG:
             elif (len(rv)<7) or (not all(isinstance(n, int) for n in rv)):
                 raise TypeError("inconsistency of input variables")
         else:
-            raise TypeError("Ns in not a natrual number")
+            raise TypeError("Ns in not a natural number")
         
 
         # Creating species 
@@ -1155,7 +1166,7 @@ class RNIRG:
             rsp=np.random.choice(Ns, size=rv[0], replace=False)
             
             for i in rsp:
-                mr.iloc[k,i]=1
+                mp.iloc[k,i]=1
                 k+=1
     
         # Adding type 1 reactions
@@ -1164,7 +1175,7 @@ class RNIRG:
             rsp=np.random.choice(Ns, size=rv[1], replace=False)
             
             for i in rsp:
-                mp.iloc[k,i]=1
+                mr.iloc[k,i]=1
                 k+=1
             
         # Adding type 2 reactions
