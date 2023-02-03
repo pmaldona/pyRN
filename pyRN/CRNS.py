@@ -502,16 +502,13 @@ class CRNS(RNIRG):
                    #    G.add_edge(j,cr_a,key=fbt(self.GInBListBt[k]),syn=False,added_basic=k)
            
             if not partial_save is None:
-                file = open(partial_save+".pkl", "wb") 
-                pk.dump(self, file)
-                file.close     
+                self.saveToPkl(partial_save)
         
         self.SynStrNx=G
         self.SynStrSsmListSpArray=ssms
         self.SynStrOrgListSpArray=org
         self.SynStrSsmListBtArray=ssms_bt
         self.SynStrOrgListBtArray=org_bt
-        
         return(st)
                     
 
@@ -618,9 +615,7 @@ class CRNS(RNIRG):
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
             
             if not partial_save is None:
-                file = open(partial_save+".pkl", "wb") 
-                pk.dump(self, file)
-                file.close    
+                self.saveToPkl(partial_save) 
         
         self.SsmStrNx=G
         self.SsmStrSsmListSpArray=ssms
@@ -726,16 +721,13 @@ class CRNS(RNIRG):
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
             
             if not partial_save is None:
-                file = open(partial_save+".pkl", "wb") 
-                pk.dump(self, file)
-                file.close      
+                self.saveToPkl(partial_save)    
         
         self.ConnectedStrNx=G
         self.ConnectedStrSsmListSpArray=ssms
         self.ConnectedStrOrgListSpArray=org
         self.ConnectedStrSsmListBtArray=ssms_bt
         self.ConnectedStrOrgListBtArray=org_bt
-
         return(st)
     
     # Synergistic structure calculation function, requires the setGenerators() 
@@ -840,10 +832,9 @@ class CRNS(RNIRG):
                         G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
                      else:
                         G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
+            
             if not partial_save is None:
-                file = open(partial_save+".pkl", "wb") 
-                pk.dump(self, file)
-                file.close  
+                self.saveToPkl(partial_save)
                 
         self.ConnectedSsmStrNx=G
         self.ConnectedSsmStrSsmListSpArray=ssms

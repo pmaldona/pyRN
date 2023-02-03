@@ -1327,5 +1327,7 @@ class RNSRW(CRNS):
                             orgs_df.loc[counter]=[i,j[0],j[1],j[1]]
                             counter+=1
                 # creating the class variable
+            for i in orgs_df.columns:
+                orgs_df[i]=orgs_df[i].apply(fbt)
             self.SimpleTransSpDict=orgs_dict
             self.SimpleTransSpDf=orgs_df

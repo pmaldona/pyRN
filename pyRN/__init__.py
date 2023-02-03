@@ -29,8 +29,9 @@ class pyRN(RNLI,RNSEA):
         return pyRN(copy.copy(self))
     
     pass
-        
-    def setFromPkl(self,file):
+    
+    @classmethod
+    def setFromPkl(cls,file):
         '''
         
 
@@ -50,8 +51,9 @@ class pyRN(RNLI,RNSEA):
         with open(file, 'rb') as f:
             obj = pickle.load(f)
         
-        self.__dict__.update({k: v for k, v in obj.items() if not inspect.isfunction(v)})
+        cls.__dict__.update({k: v for k, v in obj.items() if not inspect.isfunction(v)})
         
+        return(cls)
     
     def saveToPkl(self,file="pyRN_object.pkl"):
         '''
