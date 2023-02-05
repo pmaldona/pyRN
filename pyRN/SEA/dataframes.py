@@ -173,9 +173,6 @@ def transitions_df_add_transitions_probabilities(df):
             df.loc[(df['a_1']==start) & (df['a_2']==end),'probability'] = df.loc[(df['a_1']==start) & (df['a_2']==end),'counts']/n
     return df
 
-def add_markov_properties_to_abstractions_df(abstractions_df, transitions_dataframe):
-     return markov.add_markov_properties_to_dataframe(abstractions_df, transitions_dataframe)
-
 def dataframes(path, abstraction_type):
     '''
     In: path             (string), path to .json-file with random walks,
@@ -196,7 +193,7 @@ def dataframes(path, abstraction_type):
     transitions_df = transitions_df_add_set_changes(transitions_df)
     transitions_df_add_complexity_changes(transitions_df, abstractions_df)
 
-    abstractions_df = add_markov_properties_to_abstractions_df(abstractions_df, transitions_df)
+    abstractions_df = markov.add_markov_properties_to_dataframe(abstractions_df, transitions_df)
 
     return abstractions_df, transitions_df
 
@@ -235,3 +232,61 @@ def dataframesFromLists(abstraction_list,complexity_list):
     abstractions_df = add_markov_properties_to_abstractions_df(abstractions_df, transitions_df)
 
     return abstractions_df, transitions_df
+
+
+    def dataframesFromAbst(abstrac_list):
+        '''
+        Parameters
+        ----------
+        abstlist : list of list of 0,1 vectors
+            List of all random walks abstractions.
+
+        Returns
+        -------
+        Dataframe of abstractions and transition whit resilience infromation.
+        '''
+        
+        transitions_df  = initialize_transitions_df(abst)
+        abstractions_df = initialize_abstractions_df(abst)
+
+        abstractions_df = abstractions_df_add_initial_distribution(abstractions_df, abst)
+        abstractions_df = abstractions_df_add_species_number(abstractions_df)
+        abstractions_df = abstractions_df_add_complexities(abstractions_df, abst, cps)
+
+        transitions_df = transitions_df_add_abstraction_indexes(transitions_df, abstractions_df)
+        transitions_df = transitions_df_add_transitions_probabilities(transitions_df)
+        transitions_df = transitions_df_add_set_changes(transitions_df)
+        transitions_df_add_complexity_changes(transitions_df, abstractions_df)
+
+        abstractions_df = markov.add_markov_properties_to_dataframe(abstractions_df, transitions_df)
+        
+        
+
+# a1 = [[0,0,1,0],[1,1,1,0]]
+# a2 = [[1,0,1,0],[1,0,1,0]]
+# a3 = [[0,0,1,1],[1,1,0,0]]
+# a=[a1,a2,a3]
+
+
+# import json
+# path="../Research/RGRW/Nsp10_Nsteps10_rep2_net1.json"
+# with open(path, 'r') as f:
+#         rndws = json.loads(f.read())
+
+# abst = drs.get_RNDWs(path, 'a')     # Reads abstractions from .json-file
+# cps = drs.get_CPs(path, 'ca')
+# transitions_df  = initialize_transitions_df(abst)
+# abstractions_df = initialize_abstractions_df(abst)
+
+# abstractions_df = abstractions_df_add_initial_distribution(abstractions_df, abst)
+# abstractions_df = abstractions_df_add_species_number(abstractions_df)
+# abstractions_df = abstractions_df_add_complexities(abstractions_df, abst, cps)
+
+# transitions_df = transitions_df_add_abstraction_indexes(transitions_df, abstractions_df)
+# transitions_df = transitions_df_add_transitions_probabilities(transitions_df)
+# transitions_df = transitions_df_add_set_changes(transitions_df)
+# transitions_df_add_complexity_changes(transitions_df, abstractions_df)
+
+# abstractions_df = add_markov_properties_to_abstractions_df(abstractions_df, transitions_df)
+# # data=dataframes(path,'a')[0]
+
