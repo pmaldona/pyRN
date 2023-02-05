@@ -89,31 +89,59 @@ def transition_matrix_from_dataframes(abstractions_df, transitions_df):
 
     return T
      
+def add_local_resiliences_to_dataframe(abstractions_df, transition_matrix):
+    '''
+    Adds local resiliences to abstractions_df
+
+        Parameter:
+            abstractions_df,
+            transition_matrix (2D-Array)
+
+        Returns:
+    '''
+    abstractions_df['local_resilience'] = [transition_matrix[i][i] for i in range(len(transition_matrix))]
+
+def add_global_resiliences_to_dataframe(abstractions_df, transition_matrix):
+    '''
+    Adds global resiliences to abstractions_df
+
+        Parameter:
+            abstractions_df,
+            transition_matrix (2D-Array)
+
+        Returns:
+    '''
+    stationary_transition_matrix = T_inf(transition_matrix)
+    n_states = len(transition_matrix)
+    global_resiliences = [0 for i in range(n_states)]
+    for i in range(n_states):
+        initial_state = [(lambda x: 1 if x==i else 0)(x) for x in range(n_states)]
+        global_resiliences[i] = numpy.matmul(stationary_transition_matrix, initial_state)[i]
+    abstractions_df['global_resilience'] = global_resiliences
+
+def add_reachabilities_to_dataframe(abstractions_df, transition_matrix):
+    '''
+    Adds local resiliences to abstractions_df
+
+        Parameter:
+            abstractions_df,
+            transition_matrix (2D-Array)
+
+        Returns:
+    '''
+    return
+
 def add_markov_properties_to_dataframe(abstractions_df, transitions_df):
+    '''
+    Adds  markov-properties (local resiliences, local resiliences) to abstractions_df
 
-    T      = transition_matrix_from_dataframes(abstractions_df, transitions_df)
-    T_stat = T_inf(T)
+        Parameter:
+            abstractions_df,
+            transition_matrix (2D-Array)
 
-    reachabilities    = []
-    maintainabilities = []
-    stricts           = []
-
-    n = abstractions_df.shape[0]
-    
-    sum_inits = abstractions_df['initial_distribution'].sum()
-    init      = [(abstractions_df.loc[i, 'initial_distribution']/sum_inits) for i in range(n)]
-    
-    for i in range(n):
-        state    = [0 for i in range(n)]
-        state[i] = 1
-        reachabilities.append(reachability(init, i, T, 0.2))
-        maintainabilities.append(numpy.matmul(T_stat, state)[i])
-        s = list(transitions_df.loc[(transitions_df['a_1']==abstractions_df.loc[i, 'abstraction']) & (transitions_df['a_2']==abstractions_df.loc[i, 'abstraction']), 'probability'])
-        if len(s) > 0:
-            stricts.append(s[0])
-        else:
-            stricts.append(0)
-    
-    abstractions_df = abstractions_df.assign(reachability=reachabilities, global_resilience=maintainabilities, local_resilience=stricts)
-
+        Returns:
+    '''
+    transition_matrix = transition_matrix_from_dataframes(abstractions_df, transitions_df)
+    add_local_resiliences_to_dataframe(abstractions_df, transition_matrix)
+    add_global_resiliences_to_dataframe(abstractions_df, transition_matrix)
     return abstractions_df
