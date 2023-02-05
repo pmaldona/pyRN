@@ -97,6 +97,7 @@ def create_graph(abstractions_df, transitions_df):
 
     return G
 
+'''
 def draw_nodes(G, abstractions_df, ax):
 
     # print('Node legend:')
@@ -132,6 +133,23 @@ def draw_nodes(G, abstractions_df, ax):
     line2 = matplotlib.lines.Line2D(range(5), range(5), color="white", marker='o', markerfacecolor="#b000b0")
 
     return (line1, line2)
+'''
+
+def draw_nodes(G, abstractions_df, ax):
+
+    pos=networkx.get_node_attributes(G,'pos')
+    networkx.draw_networkx(G, pos, edgelist=[],node_size=0, ax=ax)
+
+    nodes = list(G.nodes())
+
+    global_resiliences = [abstractions_df.loc[n, 'global_resilience'] for n in nodes]
+    global_resiliences = numpy.array(global_resiliences)*2500
+
+    networkx.draw_networkx_nodes(G, pos, nodelist=nodes, node_size=global_resiliences, node_color="#b000b0", alpha=0.8, ax=ax)
+
+    line1 = matplotlib.lines.Line2D(range(5), range(5), color="white", marker='o', markerfacecolor="#b000b0")
+
+    return line1
 
 def draw_subset_relationships(G, ax):
 
@@ -149,29 +167,20 @@ def draw_transition_probabilities(G, ax):
     return matplotlib.lines.Line2D(range(3), range(3), color="white", marker="_", mec="#ff0000", markersize=20)
 
 def draw_graph(subplot, G, abstractions_df):
-    
-    # fig, ax = matplotlib.pyplot.subplots()
 
     # Draw nodes with markov properties
-    # layer1, layer2 = draw_nodes(G, abstractions_df,ax)
-    layer1, layer2 = draw_nodes(G, abstractions_df,subplot)
+    layer1 = draw_nodes(G, abstractions_df,subplot)
 
     # Draw subset relationships
-    # layer3 = draw_subset_relationships(G,ax)
-    layer3 = draw_subset_relationships(G,subplot)
+    layer2 = draw_subset_relationships(G,subplot)
 
     # Draw transitions with probability
-    # layer4 = draw_transition_probabilities(G,ax)
-    layer4 = draw_transition_probabilities(G,subplot)
+    layer3 = draw_transition_probabilities(G,subplot)
     
     # Display polt with matplolib.pyplot
-    # ax.tick_params(left=True, labelleft=True)
-    # ax.set_ylabel('Number of species')
     subplot.tick_params(left=True, labelleft=True)
     subplot.set_ylabel('Number of species')
-    matplotlib.pyplot.legend((layer1,layer2,layer3, layer4),("Reachability","Global resilience","Subset relationship","Transition (width~probability)"))
-    # matplotlib.pyplot.show()
-    # return fig, ax
+    matplotlib.pyplot.legend((layer1,layer2,layer3),("Global resilience","Subset relationship","Transition (width~probability)"))
     
 def create_trivial(n_species):
     '''
