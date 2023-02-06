@@ -46,14 +46,14 @@ class pyRN(RNLI,RNSEA):
 
         '''
         
-        
+        out=cls()
         # loads the pickle file in a objet
         with open(file, 'rb') as f:
             obj = pickle.load(f)
         
-        cls.__dict__.update({k: v for k, v in obj.items() if not inspect.isfunction(v)})
+        out.__dict__.update({k: v for k, v in obj.items() if not inspect.isfunction(v)})
         
-        return(cls)
+        return(out)
     
     def saveToPkl(self,file="pyRN_object.pkl"):
         '''

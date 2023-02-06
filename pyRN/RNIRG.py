@@ -1252,7 +1252,7 @@ class RNIRG:
             rsp=np.random.choice(Ns, size=rv[0], replace=False)
             
             for i in rsp:
-                mr.iloc[k,i]=1
+                mp.iloc[k,i]=1
                 k+=1
     
         # Adding type 1 reactions
@@ -1261,7 +1261,7 @@ class RNIRG:
             rsp=np.random.choice(Ns, size=rv[1], replace=False)
             
             for i in rsp:
-                mp.iloc[k,i]=1
+                mr.iloc[k,i]=1
                 k+=1
             
         # Adding type 2 reactions
