@@ -173,9 +173,6 @@ def transitions_df_add_transitions_probabilities(df):
             df.loc[(df['a_1']==start) & (df['a_2']==end),'probability'] = df.loc[(df['a_1']==start) & (df['a_2']==end),'counts']/n
     return df
 
-def add_markov_properties_to_abstractions_df(abstractions_df, transitions_dataframe):
-     return markov.add_markov_properties_to_dataframe(abstractions_df, transitions_dataframe)
-
 def dataframes(path, abstraction_type):
     '''
     In: path             (string), path to .json-file with random walks,
@@ -196,14 +193,12 @@ def dataframes(path, abstraction_type):
     transitions_df = transitions_df_add_set_changes(transitions_df)
     transitions_df_add_complexity_changes(transitions_df, abstractions_df)
 
-    abstractions_df = add_markov_properties_to_abstractions_df(abstractions_df, transitions_df)
+    abstractions_df = markov.add_markov_properties_to_dataframe(abstractions_df, transitions_df)
 
     return abstractions_df, transitions_df
 
 def dataframesFromLists(abstraction_list,complexity_list):
     '''
-    
-
     Parameters
     ----------
     abstraction_list : List of lists
@@ -238,6 +233,7 @@ def dataframesFromLists(abstraction_list,complexity_list):
 
     return abstractions_df, transitions_df
 
+
     def dataframesFromAbst(abstrac_list):
         '''
         Parameters
@@ -262,7 +258,7 @@ def dataframesFromLists(abstraction_list,complexity_list):
         transitions_df = transitions_df_add_set_changes(transitions_df)
         transitions_df_add_complexity_changes(transitions_df, abstractions_df)
 
-        abstractions_df = add_markov_properties_to_abstractions_df(abstractions_df, transitions_df)
+        abstractions_df = markov.add_markov_properties_to_dataframe(abstractions_df, transitions_df)
         
         
 
@@ -293,3 +289,4 @@ def dataframesFromLists(abstraction_list,complexity_list):
 
 # abstractions_df = add_markov_properties_to_abstractions_df(abstractions_df, transitions_df)
 # # data=dataframes(path,'a')[0]
+
