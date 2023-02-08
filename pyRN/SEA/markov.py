@@ -1,7 +1,7 @@
 import numpy
 import copy
 
-def T_inf(T):
+def T_inf(T, max_steps=500):
     '''
     In:  T     (2D-array), the transition matrix for a finite number of steps
     Out: T_inf (2D-array), the transition matrix for infinitive steps
@@ -11,7 +11,7 @@ def T_inf(T):
     (Waiting for it to not chang at all could lead to bad results
     due to numerical errors)
     '''
-    while True:
+    for step in range(max_steps):
         T_inf = [[T[i][j] for j in range(len(T))] for i in range(len(T))]
         T     = numpy.matmul(T,T)
         if (numpy.all(numpy.round(T,10)==numpy.round(T_inf,10))):
@@ -52,23 +52,23 @@ def reachability(p0,gs,T,t,max=100):
 
 def add_transition_probbilities_to_dataframe(df):
     '''
-    In:  df (pandas dataframe), with at least three columns: a_1, a_2 and count
+    In:  df (pandas dataframe), with at least three columns: initial_state, convergent_state and count
     Out: df (pandas dataframe)
-    Adds a column to thdf with the transitionprobabilities in the markov-model
+    Adds a column to thdf with the transition probabilities in the markov-model
     '''
     df = df.assign(probability=[0 for i in range(df.shape[0])])
-    starts = df['a_1'].unique()
+    starts = df['initial_state'].unique()
     for start in starts:
-        transitions_from_start = df.loc[df['a_1']==start]
+        transitions_from_start = df.loc[df['initial_state']==start]
         n = transitions_from_start['counts'].sum()
-        ends = transitions_from_start['a_2']
+        ends = transitions_from_start['convergent_state']
         for end in ends:
-            df.loc[(df['a_1']==start) & (df['a_2']==end),'probability'] = df.loc[(df['a_1']==start) & (df['a_2']==end),'counts']/n
+            df.loc[(df['initial_state']==start) & (df['convergent_state']==end),'probability'] = df.loc[(df['initial_state']==start) & (df['convergent_state']==end),'counts']/n
     return df
 
 def transition_matrix_from_dataframes(abstractions_df, transitions_df):
     '''
-    In:  df (pandas dataframe), with at least three columns: a_1, a_2 and either count or probability
+    In:  df (pandas dataframe), with at least three columns: initial_state, a_2 and either count or probability
     Out: Transition mastrix of Markov-model
     '''
     if ('probability' not in transitions_df.columns):
@@ -78,12 +78,12 @@ def transition_matrix_from_dataframes(abstractions_df, transitions_df):
     t_matrix = [ [0 for j in range(n)] for i in range(n)]
     for i in range(n):
         start = abstractions_df.loc[i,'abstraction']
-        transitions_from_start = transitions_df.loc[transitions_df['a_1']==start]
+        transitions_from_start = transitions_df.loc[transitions_df['initial_state']==start]
         for x in transitions_from_start.index.tolist():
             end = transitions_from_start.loc[x, 'a_2']
             # print(end)
             j = abstractions_df.index[abstractions_df['abstraction']==end][0]
-            p = transitions_df.loc[(transitions_df['a_1']==start) & (transitions_df['a_2']==end), 'probability'].tolist()[0]
+            p = transitions_df.loc[(transitions_df['initial_state']==start) & (transitions_df['convergent_state']==end), 'probability'].tolist()[0]
             t_matrix[i][j]=p
     T = numpy.transpose(numpy.array(t_matrix))
 
