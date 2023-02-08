@@ -194,13 +194,32 @@ class RNIRG:
         out.IsSbmlbool=False
         
         return out
+    
     # Generates a textfile for the reaction network
-    def saveToText(self,file):
+    def saveToText(self,file,r_set=None):
+        
+        # Checks if input is or not a bitarray, If is, it make the 
+        # transformation to an numpy array
+        
+        if r_set is not None:
+            if (isinstance(r_set,bt)):
+               r_i=self.getIndArrayFromBt(r_set)
+               r=self.MpDf.columns[r_i]
+            else:
+                r_i=[]
+                for i in r_set:
+                    if i in self.MpDf.columns:
+                        r_i.append(i)
+            
+        else:
+            r=self.MpDf.columns
+            r_i=range(len(r))
+        
         self.FilenameStr=file
         text_file = open(self.FilenameStr, "w")
         
         p_text=""
-        for i in range(self.MpDf.shape[1]):
+        for i in r_i:
             p_text+="r"+str(i)+":   "
             for j in np.where(self.MrDf.iloc[:,i]!=0)[0]:
                 if self.MrDf.iloc[j,i]==1.0:
@@ -437,10 +456,10 @@ class RNIRG:
         for i in range(len(self.ReacListBt)):
             conn_sp=self.ReacListBt[i] | self.ProdListBt[i]     
             sp_indx=conn_sp.search(1)
-            
+                
             for j in range(len(sp_indx)):
                 b_sp=self.SpIdStrArray[sp_indx[j]]
-                for k in sp_indx[i:]:
+                for k in sp_indx[j:]:
                     f_sp=self.SpIdStrArray[k]
                     if not self.SpRConnNx.has_edge(b_sp,f_sp):
                         self.SpRConnNx.add_edge(b_sp,f_sp,w=1)
@@ -570,17 +589,17 @@ class RNIRG:
 
         if (isinstance(r_set,bt)):
            r_i=self.getIndArrayFromBt(r_set)
-           r=self.MpDf.columns[r_i]
+           # r=self.MpDf.columns[r_i]
         else:
             if (r_set.size==0):
-                r=self.MpDf.columns
-                r_i=range(len(r))
+                # r=self.MpDf.columns
+                r_i=range(self.MpDf.shape[1])
             else:
                 r_i=[]
                 for i in r_set:
                     if i in self.MpDf.columns:
                         r_i.append(i)
-                r=r_set
+                # r=r_set
                  
         for i in r_i:
             p_text="r"+str(i)+":   "
@@ -773,7 +792,7 @@ class RNIRG:
         else:
             sp=sp_set.copy()
         
-        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #not present species
         
         rc =[] # creating variable of available reaction 
         for j in range(self.MpDf.shape[1]):
@@ -814,7 +833,7 @@ class RNIRG:
         else:
             sp=sp_set.copy()
         
-        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #not present species
         
         rc =[] # creating variable of available reaction 
         for j in range(self.MpDf.shape[1]):
@@ -956,7 +975,7 @@ class RNIRG:
         # generates of reactant species and product species array
         for i in range(self.MpDf.shape[1]):
              if (sp & self.ReacListBt[i]) == self.ReacListBt[i]:
-
+                 
                 r|=self.ReacListBt[i].copy()
                 p|=self.ProdListBt[i].copy()
         

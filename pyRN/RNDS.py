@@ -530,7 +530,7 @@ class RNDS(RNIRG):
             sp=sp_set
       
         # generation of the overproduced base
-        op_b=self.getOpBaseBtList(sp_set, self.getRpFromSp(sp_set))
+        op_b=self.getOpBaseBtList(sp_set, self.getTriggerableRpBtFromSp(sp_set))
         # initialization of multigraph of opverproduced hasse 
         G = nx.DiGraph()
         all_op=sp.copy()
@@ -543,7 +543,7 @@ class RNDS(RNIRG):
             st+=1
             op=bt(len(sp))
             op.all()
-            dcom=self.getDcomArray(op, sp, self.getRpFromSp(sp))
+            dcom=self.getDcomArray(op, sp, self.getTriggerableRpBtFromSp(sp))
             G.add_node(fbt(op),level=0,
                         dcom=dcom)#,
             return G, st
@@ -551,7 +551,7 @@ class RNDS(RNIRG):
         # The nodes corresponding to the overproduced base.
         for i in op_b:
             st+=1
-            dcom=self.getDcomArray(i, sp, self.getRpFromSp(sp))
+            dcom=self.getDcomArray(i, sp, self.getTriggerableRpBtFromSp(sp))
             G.add_node(fbt(i),level=i.count(),
                         dcom=dcom)#,
                         # is_org=self.getDcomArray_ssm(dcom))
@@ -580,7 +580,7 @@ class RNDS(RNIRG):
                     op_new=fbt(bt(j)|k)
                     st+=1
                     # decomposition result
-                    dcom=self.getDcomArray(op_new, sp, self.getRpFromSp(sp))
+                    dcom=self.getDcomArray(op_new, sp, self.getTriggerableRpBtFromSp(sp))
                      
                     # node is added if si not in structrue
                     if not (op_new in G):
@@ -620,7 +620,7 @@ class RNDS(RNIRG):
             sp=sp_set
       
         # generation of the overproduced base
-        op_b=self.getOpBaseBtList(sp_set, self.getRpFromSp(sp_set))
+        op_b=self.getOpBaseBtList(sp_set, self.getTriggerableRpBtFromSp(sp_set))
         # initialization of multigraph of opverproduced hasse 
         op_hasse = nx.DiGraph()
         all_op=sp.copy()
@@ -628,7 +628,7 @@ class RNDS(RNIRG):
         
         # The nodes corresponding to the overproduced base.
         for i in op_b:
-            dcom=self.getDcomArray(i, sp, self.getRpFromSp(sp))
+            dcom=self.getDcomArray(i, sp, self.getTriggerableRpBtFromSp(sp))
             op_hasse.add_node(fbt(i),level=i.count(),
                         dcom=dcom)#,
                         # is_org=self.getDcomArray_ssm(dcom))
@@ -646,7 +646,7 @@ class RNDS(RNIRG):
                 # print("exploring: ",op_new)
                 if not (op_new in op_hasse):
                     op_hasse.add_node(fbt(op_new),level=op_new.count(),
-                                      dcom=self.getDcomArray(op_new, sp, self.getRpFromSp(sp)))#,
+                                      dcom=self.getDcomArray(op_new, sp, self.getTriggerableRpBtFromSp(sp)))#,
                    
         #generating the edges of the graph:
         # for i in range(all_op.count()):
@@ -699,7 +699,7 @@ class RNDS(RNIRG):
             sp=sp_set
       
         # generation of the overproduced base
-        op_b=self.getOpBaseBtList(sp_set, self.getRpFromSp(sp_set))
+        op_b=self.getOpBaseBtList(sp_set, self.getTriggerableRpBtFromSp(sp_set))
         # initialization of multigraph of opverproduced hasse 
         op_hasse = nx.DiGraph()
         all_op=sp.copy()
@@ -707,7 +707,7 @@ class RNDS(RNIRG):
         
         # The nodes corresponding to the overproduced base.
         for i in op_b:
-            dcom=self.getDcomArray(i, sp, self.getRpFromSp(sp))
+            dcom=self.getDcomArray(i, sp, self.getTriggerableRpBtFromSp(sp))
             op_hasse.add_node(fbt(i),level=i.count(),
                         dcom=dcom)#,
                         # is_org=self.getDcomArray_ssm(dcom))
@@ -723,7 +723,7 @@ class RNDS(RNIRG):
         # op_hasse=list(map(list,op_hasse))
         
         # generating all decompositions
-        dcom=list(map(lambda x: self.getDcomArray(self.sp[x], sp, self.getRpFromSp(sp)),op_hasse))
+        dcom=list(map(lambda x: self.getDcomArray(self.sp[x], sp, self.getTriggerableRpBtFromSp(sp)),op_hasse))
         print("op_hasse2: ", len(op_hasse))
         return(op_hasse)
     
