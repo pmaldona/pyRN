@@ -1,21 +1,11 @@
 <script>
     import { GraphType, setVisObject } from '../misc/drawNetwork';
-    import Modal,{getModal} from '../components/Modal.svelte'
     import exportSvg from '../misc/svg';
     import { genRNStr } from './Network';
 
     export let is_loaded;
 
     let network = {};
-
-    let with_inflow = false;
-	let new_extra = 1;
-	let percentage_of_species = 0.1;
-	let extra = 1;
-	let percentage_of_reactions = 0.1;
-	let label_of_species = "x";
-	let extra_inflow = 0.1;
-	let extra_outflow = 0.1;
 
     let graphs = [
 		{ id: 1, text: `Reaction Network` },
@@ -79,32 +69,6 @@
         }
     }
 
-    function action(e) {
-		e.preventDefault();
-        let labels = label_of_species.split(',');
-        for(let i = 0; i < labels.length; i++) {
-            labels[i] = labels[i].trim();
-        }
-        if(labels.length != new_extra) {
-            labels = [labels[0]];
-        }
-
-		let form_obj = {
-            Nse: new_extra,
-	        p: new_extra==0 ? percentage_of_species : 0,
-	        extra: extra,
-	        m: extra==0 ? percentage_of_reactions : 0,
-	        l: labels
-	    };
-        getModal().close();
-		let promise = eel.add_extra_species(form_obj.Nse, form_obj.p, form_obj.extra, form_obj.m, form_obj.l)();
-        promise.then(result => {
-            if(result == true) {
-                drawNetwork();
-            }
-        });
-	}
-
     function exportNetwork() {
         let exported = window.electron.save().then(result => {
             let path = result;
@@ -118,31 +82,6 @@
 			return true;
 		}
 		return false;
-    }
-
-    function addInflow() {
-        let promise = eel.add_inflow(extra_inflow)();
-        promise.then(result => {
-            if (result == true) {
-                drawNetwork();
-            }
-            else {
-                console.error("Could not add inflow!");
-            }
-        });
-        
-    }
-
-    function addOutflow() {
-        let promise = eel.add_outflow(extra_outflow)();
-        promise.then(result => {
-            if (result == true) {
-                drawNetwork();
-            }
-            else {
-                console.error("Could not add inflow!");
-            }
-        });
     }
     
 </script>
@@ -160,25 +99,7 @@
             </select>
             <div style="margin-top: 5px; height: 650px; overflow-y: auto;">
                 <!-- svelte-ignore a11y-missing-attribute -->
-                <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawNetwork}>redraw</a>
-                <div style="height: auto;">
-                    {#if has_file_open != false}
-                        {#if selected.id == 1}
-                            <!-- svelte-ignore a11y-missing-attribute -->
-                            <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => getModal().open()}>Add Extra Species</a>
-                            <div>
-                                <input type="number" id="perc_species" min="2" max="1" bind:value={extra_inflow} style="width: 20%;">
-                                <!-- svelte-ignore a11y-missing-attribute -->
-                                <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => addInflow}>Add Inflow</a>
-                            </div>
-                            <div>
-                                <input type="number" id="perc_species" min="0" max="1" bind:value={extra_outflow} style="width: 20%;">
-                                <!-- svelte-ignore a11y-missing-attribute -->
-                                <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => addOutflow}>Add Outflow</a>
-                            </div>
-                        {/if}
-                    {/if}
-                </div>
+                <a class="waves-effect waves-light btn" style="margin-top: 5px;" on:click={drawNetwork}>Redraw</a>
                 <!-- svelte-ignore a11y-missing-attribute -->
                 <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportSvg(network)}>Export to SVG</a>
                 <!-- svelte-ignore a11y-missing-attribute -->
@@ -228,50 +149,6 @@
             </h5>
         </div>
     {/if}
-
-    <Modal>
-        <h4>Add Species</h4>
-        <div style="height: 250px; overflow:auto;">
-            <form onsubmit="action(e)">
-                <table>
-                    <tr>
-                        <td>Number of added species</td>
-                        <td><input type="number" id="species" step="1" bind:value={new_extra} style="width: 20%;"></td> 
-                    </tr>
-                    {#if new_extra==0}
-                        <tr>
-                            <td>Percentage of species added to reactions</td>
-                            <td>
-                                <input type="number" id="perc_species" min="2" step="1" bind:value={percentage_of_species} style="width: 20%;">
-                            </td>
-                        </tr>
-                    {/if}
-                    <tr>
-                        <td>Number of reactions to add the species to</td>
-                        <td>
-                            <input type="number" id="reactions" step="1" bind:value={extra} style="width: 20%;">
-                        </td>
-                        <!-- <td><input type="number" id="reactions" min="1" step="1" bind:value={random_reactions} style="width: 20%;"></td>  -->
-                    </tr>
-                    {#if extra==0}
-                        <tr>
-                            <td>Percentage of reactions to add the species to</td>
-                            <td>
-                                <input type="number" id="perc_reactions" bind:value={percentage_of_reactions} style="width: 20%;">
-                            </td>
-                        </tr>
-                    {/if}
-                    <tr>
-                        <td>Label of the new species</td>
-                        <td>
-                            <input type="text" id="reactions" step="1" bind:value={label_of_species} style="width: 100%;">
-                        </td>
-                    </tr>
-                </table>
-                <input type="submit" value="Generate" on:click={action}>
-            </form>
-        </div>
-    </Modal>
 </main>
 
 <style>
@@ -292,10 +169,4 @@
     #circle {
         margin-left: 33%;
     }
-
-    table, tr, td {
-		border: 0px solid black;
-		margin: 5px;
-		padding: 0px;
-	}
 </style>

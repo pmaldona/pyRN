@@ -29,10 +29,10 @@
     let timeFinal = 50;
     let steps = 100;
     let cutoff = 0.1;
-    let w = 10;
+    let w = 2;
     let l = 10;
     let d = 1;
-    let nmin = 3;
+    let nmin = 0;
     let n = 500;
     let trys = 10;
     let save = true;
@@ -270,11 +270,11 @@
                 </label>
                 {#if selectedWalk.id == 0}
                     <label>
-                        Change in active species: 
+                        Max. # generators in a perturbation: 
                         <input type=number min="0" step="1" bind:value={d}>
                     </label>
                     <label>
-                        Minimal active species: 
+                        Min. # generators in a state: 
                         <input type=number min="0" step="1" bind:value={nmin}>
                     </label>
                 {:else}
