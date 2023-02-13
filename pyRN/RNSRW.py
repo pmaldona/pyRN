@@ -1024,8 +1024,11 @@ class RNSRW(CRNS):
         # Choosing only connceted generators
         if conn:
             mask_i=g.copy()
-            for j in [i for i in self.GInBListBt if i.count()==1]:
-                mask_i|=j
+            inflow=self.getGBtInSpBt(self.getBtFromIndArray(self.getInflowFromSp(self.getSpBtInGBt(self.GInBListBt)),self.MpDf.shape[0]))
+            # for j in [i for i in self.GInBListBt if i.count()==1]:
+            #     mask_i|=j
+            
+            mask_i|=inflow
             
             mask=mask_i|self.getGBtConnectedToBBt(mask_i)
             while mask!=mask_i:

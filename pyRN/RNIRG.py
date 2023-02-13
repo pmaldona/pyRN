@@ -85,12 +85,18 @@ class RNIRG:
            
             if rn[2][i]!=['']:
                 for j in range(len(rn[2][i])):
-                    st=re.search("[0-9]*",rn[2][i][j]).group()
-                    if st=='':
-                        sst.append(1.0)
-                    else:
-                        sst.append(float(st))
-                    ssp.append(re.search("[^0-9].*",rn[2][i][j]).group())
+                    st=re.search("^(-?[\d.]+(?:e-?\d+)?)\s*(.*)",rn[2][i][j])
+                    try:
+                        # st=re.search("[0-9]*",rn[2][i][j]).group()
+                        if st is None:
+                            sst.append(1.0)
+                            ssp.append(re.search("[^0-9].*",rn[2][i][j]).group())
+                        else:
+                            sst.append(float(st.group(1)))
+                            ssp.append(st.group(2))
+                        # ssp.append(re.search("[^0-9].*",rn[2][i][j]).group())
+                    except:
+                        print(st,"0:",st.group(0),"1:",st.group(1),"2:",st.group(2))
             else:
                 ssp.append([])
                 sst.append([])
@@ -99,12 +105,19 @@ class RNIRG:
             
             if rn[3][i]!=['']:
                 for j in range(len(rn[3][i])):
-                    st=re.search("[0-9]*",rn[3][i][j]).group()
-                    if st=='':
-                        pst.append(1.0)
-                    else:
-                        pst.append(float(st))
-                    psp.append(re.search("[^0-9].*",rn[3][i][j]).group())
+                    st=re.search("^(-?[\d.]+(?:e-?\d+)?)\s*(.*)",rn[3][i][j])
+                    try:
+                        # st=re.search("[0-9]*",rn[3][i][j]).group()
+                        if st is None:
+                            pst.append(1.0)
+                            psp.append(re.search("[^0-9].*",rn[3][i][j]).group())
+                        else:
+                            pst.append(float(st.group(1)))
+                            psp.append(st.group(2))
+                        # psp.append(re.search("[^0-9].*",rn[3][i][j]).group())
+                        # psp.append(re.search("(-?[\d.]+(?:e-?\d+)?)\s*(.*)",rn[3][i][j]).group(1))
+                    except:
+                        print(st,"0:",st.group(0),"1:",st.group(1),"2:",st.group(2))
             else:
                 psp.append([])
                 pst.append([])
@@ -447,7 +460,6 @@ class RNIRG:
         
         #creation species coneted graph
         self.SpRConnNx=nx.Graph()
-        
         # adding nodes to the graph
         for i in self.SpIdStrArray:
             self.SpRConnNx.add_node(i)
@@ -456,7 +468,7 @@ class RNIRG:
         for i in range(len(self.ReacListBt)):
             conn_sp=self.ReacListBt[i] | self.ProdListBt[i]     
             sp_indx=conn_sp.search(1)
-                
+            
             for j in range(len(sp_indx)):
                 b_sp=self.SpIdStrArray[sp_indx[j]]
                 for k in sp_indx[j:]:
@@ -467,6 +479,37 @@ class RNIRG:
                         self.SpRConnNx.edges[b_sp, f_sp]["w"]+=1
         self.SpConnNx=nx.transitive_closure(self.SpRConnNx,reflexive=True)
         
+    def getSpCConnMat(self):
+        '''
+        
+
+        Returns
+        -------
+        Generates a causal connectivity graph of species via reactions.
+
+        '''
+        
+        #creation species coneted graph
+        self.SpCConnNx=nx.DiGraph()
+        # adding nodes to the graph
+        for i in self.SpIdStrArray:
+            self.SpCConnNx.add_node(i)
+        
+        #generating directly connected species in a reaction
+        for i in range(len(self.ReacListBt)):
+            f_sp=self.ReacListBt[i]      
+            t_sp=self.ProdListBt[i]
+            
+            
+            for j in f_sp.search(1):
+                for k in t_sp.search(1):
+                    f_sp=self.SpIdStrArray[k]
+                    if not self.SpCConnNx.has_edge(self.SpIdStrArray[j],self.SpIdStrArray[k]):
+                        self.SpCConnNx.add_edge(self.SpIdStrArray[j],self.SpIdStrArray[k],w=1)
+                    else:                        
+                        self.SpCConnNx.edges[self.SpIdStrArray[j], self.SpIdStrArray[k]]["w"]+=1
+        
+    
     def getSpConnFrac(self):
         '''
             

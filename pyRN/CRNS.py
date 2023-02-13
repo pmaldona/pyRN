@@ -49,9 +49,12 @@ class CRNS(RNIRG):
         # creating all closed set for closure of reactant part
         c_reac=[]
           
+        k=1
         for i in self.ReacListBt:
+            print(k," closures of ",len(self.ReacListBt))
             c_reac.append(self.getClosureFromSp(i,bt_type=True))
-        
+            k+=1
+            
         # number of equivalence clases
         xeqc=0
         # class equivalence vector
@@ -64,7 +67,10 @@ class CRNS(RNIRG):
         st=0
         # creating equivalence classes for each reaction that generate the same
         # closure and so each basic can be created
+        
         for i in range(len(x_r_a)):
+            print(i+1," equivalance classes of ",len(x_r_a))
+            
             st+=1
             # reaction already assigned to equivalnce class
             if x_r_a[i]>=0:
@@ -124,7 +130,7 @@ class CRNS(RNIRG):
         
         # Assignation of other related variables:
         for i in range(len(self.BSpListBt)):
-            
+            print(i+1," bitarrays assignations of ",len(self.BSpListBt))
             a_b.append(self.getGBtInSpBt(self.BSpListBt[i]))
             r_b.append(b_r.copy())
             rsp_b.append(b_sp.copy())
@@ -164,6 +170,7 @@ class CRNS(RNIRG):
             dyn_conn.append(b_c.copy())
             
         for i in range(len(conn)):
+            print(i," connectivity assingments of ",len(x_r_a))
             for j in range(len(conn)):
                 # connectivity conditions
                 if (not j==i) and a_b[i][j]==0 and (rsp_b[i] & psp_b[j]).any():
@@ -328,7 +335,7 @@ class CRNS(RNIRG):
         return p
     
     
-    # Function that returns the contains the species contained in a Bitarray of
+    # Function that returns the contains the species contained in a Bitarray ofgetGBtContribBBt
     # generators
     def getSpBtInGBt(self, p):
         sp=bt(len(self.SpIdStrArray))
