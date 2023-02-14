@@ -928,6 +928,25 @@ class CRNS(RNIRG):
             
         return DirectlyBelowSets
     
+    def addAllNonReacOrgs(self,orgslist):
+        '''
+        
+
+        Parameters
+        ----------
+        orglist : list of bitarray
+            list of organization as species bitarrays.
+        Returns
+        -------
+        Add all non reactive organization to a list of organizations.
+
+        '''
+        emptyset=bt(self.MpDf.shape[0])
+        emptyset.setall(0)
+        all_orgs = [com for sub in orgslist+[emptyset] for com in self.getNonReacSets(sub)]
+        return(all_orgs+orgslist)
+    
+    
     # Generates a networkx Hasse diagram of a form a list of bitarrays 
     # Blist       
     def getHasseNxFromBtList(self,BtList,setlabel="O"):

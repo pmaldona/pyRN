@@ -1017,32 +1017,48 @@ class RNSRW(CRNS):
         '''
         
         if pert_type=="species":
-            g=self.getGBtInSpBt(init_state)
+            if conn:
+                # g=self.getGBtInSpBt(init_state)
+                g=init_state.copy()
+                all_sp=bt(self.MpDf.shape[0])
+                all_sp.setall(1)
+                inflow=self.getBtFromIndArray(self.getInflowFromSp(all_sp),self.MpDf.shape[0])
+                g|=inflow
+                mask=self.getConnSp(g,bitout=True)
+                mask|=g
+            else:
+                mask=init_state.copy()
+                mask.setall(1)
+                
         elif pert_type=="generators":
             g=init_state.copy()
         
-        # Choosing only connceted generators
-        if conn:
-            mask_i=g.copy()
-            inflow=self.getGBtInSpBt(self.getBtFromIndArray(self.getInflowFromSp(self.getSpBtInGBt(self.GInBListBt)),self.MpDf.shape[0]))
-            # for j in [i for i in self.GInBListBt if i.count()==1]:
-            #     mask_i|=j
-            
-            mask_i|=inflow
-            
-            mask=mask_i|self.getGBtConnectedToBBt(mask_i)
-            while mask!=mask_i:
-                mask_i=mask.copy()
-                mask=mask_i|self.getGBtConnectedToBBt(mask_i)
+            # Choosing only connceted generators
+            if conn:
+                mask_i=g.copy()
+                all_sp=bt(self.MpDf.shape[0])
+                all_sp.setall(1)
+                inflow=self.getGBtInSpBt(self.getBtFromIndArray(self.getInflowFromSp(all_sp),self.MpDf.shape[0]))
+    
+                # inflow=self.getGBtInSpBt(self.getBtFromIndArray(self.getInflowFromSp(self.getSpBtInGBt(self.GInBListBt)),self.MpDf.shape[0]))
+                # for j in [i for i in self.GInBListBt if i.count()==1]:
+                #     mask_i|=j
                 
-        else:
-            mask=g.copy()
-            mask.setall(1)
-            
-        if pert_type=="species":
-            mask=self.getSpBtInGBt(mask)
-        elif pert_type=="generators":
-            pass
+                mask_i|=inflow
+                
+                mask=mask_i|self.getGBtConnectedToBBt(mask_i)
+                while mask!=mask_i:
+                    mask_i=mask.copy()
+                    mask=mask_i|self.getGBtConnectedToBBt(mask_i)
+                    
+            else:
+                mask=g.copy()
+                mask.setall(1)
+                
+        # if pert_type=="species":
+        #     mask=self.getSpBtInGBt(mask)
+        # elif pert_type=="generators":
+        #     pass
 
         
         # selection of the diferrent size of the components to select 
@@ -1051,6 +1067,7 @@ class RNSRW(CRNS):
         # list of position of all permurtations
         res = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
         res = list(map(lambda x: self.getBtFromIndArray(x,len(init_state)),res))
+        res = [x for x in res if x != init_state]
         
         pert=list(map(lambda x: x&~init_state|init_state&~x ,res)) 
         pert_sizes=list(map(lambda x: x.count(),pert))

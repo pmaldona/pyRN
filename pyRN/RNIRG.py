@@ -14,12 +14,13 @@ import re
 from bs4 import BeautifulSoup as bs
 import copy
 from bitarray import bitarray as bt
+from bitarray import frozenbitarray as fbt
 from scipy.optimize import linprog
 import random as rm
 import matplotlib.pyplot as plt
 from pyvis.network import Network
 import networkx as nx
-
+from itertools import combinations
 
 
 # Class definition: It consist to an object generates an stoichiometric matrix 
@@ -448,7 +449,7 @@ class RNIRG:
         except:
             print("error reading smbl file")
     
-    def getSpConnMat(self):
+    def setSpConnMat(self):
         '''
         
 
@@ -479,7 +480,7 @@ class RNIRG:
                         self.SpRConnNx.edges[b_sp, f_sp]["w"]+=1
         self.SpConnNx=nx.transitive_closure(self.SpRConnNx,reflexive=True)
         
-    def getSpCConnMat(self):
+    def setSpCConnMat(self):
         '''
         
 
@@ -562,7 +563,7 @@ class RNIRG:
         for i in sp:
             # print(i)
             # print(set(dict(self.SpConnNx['s1']).keys()))
-            out|=set(dict(self.SpConnNx['s1']).keys())
+            out|=set(dict(self.SpConnNx[i]).keys())
         
         out-=set(sp)
         out=np.array(list(out))
@@ -988,6 +989,37 @@ class RNIRG:
                 if sp[i]==0:
                     sp_set=np.delete(sp_set,np.where(sp_set == i))
             return self.SpIdStrArray[sp_set]
+    
+    def getNonReacSets(self,sp_set):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : bitarray
+            set of species.
+
+        Returns
+        -------
+        A list of all bitarray sets of species, whose additive part is 
+        non-reactive with respect to sp_set.
+
+        '''
+        
+        non_org_reac=~self.getTriggerableRpBtFromSp(sp_set)
+        non_org=~sp_set
+        
+        cand_sets = [com for sub in range(1,non_org.count()) for com in combinations(self.getIndArrayFromBt(non_org), sub)]
+        cand_sets = list(map(lambda x: fbt(self.getBtFromIndArray(x,len(sp_set))),cand_sets))
+        
+        non_set=list(map(lambda x: fbt(self.ReacListBt[x]),non_org_reac.search(1)))
+        
+        out=cand_sets.copy()
+        for i in cand_sets:
+            if any(list(map(lambda x: (x & i) == x ,non_set))):
+                out.remove(i)
+
+        return(list(map(lambda x: bt(x|sp_set),out)))
     
     
     # Function that confirms if a set is reactive semi-self-maintained, input is
