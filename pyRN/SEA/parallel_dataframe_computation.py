@@ -114,7 +114,10 @@ def set_and_store(path,
                           include_empty_set=include_empty_set)
     print(f'{path}: SimpleTransSpDf set')
     pkl(RN, path.replace(path[path.rfind('.')+1:], 'pickle'))
-    print(f'{path}: set_and_store completed after {round(time.time()-start,2)} seconds')
+    duration = (time.time()-start)
+    minutes  = int(duration/60)
+    seconds  = int(duration-minutes*60)
+    print(f'{path}: set_and_store completed {minutes} minutes and {seconds} seconds')
 
 def multithread_set_and_store(file_paths, max_pert_size, threads):
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
@@ -140,21 +143,20 @@ def get_file_paths(path, extension=None):
                 file_paths.append(os.path.join(root, file))
     return file_paths
 
-def calculate_dataframes(SimpleTransSpDf, max_perturbation_size, folder_path):
+def calculate_dataframes(RN, max_perturbation_size, folder_path):
     # Initialize dataframes
-    abstractions_df = newdataframes.initialize_abstractions_df(SimpleTransSpDf)
+    abstractions_df = newdataframes.initialize_abstractions_df(RN.SimpleTransSpDf)
     transitions_df  = newdataframes.initialize_transitions_df(abstractions_df)
     # Calculate transition probabilities
     allowed = lambda p: sos.n_elements(list(p)) <= max_perturbation_size
-    TransDf = SimpleTransSpDf.copy()
-    TransDf = SimpleTransSpDf[SimpleTransSpDf['perturbation'].apply(allowed)]
+    TransDf = RN.SimpleTransSpDf[RN.SimpleTransSpDf['perturbation'].apply(allowed)]
     newdataframes.add_probabilities_to_transitions_df_2_1(TransDf, transitions_df)
     newdataframes.fix_transition_probabilities_for_all_initial_states(transitions_df)
     # Calculate markov properties
     abstractions_df = markov.add_markov_properties_to_dataframe(abstractions_df, transitions_df)
     # Add additional information
     newdataframes.add_number_of_species(abstractions_df)
-    newdataframes.add_number_of_species(abstractions_df)
+    newdataframes.add_complexities(RN, abstractions_df)
     newdataframes.add_size_difference(transitions_df)
     # Store data
     pkl(abstractions_df, f'{folder_path}\\abstractions_df_pert_size_{max_perturbation_size}.pickle')
@@ -165,7 +167,7 @@ def calculate_all_dataframes(file_path, max_perturbation_size):
     folder_path = file_path.replace(file_path[file_path.rfind('\\')+1:], '')
     for max_perturbation_size in range(1, max_perturbation_size+1):
         print(f'{folder_path}: calculate dataframes with max_pert_size {max_perturbation_size}')
-        calculate_dataframes(RN.SimpleTransSpDf, max_perturbation_size, folder_path)
+        calculate_dataframes(RN, max_perturbation_size, folder_path)
 
 def multithread_calculate_all_dataframes(file_paths, max_perturbation_size):
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
@@ -176,8 +178,7 @@ def multithread_calculate_all_dataframes(file_paths, max_perturbation_size):
 
 ##################################################
 #------------------------------------------------#
-path = r"C:\Users\simon\Downloads\small_nets2"
-path = r'C:\Users\simon\Downloads\non_connected_example'
+path =                                             
 max_perturbation_size = 2
 threads = 2                
 #------------------------------------------------#
