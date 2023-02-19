@@ -169,7 +169,7 @@ def calculate_all_dataframes(file_path, max_perturbation_size):
         print(f'{folder_path}: calculate dataframes with max_pert_size {max_perturbation_size}')
         calculate_dataframes(RN, max_perturbation_size, folder_path)
 
-def multithread_calculate_all_dataframes(file_paths, max_perturbation_size):
+def multithread_calculate_all_dataframes(file_paths, max_perturbation_size,threads):
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         # Submit the function with each parameter to the executor
         results = [executor.submit(calculate_all_dataframes, file_path, max_perturbation_size) for file_path in file_paths]
