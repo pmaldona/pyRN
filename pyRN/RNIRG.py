@@ -511,7 +511,7 @@ class RNIRG:
                         self.SpCConnNx.edges[self.SpIdStrArray[j], self.SpIdStrArray[k]]["w"]+=1
         
     
-    def getSpConnFrac(self):
+    def setSpConnFrac(self):
         '''
             
     

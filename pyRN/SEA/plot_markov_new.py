@@ -1,5 +1,5 @@
-from pyRN.SEA import sos
-import hasseNetworkx
+from . import sos
+from . import hasseNetworkx
 
 from bitarray import frozenbitarray
 import matplotlib.pyplot

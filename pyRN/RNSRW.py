@@ -1080,7 +1080,7 @@ class RNSRW(CRNS):
 
         
     
-    def setSimpleTransDict(self,orglist,pert_type="species",pert_size=4,conn=True,closure=True,include_empty_set=False):
+    def setSimpleTransDict(self,orglist,pert_type="species",pert_size=4,conn=True,closure=True,include_empty_set=False,org_below_reset=True):
         '''
         Parameters
         ----------
@@ -1096,16 +1096,16 @@ class RNSRW(CRNS):
         closure : bool, optional
             If True closure of the pertrubartion are considered, if False perturbation as any combiantion of generators. The default is True.
         include_empty_set: bool, optional 
-          If True the empty set is added as a possible initial state, even if it is not an organization.
+          If True the empty set is added as a possible initial state, even if it is not an organization. The default us True.
+        org_below_reset: bool, optional 
+          Reset the dictionary of closed sets which each entry contians the organizations below . The default us True.
         Returns
         -------
         Dictionary of a tuple whit starting organization and pertubation, which contains a list of list with all the resulting pertrubed states 
         for the current starting organization and the convert organization. For the corresponding perturbation type pert_type and size pert_size.
 
         '''
-        try:
-            self.SetsDictOrgsBelow
-        except:
+        if org_below_reset:
             self.SetsDictOrgsBelow={}
             
         # variable of orgs to be used

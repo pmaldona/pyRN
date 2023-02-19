@@ -1,8 +1,8 @@
 # pyRN imports
 from pyRN import pyRN
-from pyRN.SEA import markov
-from pyRN.SEA import newdataframes
-from pyRN.SEA import sos
+from . import markov
+from . import newdataframes
+from . import sos
 
 # built-in imports
 from contextlib import redirect_stdout
@@ -176,33 +176,4 @@ def multithread_calculate_all_dataframes(file_paths, max_perturbation_size):
         # Wait for all the results to be finished
         concurrent.futures.wait(results)
 
-##################################################
-#------------------------------------------------#
-path =                                             
-max_perturbation_size = 2
-threads = 2                
-#------------------------------------------------#
-##################################################
 
-start = time.time()
-# Put every reaction network in it's own folder
-move_files_to_folders(path)
-# Get paths to all networks
-file_paths = get_file_paths(path)
-# Initialize networks,
-# set connectivity matrix
-# set generators
-# set synergetic structure
-# set SimpleTransSpDf
-multithread_set_and_store(file_paths, max_perturbation_size, threads)
-# Get paths to all pyRN-objects
-file_paths = get_file_paths(path, '.pickle')
-# Load pyRN-objects, calculate and save 
-# abstractions_df and transitions_df
-# for all possible 
-sys.stdout = sys.__stdout__
-multithread_calculate_all_dataframes(file_paths, max_perturbation_size)
-duration = (time.time()-start)
-minutes  = int(duration/60)
-seconds  = int(duration-minutes*60)
-print(f'\nCompleted task in {minutes} minutes and {seconds} seconds')

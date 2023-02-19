@@ -13,7 +13,7 @@ from .SEA.plot_complexitychange import plot_complexitychange
 from .SEA.plot_hasse import plot_hasse
 from .SEA.plot_hasse import plot_hasse_convergence_and_perturbation
 from .SEA.dataframes import dataframesFromLists
-from .SEA.plot_markov import plot_markov
+from .SEA.plot_markov_new import plot_markov
 from .SEA.plotHistoAbstrac import plotHistAbstrac
 from .SEA import sos 
 import itertools
