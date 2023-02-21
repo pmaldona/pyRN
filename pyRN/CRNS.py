@@ -170,7 +170,7 @@ class CRNS(RNIRG):
             dyn_conn.append(b_c.copy())
             
         for i in range(len(conn)):
-            print(i," connectivity assingments of ",len(x_r_a))
+            print(i," connectivity assingments of ",len(self.BSpListBt))
             for j in range(len(conn)):
                 # connectivity conditions
                 if (not j==i) and a_b[i][j]==0 and (rsp_b[i] & psp_b[j]).any():

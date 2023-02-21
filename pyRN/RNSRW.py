@@ -8,6 +8,7 @@ Created on Thu Jul  7 10:48:31 2022
 Reaction Network Simulator and Random Walk Class
 """
 from .CRNS import CRNS
+# from .CRNS_MP import CRNSMP
 import numpy as np
 import roadrunner as re
 import pandas as pd
@@ -1062,19 +1063,15 @@ class RNSRW(CRNS):
 
         
         # selection of the diferrent size of the components to select 
-        pert_range=range(max(0,init_state.count()-pert_size),min(init_state.count()+pert_size+1,mask.count()+1))
+        # pert_range=range(max(0,init_state.count()-pert_size),min(init_state.count()+pert_size+1,mask.count()+1))
+        pert_range=range(pert_size+1)
         
         # list of position of all permurtations
-        res = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
-        res = list(map(lambda x: self.getBtFromIndArray(x,len(init_state)),res))
-        res = [x for x in res if x != init_state]
+        pert = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
+        pert = list(map(lambda x: self.getBtFromIndArray(x,len(init_state)),pert))
+        pert = [x for x in pert if x.count()!=0]
         
-        pert=list(map(lambda x: x&~init_state|init_state&~x ,res)) 
-        pert_sizes=list(map(lambda x: x.count(),pert))
-        
-        ind=np.where(np.array(pert_sizes)<=pert_size)[0]
-        res=[res[index] for index in ind]
-        pert=[pert[index] for index in ind] 
+        res=list(map(lambda x: init_state^x ,pert)) 
         
         return list(zip(pert,res))
 
@@ -1124,8 +1121,9 @@ class RNSRW(CRNS):
         orgs_df=pd.DataFrame(columns=["initial state",'perturbation',"final perturbed state","convergent state"])
         counter=0
         if pert_type=="generators":
-
+            l=1
             for i in orgs:
+                    print("Simple Traansition for org",l,"of",len(orgs))
                     # itereting all posible perturbations
                     pert=self.getallPert(self.getGBtInSpBt(i),pert_type=pert_type,pert_size=pert_size,conn=conn)
 
@@ -1157,13 +1155,15 @@ class RNSRW(CRNS):
                                                                                     "convergent state": j[1]})
                             orgs_df.loc[counter]=[self.getGBtInSpBt(i),j[0],j[1],j[1]]
                             counter+=1
-                # creating the class variable
+                    l+=1
+            # creating the class variable
             self.SimpleTransGDict=orgs_dict
             self.SimpleTransGDf=orgs_df
         
         elif pert_type=="species":
-          
+            l=1
             for i in orgs:
+                    print("Simple Traansition for org",l,"of",len(orgs))
                     # itereting all posible perturbations
                     pert=self.getallPert(i,pert_type=pert_type,pert_size=pert_size,conn=conn)
 
@@ -1194,7 +1194,8 @@ class RNSRW(CRNS):
                                                                  "convergent state":j[1]})
                             orgs_df.loc[counter]=[i,j[0],j[1],j[1]]
                             counter+=1
-                # creating the class variable
+                    l+=1
+            # creating the class variable
             for i in orgs_df.columns:
                 orgs_df[i]=orgs_df[i].apply(fbt)
             self.SimpleTransSpDict=orgs_dict
