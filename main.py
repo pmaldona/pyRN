@@ -103,9 +103,9 @@ def plot_rates(SpConFileNameStr=None, KConstFileNameStr=None, ti=0, tf=50, steps
         return None
     
 @eel.expose
-def random_network(has_inflow= False, random_species= 2, random_reactions= 2, extra=0.4, distribution= "x*0+1", pr= 0, pp= 0, inflow= 0.1, outflow= 0.1):
+def random_network(random_species=12, random_vector=None):
     print(random_species)
-    return state.generate_random_network(has_inflow, random_species, random_reactions, extra, distribution, pr, pp, inflow, outflow)
+    return state.generate_random_network(random_species, random_vector)
 
 @eel.expose
 def add_extra_species(Nse=None,p=0.1,extra=None,m=1, l="x"):
@@ -150,6 +150,7 @@ def random_walk(w, l, d, nmin, n, trys, save, fname):
 def new_random_walk(w, l, d, nmin, n, trys, save, fname):
     rn = state.reaction_network
     if rn != None:
+        print("NEW RW")
         keys = None
         state.simple_rw = False
         state.reaction_network.RwDict = {}
@@ -220,6 +221,19 @@ def plot_markov():
                 return False
         return plot_markov_callable(state.reaction_network.plotMarkovRw, state.get_walk_type().value)
 
+@eel.expose
+def save_parameters(timeStart, timeFinal, steps, cutoff, w, l, d, nmin, n, trys, save, fname, convPert, keys):
+    if state.reaction_network == None:
+        return False
+    else:
+        return state.save_parameters(timeStart, timeFinal, steps, cutoff, w, l, d, nmin, n, trys, save, fname, convPert, keys)
+
+@eel.expose
+def get_parameters():
+    if state.reaction_network == None:
+        return False
+    else:
+        return state.get_parameters()
 
 print("[eel]: Start");
 

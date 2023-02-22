@@ -27,7 +27,17 @@ class State:
         self.model: bool = False
         self.simple_rw: bool = False
         self.random_walk_type: WalkTypes = WalkTypes.SIMPLE_RANDOM_WALK
+        self.simulation_parameters: list = []
     
+    def save_parameters(self, timeStart, timeFinal, steps, cutoff, w, l, d, nmin, n, trys, save, fname, convPert, keys) -> bool:
+        self.simulation_parameters = [timeStart, timeFinal, steps, cutoff, w, l, d, nmin, n, trys, save, fname, convPert, keys]
+        return True
+
+    
+    def get_parameters(self) -> list:
+        return self.simulation_parameters
+
+
     def save_network(self, path: str) -> bool:
         if self.reaction_network != None:
             try:
@@ -63,19 +73,9 @@ class State:
             self.set_new_rn(file_path, RN)
             return True
     
-    def generate_random_network(self, has_inflow= False, random_species= 2, random_reactions= 2, extra=0.4, distribution= "x*0+1", pr= 0, pp= 0, inflow= 0.1, outflow= 0.1) -> bool:
+    def generate_random_network(self, random_species=12, random_vector=None) -> bool:
         RN = None
-        dist = lambda x: eval(distribution)
-        if has_inflow == True:
-            try:
-                RN = pyRN.setRandomgeneratedWithInflow(random_reactions, random_species, extra, dist, pr, pp, inflow, outflow)
-            except:
-                pass
-        else:
-            try:
-                RN=pyRN.setRandomgeneratedNoInflow(random_reactions, random_species, extra, dist, pr, pp)
-            except:
-                pass
+        RN = pyRN.setSimpleRandomgenerate(Ns=random_species,rv=random_vector)
         if RN == None:
             return False
         else:
@@ -323,7 +323,12 @@ class State:
         if self.reaction_network == None:
             return None
         else:
-            if self.simple_rw == False:
+            try:
+                self.reaction_network.RwDict[self.random_walk_type.value].keys()
+                print("Have run already")
+            except:
+                print("NO run")
+            # if self.reaction_network.RwDict[self.random_walk_type.value].keys() == None:
                 if self.init_simple_random_walk(w=walk_range,l=l,d=d,nmin=nmin, fname=fname) == False:
                     return None
             print(self.reaction_network.RwDict[self.random_walk_type.value].keys())

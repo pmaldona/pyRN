@@ -40,6 +40,7 @@
     let has_random_walk = false;
     let convPert = false;
 
+    get_parameters();
     plot();
 
     async function pltStoich() {
@@ -140,6 +141,7 @@
         is_loaded().then(result => {
             has_file_open = result;
         });
+        on_change();
         let promise = eel.plot_simple_random_walk_raw(selected_key)();
         promise.then(result => {
             if (result != false) {
@@ -164,6 +166,7 @@
         is_loaded().then(result => {
             has_file_open = result;
         });
+        on_change();
         let promise = eel.plot_trajectory(selected_key, convPert)();
         promise.then(result => {
             if (result != false) {
@@ -196,6 +199,41 @@
         });
     }
 
+    function on_change() {
+        let promise = eel.save_parameters(timeStart, timeFinal, steps, cutoff, w, l, d, nmin, n, trys, save, fname, convPert, keys)();
+        promise.then(result => {
+            console.log(result);
+        });
+    }
+
+    function get_parameters() {
+        let promise = eel.get_parameters()();
+        
+        promise.then(result => {
+            console.log(result);
+            if (result != false || result.length > 0) {
+                timeStart = result[0];
+                timeFinal = result[1];
+                steps = result[2];
+                cutoff = result[3];
+                w = result[4];
+                l = result[5];
+                d = result[6];
+                nmin = result[7];
+                n = result[8];
+                trys = result[9];
+                save = result[10];
+                fname = result[11];
+                convPert = result[12];
+                keys = result[13];
+                if((keys != undefined && keys != null) && keys.length > 0) {
+                    selected_key = keys[0];
+                }
+            }
+            on_change();
+        });
+    }
+
 </script>
 
 <main>
@@ -223,19 +261,19 @@
             {#if selected.id == 2 || selected.id == 3}
                 <label>
                     Start:
-                    <input type=number bind:value={timeStart}>
+                    <input type=number bind:value={timeStart} on:change={on_change}>
                 </label>
                 <label>
                     End: 
-                    <input type=number bind:value={timeFinal}>
+                    <input type=number bind:value={timeFinal} on:change={on_change}>
                 </label>
                 <label>
                     Steps: 
-                    <input type=number bind:value={steps}>
+                    <input type=number bind:value={steps} on:change={on_change}>
                 </label>
                 <label>
                     Cutoff: 
-                    <input type=number bind:value={cutoff}>
+                    <input type=number bind:value={cutoff} on:change={on_change}>
                 </label>
                 <div>
                     Initial Concentrations:
@@ -262,38 +300,38 @@
                 </label>
                 <label>
                     Number of walks:
-                    <input type=number min="1" step="1" bind:value={w}>
+                    <input type=number min="1" step="1" bind:value={w} on:change={on_change}>
                 </label>
                 <label>
                     Steps per walk: 
-                    <input type=number min="1" step="1" bind:value={l}>
+                    <input type=number min="1" step="1" bind:value={l} on:change={on_change}>
                 </label>
                 {#if selectedWalk.id == 0}
                     <label>
                         Max. # generators in a perturbation: 
-                        <input type=number min="0" step="1" bind:value={d}>
+                        <input type=number min="0" step="1" bind:value={d} on:change={on_change}>
                     </label>
                     <label>
                         Min. # generators in a state: 
-                        <input type=number min="0" step="1" bind:value={nmin}>
+                        <input type=number min="0" step="1" bind:value={nmin} on:change={on_change}>
                     </label>
                 {:else}
                     <label>
                         Number of simulation steps: 
-                        <input type=number min="0" step="1" bind:value={n}>
+                        <input type=number min="0" step="1" bind:value={n} on:change={on_change}>
                     </label>
                     <label>
                         Number of perturbations done if the integrator has covergence problems: 
-                        <input type=number min="0" step="1" bind:value={trys}>
+                        <input type=number min="0" step="1" bind:value={trys} on:change={on_change}>
                     </label>
                     <label>
                         Save the random walk? 
-                        <input type=checkbox bind:checked={save}>
+                        <input type=checkbox bind:checked={save} on:change={on_change}>
                     </label>
                 {/if}
                 <label>
                     Save walks as: 
-                    <input type=text bind:value={fname}>
+                    <input type=text bind:value={fname} on:change={on_change}>
                 </label>
                 <div>
                     <!-- svelte-ignore a11y-missing-attribute -->

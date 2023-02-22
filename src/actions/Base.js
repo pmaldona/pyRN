@@ -18,15 +18,15 @@ export function genNetwork() {
     getModal().open();
 }
 
-export async function action(with_inflow, random_species, random_reactions, extra, distribution, pr, pp, inflow, outflow, callback) {
-    let promise = eel.random_network(with_inflow, random_species, random_reactions, extra, distribution, pr, pp, inflow, outflow)();
+export async function action(random_species, random_vector) {
+    console.log(random_species);
+    console.log(random_vector);
+    let promise = eel.random_network(random_species, random_vector)();
     //await promise.then();
     //let promise_gen = eel.random_network()();
     let randomNetwork = await promise.then(result => {
         return result;
     });
-    getModal().close();
-    if(randomNetwork) {
-        callback();
-    }
+    //getModal().close();
+    return true;
 }
