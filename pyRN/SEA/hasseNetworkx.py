@@ -140,7 +140,7 @@ def x_positioning(Graph, positions, shift_x=False):
         return shift_x_positions(positions)
     return positions
 
-def layout(Graph, layer_function=None):
+def layout(Graph, layer_function=None, shift_x=False):
     '''
     Returns a dictionary with positions for the nodes of the graph
     '''
@@ -150,4 +150,6 @@ def layout(Graph, layer_function=None):
     except:
         positions = y_positioning(Graph, positions, n = 0)
     positions = x_positioning(Graph, positions)
+    if shift_x:
+        positions = shift_x_positions(positions)
     return positions
