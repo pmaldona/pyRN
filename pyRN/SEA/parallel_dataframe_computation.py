@@ -159,12 +159,12 @@ def calculate_dataframes(RN, max_perturbation_size, folder_path):
     newdataframes.add_complexities(RN, abstractions_df)
     newdataframes.add_size_difference(transitions_df)
     # Store data
-    pkl(abstractions_df, f'{folder_path}\\abstractions_df_pert_size_{max_perturbation_size}.pickle')
-    pkl(transitions_df, f'{folder_path}\\transitions_df_pert_size_{max_perturbation_size}.pickle')
+    pkl(abstractions_df, folder_path+'/'+f'abstractions_df_pert_size_{max_perturbation_size}.pickle')
+    pkl(transitions_df, folder_path+'/'+f'transitions_df_pert_size_{max_perturbation_size}.pickle')
 
 def calculate_all_dataframes(file_path, max_perturbation_size):
     RN = depkl(file_path)
-    folder_path = file_path.replace(file_path[file_path.rfind('\\')+1:], '')
+    folder_path, filename = os.path.split(file_path)
     for max_perturbation_size in range(1, max_perturbation_size+1):
         print(f'{folder_path}: calculate dataframes with max_pert_size {max_perturbation_size}')
         calculate_dataframes(RN, max_perturbation_size, folder_path)

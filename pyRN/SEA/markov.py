@@ -68,7 +68,7 @@ def add_transition_probbilities_to_dataframe(df):
 
 def transition_matrix_from_dataframes(abstractions_df, transitions_df):
     '''
-    In:  df (pandas dataframe), with at least three columns: initial_state, a_2 and either count or probability
+    In:  df (pandas dataframe), with at least three columns: initial_state, convergent_state and either count or probability
     Out: Transition mastrix of Markov-model
     '''
     if ('probability' not in transitions_df.columns):
@@ -80,7 +80,7 @@ def transition_matrix_from_dataframes(abstractions_df, transitions_df):
         start = abstractions_df.loc[i,'abstraction']
         transitions_from_start = transitions_df.loc[transitions_df['initial_state']==start]
         for x in transitions_from_start.index.tolist():
-            end = transitions_from_start.loc[x, 'a_2']
+            end = transitions_from_start.loc[x, 'convergent_state']
             # print(end)
             j = abstractions_df.index[abstractions_df['abstraction']==end][0]
             p = transitions_df.loc[(transitions_df['initial_state']==start) & (transitions_df['convergent_state']==end), 'probability'].tolist()[0]
