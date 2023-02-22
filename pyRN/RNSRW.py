@@ -1123,7 +1123,7 @@ class RNSRW(CRNS):
         if pert_type=="generators":
             l=1
             for i in orgs:
-                    print("Simple Traansition for org",l,"of",len(orgs))
+                    print("Simple Transition for org",l,"of",len(orgs))
                     # itereting all posible perturbations
                     pert=self.getallPert(self.getGBtInSpBt(i),pert_type=pert_type,pert_size=pert_size,conn=conn)
 
@@ -1163,7 +1163,7 @@ class RNSRW(CRNS):
         elif pert_type=="species":
             l=1
             for i in orgs:
-                    print("Simple Traansition for org",l,"of",len(orgs))
+                    print("Simple Transition for org",l,"of",len(orgs))
                     # itereting all posible perturbations
                     pert=self.getallPert(i,pert_type=pert_type,pert_size=pert_size,conn=conn)
 
