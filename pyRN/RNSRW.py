@@ -7,7 +7,7 @@ Created on Thu Jul  7 10:48:31 2022
 
 Reaction Network Simulator and Random Walk Class
 """
-from .CRNS import CRNS
+from .CRNSMP import CRNSMP
 # from .CRNS_MP import CRNSMP
 import numpy as np
 import roadrunner as re
@@ -19,7 +19,7 @@ from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 from itertools import combinations
 
-class RNSRW(CRNS):
+class RNSRW(CRNSMP):
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
     # reaction network. It recives as input a vector of the initial concentration 
     # of species i_sp, the reactive constant vector rt and the concentration 

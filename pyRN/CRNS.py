@@ -1114,12 +1114,12 @@ class CRNS(RNIRG):
                 self.SynStepsInt+=1
                 c_syn[xp[i]]=1
             
-            if not c_syn in self.SynReacListGBt:
-                self.SynReacListGBt.append(c_syn)
-                op=bt(len(self.GInBListBt))
-                op.setall(0)
-                op[pi]=1
-                self.SynProdListGBt.append(op)
+            # if not c_syn in self.SynReacListGBt:
+            self.SynReacListGBt.append(c_syn)
+            op=bt(len(self.GInBListBt))
+            op.setall(0)
+            op[pi]=1
+            self.SynProdListGBt.append(op)
 
                 
             p[o]=0
@@ -1168,6 +1168,7 @@ class CRNS(RNIRG):
     # input set (sp). The output corresponds to two lists in which the first 
     # corresponds to the synergy formed and the second the respective close set 
     # with which the union-closure whit (sp) set generates synergy.
+    
     def getSynFromSp(self,sp_set):
         # Checks if input is or not bitarray, if it's no, it make the 
         # transformation

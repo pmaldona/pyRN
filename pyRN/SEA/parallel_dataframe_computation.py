@@ -119,6 +119,46 @@ def set_and_store(path,
     seconds  = int(duration-minutes*60)
     print(f'{path}: set_and_store completed {minutes} minutes and {seconds} seconds')
 
+def set_and_store_RW(path,
+                  max_pert_size = math.inf,
+                  conn=True,w=range(10),l=10000
+                  ):
+    '''
+    Initializes a pyRN object for a reaction network file saved at path,
+    sets it's generators, synergetic structure and SimpleTransSpDf
+
+        Parameters:
+            path (string), file path to a reaction network (.txt or .xml)
+            max_pert_size (int),
+            conn (boolean)
+            closure boolean,
+            include_empty_set=False
+
+        Returns:
+            pyRN-object
+    '''
+    start = time.time()
+    print(f'{path}: start set_and_store')
+    RN = pyRN_object_from_file(path)
+    f = io.StringIO()
+    with redirect_stdout(f):
+        RN.setSpConnMat()
+    print(f'{path}: connectivity matrix set')
+    with redirect_stdout(f):
+        RN.setGenerators()
+    print(f'{path}: generators set')
+    with redirect_stdout(f):
+        RN.setSynStr()
+    print(f'{path}: synergetic structure set')
+    pert_size = min(max_pert_size, len(RN.SpIdStrArray))
+    RN.setRwSimple(conn=conn,w=w,l=l,d=pert_size)
+    print(f'{path}: simpleRwDf set')
+    pkl(RN, path.replace(path[path.rfind('.')+1:], 'pickle'))
+    duration = (time.time()-start)
+    minutes  = int(duration/60)
+    seconds  = int(duration-minutes*60)
+    print(f'{path}: set_and_store completed {minutes} minutes and {seconds} seconds')
+
 def multithread_set_and_store(file_paths, max_pert_size, threads):
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         # Submit the function with each parameter to the executor
