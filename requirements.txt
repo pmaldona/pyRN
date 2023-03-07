@@ -9,3 +9,4 @@ lxml
 pyvis
 pypoman
 matplotlib
+joblib
