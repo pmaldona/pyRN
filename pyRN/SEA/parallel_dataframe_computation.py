@@ -3,6 +3,7 @@ from pyRN import pyRN
 from . import markov
 from . import newdataframes
 from . import sos
+from . import dataframes
 
 # built-in imports
 from contextlib import redirect_stdout
@@ -121,8 +122,9 @@ def set_and_store(path,
 
 def set_and_store_RW(path,
                   max_pert_size = math.inf,
-                  conn=True,w=range(10),l=10000
-                  ):
+                  w=range(10),l=1000,nmin=0,
+                  conn=False, fname="rand_walk.json",
+                  org_list=False,pert_type="species"):
     '''
     Initializes a pyRN object for a reaction network file saved at path,
     sets it's generators, synergetic structure and SimpleTransSpDf
@@ -151,7 +153,13 @@ def set_and_store_RW(path,
         RN.setSynStr()
     print(f'{path}: synergetic structure set')
     pert_size = min(max_pert_size, len(RN.SpIdStrArray))
-    RN.setRwSimple(conn=conn,w=w,l=l,d=pert_size)
+    if org_list:
+        org_list=None
+    elif not org_list:
+        org_list=RN.SynStrOrgListBtArray
+    RN.setRwSimple(conn=conn,w=w,l=l,d=pert_size,
+                   nmin=nmin,org_list=org_list,
+                   pert_type=pert_type)
     print(f'{path}: simpleRwDf set')
     pkl(RN, path.replace(path[path.rfind('.')+1:], 'pickle'))
     duration = (time.time()-start)
@@ -202,12 +210,55 @@ def calculate_dataframes(RN, max_perturbation_size, folder_path):
     pkl(abstractions_df, folder_path+'/'+f'abstractions_df_pert_size_{max_perturbation_size}.pickle')
     pkl(transitions_df, folder_path+'/'+f'transitions_df_pert_size_{max_perturbation_size}.pickle')
 
+def calculate_dataframes_RW(RN, max_perturbation_size,folder_path,walk_type='simple',walk_indexes=None,abstraction_type='c'):
+    
+    TransDf=newdataframes.TransDfFromRw(RN.RwDict)
+    
+    # Initialize dataframes
+    abstractions_df = newdataframes.initialize_abstractions_df(TransDf)
+    transitions_df  = newdataframes.initialize_transitions_df(abstractions_df)
+    
+    # if walk_indexes is None:
+    #     walk_indexes=RN.RwDict[walk_type].keys()
+        
+    # abst=[]
+    # for i in walk_indexes:
+    #     abst.append(RN.RwDict[walk_type][i][abstraction_type].transpose().astype(int).values.tolist())
+
+    # # Initialize dataframes
+    # transitions_df  = dataframes.initialize_transitions_df(abst)
+    # abstractions_df = dataframes.initialize_abstractions_df(abst)
+    # Calculate transition probabilities
+    allowed = lambda p: sos.n_elements(list(p)) <= max_perturbation_size
+    TransDf = TransDf[TransDf['perturbation'].apply(allowed)]
+    newdataframes.add_probabilities_to_transitions_df_2_1(TransDf, transitions_df)
+    newdataframes.fix_transition_probabilities_for_all_initial_states(transitions_df)
+    # Calculate markov properties
+    abstractions_df = markov.add_markov_properties_to_dataframe(abstractions_df, transitions_df)
+    # Add additional information
+    newdataframes.add_number_of_species(abstractions_df)
+    newdataframes.add_complexities(RN, abstractions_df)
+    newdataframes.add_size_difference(transitions_df)
+    # Store data
+    pkl(abstractions_df, folder_path+'/'+f'abstractions_df_pert_size_{max_perturbation_size}.pickle')
+    pkl(transitions_df, folder_path+'/'+f'transitions_df_pert_size_{max_perturbation_size}.pickle')
+
 def calculate_all_dataframes(file_path, max_perturbation_size):
     RN = depkl(file_path)
     folder_path, filename = os.path.split(file_path)
     for max_perturbation_size in range(1, max_perturbation_size+1):
         print(f'{folder_path}: calculate dataframes with max_pert_size {max_perturbation_size}')
         calculate_dataframes(RN, max_perturbation_size, folder_path)
+
+def calculate_all_dataframes_RW(file_path, max_perturbation_size,walk_type='simple',walk_indexes=None,abstraction_type='c'):
+    RN = depkl(file_path)
+    folder_path, filename = os.path.split(file_path)
+    for max_perturbation_size in range(1, max_perturbation_size+1):
+        print(f'{folder_path}: calculate dataframes with max_pert_size {max_perturbation_size}')
+        calculate_dataframes_RW(RN, max_perturbation_size, folder_path,
+                                walk_type=walk_type,
+                                walk_indexes=walk_indexes,
+                                abstraction_type=abstraction_type)
 
 def multithread_calculate_all_dataframes(file_paths, max_perturbation_size,threads):
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:

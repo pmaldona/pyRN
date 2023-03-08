@@ -229,7 +229,7 @@ def dataframesFromLists(abstraction_list,complexity_list):
     transitions_df = transitions_df_add_set_changes(transitions_df)
     transitions_df_add_complexity_changes(transitions_df, abstractions_df)
 
-    abstractions_df = add_markov_properties_to_abstractions_df(abstractions_df, transitions_df)
+    abstractions_df = add_markov_properties_to_dataframe(abstractions_df, transitions_df)
 
     return abstractions_df, transitions_df
 

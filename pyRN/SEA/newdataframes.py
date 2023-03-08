@@ -51,7 +51,8 @@ import pandas
 from   bitarray      import bitarray
 from   bitarray      import frozenbitarray
 from   scipy.special import binom
-
+import pandas as pd
+from bitarray import frozenbitarray as fbt
 ###############################################################################################################################################################################
 ###############################################################################################################################################################################
 ###############################################################################################################################################################################
@@ -59,6 +60,27 @@ from   scipy.special import binom
 Dataframe initialization
 '''
 ###############################################################################################################################################################################
+def TransDfFromRw(RwDict,Rw_type="simple",init_label='i',pert_label='pr',pert_state_label='p',conver_label='c',w=None):
+    
+    if w is None:
+        w=RwDict[Rw_type].keys()
+        
+    TransDf=pd.DataFrame(pd.DataFrame(columns=["initial state",'perturbation',"final perturbed state","convergent state"]))
+        
+    for i in w:
+        init_states=list(map(lambda x: fbt(RwDict[Rw_type][i][init_label][x].tolist()),
+                             RwDict[Rw_type][i][init_label].columns))
+        pertrurbations=list(map(lambda x: fbt(RwDict[Rw_type][i][pert_label][x].tolist()),
+                             RwDict[Rw_type][i][pert_label].columns))
+        pert_states=list(map(lambda x: fbt(RwDict[Rw_type][i][pert_state_label][x].tolist()),
+                             RwDict[Rw_type][i][pert_state_label].columns))
+        conv_states=list(map(lambda x: fbt(RwDict[Rw_type][i][conver_label][x].tolist()),
+                             RwDict[Rw_type][i][conver_label].columns))
+        tmp_df=pd.DataFrame(list(map(list, zip(*[init_states,pertrurbations,pert_states,conv_states]))),
+                            columns=["initial state",'perturbation',"final perturbed state","convergent state"])
+        TransDf=pd.concat([TransDf,tmp_df],axis=0,ignore_index=True)
+        
+    return TransDf
 
 def initialize_abstractions_df(SimpleTransSpDf):
     '''

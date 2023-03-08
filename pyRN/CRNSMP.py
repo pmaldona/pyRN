@@ -452,7 +452,7 @@ class CRNSMP(CRNS):
             self.SynProdListGBt+=i[1]
     
 
-    def genSynClos(self,Gset):
+    def genSynClos(self,i):
         '''
         
 
@@ -467,7 +467,7 @@ class CRNSMP(CRNS):
             Closure of proto-synergy as bitarray of generators.
 
         '''
-        c=self.getGBtInSpBt(self.getClosureFromSp(self.getSpBtInGBt(Gset),bt_type=True))
+        c=self.getGBtInSpBt(self.getClosureFromSp(self.getSpBtInGBt(self.SynProdListGBt[i]|self.SynReacListGBt[i]),bt_type=True))
         return c
         
     def setSynEcMp(self,threads=-1,verbose=False):
@@ -491,12 +491,12 @@ class CRNSMP(CRNS):
             
         # creating all closed set of closure of reactant synegric part 
         parallel = Parallel( n_jobs = threads , require='sharedmem',verbose=ver)
-        syn_c_reac=parallel( delayed( self.genSynClos) ( i ) for i in self.SynReacListGBt)
+        syn_c_reac=parallel( delayed( self.genSynClos) ( i ) for i in range(len(self.SynReacListGBt)))
         
         # class equivalence Minimal synergistic clousrues dictonary
         self.MinSynCLDict={}
         
-        # Creating the dictonary for of teh different reactive parts
+        # Creating the dictonary for the proto-synergies reactive parts
         for i in range(len(self.SynReacListGBt)):
             if verbose:
                 print(i+1," proto-synergies of ",len(self.SynReacListGBt))
@@ -551,9 +551,10 @@ class CRNSMP(CRNS):
         '''
         
         MinSynCL = list(map(lambda x: x[0], filter(lambda x: any(list(map(lambda y: y==(GSet & y), x[1]))) and (x[0] != GSet & x[0]), self.MinSynCLDict.items())))
-        # MinSynCL = map(lambda((filter(lambda x: any(list(map(lambda y: y==(GSet & y), x[1]))), self.MinSynCLDict.items()))
+        
         if len(MinSynCL) > 0:
-            return MinSynCL[0]
+           MinSynCL = list(filter(lambda x: x.count() == max(list(map(count),MinSynCL))))         
+           return MinSynCL[0]
         else:
             return GSet
         

@@ -599,7 +599,9 @@ class RNSRW(CRNSMP):
         
         if mask is None:
             mask=np.repeat(True,len(v_out))
-        
+        else:
+            mask=np.array(mask.tolist())
+            mask=mask.astype(bool)
         if n is None:
             n = np.sum(mask)
         if p is None:
@@ -684,20 +686,24 @@ class RNSRW(CRNSMP):
     # mask only connected generators.
     def getGPert(self,g,d=1,nmin=3,conn=True):
         
+
         # Choosing only connceted generators
         if conn:
             mask_i=g.copy()
-            for j in [i for i in self.GInBListBt if i.count()==1]:
-                mask_i|=j
+            all_sp=bt(self.MpDf.shape[0])
+            all_sp.setall(1)
+            inflow=self.getGBtInSpBt(self.getBtFromIndArray(self.getInflowFromSp(all_sp),self.MpDf.shape[0]))
+            
+            mask_i|=inflow
             
             mask=mask_i|self.getGBtConnectedToBBt(mask_i)
             while mask!=mask_i:
                 mask_i=mask.copy()
                 mask=mask_i|self.getGBtConnectedToBBt(mask_i)
                 
-            mask=np.array(mask.tolist()).astype(bool)
         else:
-            mask=None
+            mask=g.copy()
+            mask.setall(1)
         
         # Generating the perturbation using existing functions
         v=np.array(g.tolist())
@@ -706,9 +712,9 @@ class RNSRW(CRNSMP):
             np.max([0,np.sum(v>0)-d]),
             np.min([np.sum(v>0)+d,len(v)]),
             1, dtype=int))
-        print("n_size:",n_size)
+        # print("n_size:",n_size)
         n = np.max([n_size,nmin])
-        v_out = self.getPertActivation(v,mask=mask,n=n,p=0)
+        v_out = self.getPertActivation(v,mask=mask,n=n)
         v_out[v_out>0]=1
         v_out[v_out==0]=0
         
@@ -716,6 +722,37 @@ class RNSRW(CRNSMP):
         return bt("".join(v_out.astype(str)))
     
     
+    def getSpPert(self,g,d=1,nmin=3,conn=True):
+        
+        if conn:
+            mask_i=g.copy()
+            all_sp=bt(self.MpDf.shape[0])
+            all_sp.setall(1)
+            inflow=self.getInflowFromSp(all_sp)
+            for i in inflow:
+                mask_i[i]=1
+            mask=self.getConnSp(mask_i,bitout=True)
+            mask|=mask_i
+        else:
+            mask=g.copy()
+            mask.setall(1)
+        
+        
+        n_size=np.random.choice(np.arange(0,d),1)
+        # filtered_mask=np.random.choice(self.getIndArrayFromBt(g),np.max([0,nmin]),replace=False)
+        # mask=list(set(self.getIndArrayFromBt(mask))-set(filtered_mask))
+        mask=self.getIndArrayFromBt(mask)
+        if len(mask)>0:
+            n_size=np.random.choice(np.arange(nmin,np.min([len(mask),d])+1),1)
+            if n_size>0:
+                pert=np.random.choice(mask,n_size,replace=False)
+                pert=self.getBtFromIndArray(pert, self.MpDf.shape[0])
+                return pert^g
+            else:
+                return g
+        else:
+            return g
+        
     # working script to generate a random reaction network and perturbation/simulation random walks
     # if e is provided new random walks or steps are added to e
     # if rn is provided that reaction network is used instead of generating a random one
@@ -884,7 +921,7 @@ class RNSRW(CRNSMP):
         return
     
 
-    def setRwSimple(self, init_gen=None, w=range(10),l=10,d=3,nmin=1,conn=True, fname="rand_walk.json"):
+    def setRwSimple(self, init_gen=None, w=range(10),l=10,d=3,nmin=1,conn=True, fname="rand_walk.json",org_list=None,pert_type="species"):
         '''
         
 
@@ -926,6 +963,8 @@ class RNSRW(CRNSMP):
         if w[0] > len(self.RwDict['simple']):
             RuntimeError("w out of range")
         
+        if not org_list is None:
+            w=range(len(org_list))
         for j in w:
             X=self.GInBListBt[0].copy()
             X.setall(0)
@@ -933,9 +972,29 @@ class RNSRW(CRNSMP):
             if not (init_gen is None):
                 for i in init_gen:
                     X[i]=1
-            X=self.getGPert(X,d=d,nmin=nmin,conn=conn)
+            if not org_list is None:
+                X=org_list[j]
+            
+            Perturbation=[]
+            PerturbationComplex=[]
+            InitStates=[]
+            InitStatesComplex=[]
+            InitStates.append(X)
+            InitStatesComplex.append(self.getComplexityFloat(np.array(self.getTriggerableRpBtFromSp(X).tolist())))
+            Is=X.copy()
+            if pert_type=="species":
+                X=self.getSpPert(X,d=d,nmin=nmin,conn=conn)
+                Perturbation.append((X^Is).tolist())
+                PerturbationComplex.append(self.getComplexityFloat(np.array(self.getTriggerableRpBtFromSp(X^Is).tolist())))
+                X=self.getClosureFromSp(X,bt_type=True)
+            elif pert_type=="generators":
+                X=self.getGBtInSpBt(X)
+                X=self.getGPert(X,d=d,nmin=nmin,conn=conn)
+                Perturbation.append(self.getSpBtInGBt(X^Is).tolist())
+                PerturbationComplex.append(self.getComplexityFloat(np.array(self.getTriggerableRpBtFromSp(self.getSpBtInGBt(X^Is)).tolist())))
+                X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
             # print("perturbation:",self.getSpBtInGBt(X))
-            X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
+            
             # print("closure of perturbation:",X)
             PerturbStates=[]
             PerturbStatesComplex=[]
@@ -968,28 +1027,57 @@ class RNSRW(CRNSMP):
                         ConvStatesComplex.append(self.getComplexityFloat(np.array(self.getTriggerableRpBtFromSp(Orgs_below[ind]).tolist())))
                 
                 X=bt("".join(list(map(str,ConvStates[-1]))))
-                X=self.getGBtInSpBt(X)
-                # print("before perturbation:",X)
-                X=self.getGPert(X,d=d,nmin=nmin)
-                # print("perturbation:",X)
-                X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
-                # print("closure of perturbation:",X)
+                InitStates.append(X)
+                InitStatesComplex.append(self.getComplexityFloat(np.array(self.getTriggerableRpBtFromSp(X).tolist())))
                 
+                Is=X.copy()
+                # print("before perturbation:",X)
+                if pert_type=="species":
+                    X=self.getSpPert(X,d=d,nmin=nmin,conn=conn)
+                    Perturbation.append((X^Is).tolist())
+                    PerturbationComplex.append(self.getComplexityFloat(np.array(self.getTriggerableRpBtFromSp(X^Is).tolist())))
+                    X=self.getClosureFromSp(X,bt_type=True)
+                elif pert_type=="generators":
+                    X=self.getGBtInSpBt(X)
+                    X=self.getGPert(X,d=d,nmin=nmin,conn=conn)
+                    Perturbation.append(self.getSpBtInGBt(X^Is).tolist())
+                    PerturbationComplex.append(self.getComplexityFloat(np.array(self.getTriggerableRpBtFromSp(self.getSpBtInGBt(X^Is)).tolist())))
+                    X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
+
+            
+                # X=self.getGPert(X,d=d,nmin=nmin)
+                # # print("perturbation:",X)
+                # X=self.getClosureFromSp(self.getSpBtInGBt(X),bt_type=True)
+                # # print("closure of perturbation:",X)
+            Perturbation.pop()
+            PerturbationComplex.pop()
+            InitStates.pop()
+            InitStatesComplex.pop()
             PerturbStates=pd.DataFrame(PerturbStates,columns=self.SpIdStrArray).T
+            Perturbation=pd.DataFrame(Perturbation,columns=self.SpIdStrArray).T
+            InitStates=pd.DataFrame(InitStates,columns=self.SpIdStrArray).T
             ConvStates=pd.DataFrame(ConvStates,columns=self.SpIdStrArray).T
             PerturbStates=PerturbStates.astype(bool)
+            Perturbation=Perturbation.astype(bool)
+            InitStates=InitStates.astype(bool)
             ConvStates=ConvStates.astype(bool)
             self.RwDict['simple'][j]={}
             self.RwDict['simple'][j]['p']=PerturbStates
             self.RwDict['simple'][j]['c']=ConvStates
+            self.RwDict['simple'][j]['pr']=Perturbation
+            self.RwDict['simple'][j]['i']=InitStates
             self.RwDict['simple'][j]['cp']=PerturbStatesComplex
             self.RwDict['simple'][j]['cc']=ConvStatesComplex
+            self.RwDict['simple'][j]['prc']=PerturbationComplex
+            self.RwDict['simple'][j]['Ic']=InitStatesComplex
             
             out=copy.deepcopy(self.RwDict['simple'])
             for i in out:
                 
                 out[i]['c']=out[i]['c'].to_json()
                 out[i]['p']=out[i]['p'].to_json()
+                out[i]['i']=out[i]['i'].to_json()
+                out[i]['pr']=out[i]['pr'].to_json()
                 
             with open(fname, "w") as outfile:
                 json.dump(out, outfile)
