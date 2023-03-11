@@ -1,3 +1,5 @@
+import numpy
+
 def exists_path(Graph, u, v, start=True):
     '''
     If there exits a path from u to v in G with length > 0: Return True
