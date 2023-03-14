@@ -558,17 +558,17 @@ class CRNSMP(CRNS):
         else:
             return GSet
         
-    def synStrPerNode(self,j):
-        G=nx.MultiGraph()
+    def synStrPerNode(self,j,G):
         # Generating closures whit connected basics sets for each set in level i
         for k in self.getIndArrayFromBt(self.getGBtNotInBBt(bt(j))): 
             # Closure result
-            add_gen=bt(j)
-            add_gen.setall(0)
-            add_gen[k]=1
-            cr_a=fbt(self.getClosFromG(add_gen|j))
-            cr_sp=self.getSpBtInGBt(cr_a)
-            
+            # add_gen=bt(j)
+            # add_gen.setall(0)
+            # add_gen[k]=1
+            # cr_a=fbt(self.getClosFromG(add_gen|j))
+            # cr_sp=self.getSpBtInGBt(cr_a)
+            cr_sp=self.getClosureFromSp(self.getSpBtInGBt(bt(j) | self.GInBListBt[k]),bt_type=True)
+            cr_a=fbt(self.getGBtInSpBt(cr_sp))
             # node is added if is not in structrue
             if not (cr_a in G):
                 is_ssm=self.isSsmFromSp(cr_sp)
@@ -628,9 +628,10 @@ class CRNSMP(CRNS):
             
             # Generating closures whit connected basics sets for each set in level i
             parallel = Parallel( n_jobs = threads , require='sharedmem',verbose=ver)
-            G_list=parallel( delayed( self.synStrPerNode) ( i ) for i in nodes)
-            for i in G_list:
-                G = nx.compose(G, i)
+            parallel( delayed( self.synStrPerNode) ( i, G ) for i in nodes)
+            # G_list=parallel( delayed( self.synStrPerNode) ( i, G ) for i in nodes)
+            # for i in G_list:
+            #     G = nx.compose(G, i)
             
             if not partial_save is None:
                 self.saveToPkl(partial_save)

@@ -113,7 +113,7 @@ def set_and_store(path,
                           pert_size=pert_size,
                           conn=conn,closure=closure,
                           include_empty_set=include_empty_set)
-    print(f'{path}: SimpleTransSpDf set')
+    print(f'{path}: RwDcit set')
     pkl(RN, path.replace(path[path.rfind('.')+1:], 'pickle'))
     duration = (time.time()-start)
     minutes  = int(duration/60)
