@@ -23,7 +23,7 @@ class RNDS(RNIRG):
     # Verifies which species of a reaction network (not necessarily an organization) 
     # are overproducible. Inputs are species sp_set and process vector pr, 
     # returns a list of overproducible species
-    def getOpSpBt(self,sp_set,pr):     
+    def getOpSpBt(self,sp_set,pr=None):     
         # Checks if input is bitarray, if it is not, it make the 
         # transformation
         if not (isinstance(sp_set,bt)):
@@ -37,7 +37,12 @@ class RNDS(RNIRG):
         else:
             sp=sp_set
         
-        if not (isinstance(pr,bt)):
+        
+        if pr is None:
+            v=bt(self.MpDf.shape[0])
+            v.setall(1)    
+            
+        elif not (isinstance(pr,bt)):
             v=bt(self.MpDf.shape[0])
             v.setall(0)
             
@@ -45,6 +50,7 @@ class RNDS(RNIRG):
                 v[i]=1
         else:
             v=pr
+            
         # If it's only one species and self mantained, the reuturns the specie
         # itself
         if sp.count()==1 and self.isSmFromSp(sp):
@@ -57,7 +63,12 @@ class RNDS(RNIRG):
         for j in self.getIndArrayFromBt(v):
             if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
                 rc.append(j) # selecting reactions that can be trigger with available species
-       
+        
+        if len(rc)==0:
+            sp.setall(0)
+            return sp
+        
+        
         # stoichiometric matrix of rn with prepended destruction reactions
         S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
         S=S.to_numpy()
@@ -115,7 +126,7 @@ class RNDS(RNIRG):
     # Verifies which species of a reaction network (not necessarily an organization) 
     # are overproducible. Inputs are species sp_set and process vector pr, 
     # returns a list of overproducible species
-    def getSpNeededToOrg(self,sp_set,pr,destruct=False):     
+    def getSpNeededToOrg(self,sp_set,pr=None,destruct=False):     
         # Checks if input is bitarray, if it is not, it make the 
         # transformation
         if not (isinstance(sp_set,bt)):
@@ -129,7 +140,11 @@ class RNDS(RNIRG):
         else:
             sp=sp_set
         
-        if not (isinstance(pr,bt)):
+        if pr is None:
+            v=bt(self.MpDf.shape[0])
+            v.setall(1)    
+            
+        elif not (isinstance(pr,bt)):
             v=bt(self.MpDf.shape[0])
             v.setall(0)
             
@@ -137,6 +152,7 @@ class RNDS(RNIRG):
                 v[i]=1
         else:
             v=pr
+            
         # If it's only one species and self mantained, the reuturns the specie
         # itself
         if sp.count()==1 and self.isSmFromSp(sp):
@@ -196,7 +212,7 @@ class RNDS(RNIRG):
     # Generates a base of overproduced species of a reaction network 
     # (not necessarily an organization). Inputs are species sp_set and 
     # process vector pr, returns a list of minium overproducible species sets.    
-    def getOpBaseBtList(self,sp_set,pr):     
+    def getOpBaseBtList(self,sp_set,pr=None):     
         # Checks if input is bitarray, if it is not, it make the 
         # transformation
         if not (isinstance(sp_set,bt)):
@@ -210,7 +226,11 @@ class RNDS(RNIRG):
         else:
             sp=sp_set
         
-        if not (isinstance(pr,bt)):
+        if pr is None:
+            v=bt(self.MpDf.shape[0])
+            v.setall(1)    
+            
+        elif not (isinstance(pr,bt)):
             v=bt(self.MpDf.shape[0])
             v.setall(0)
             
@@ -218,6 +238,7 @@ class RNDS(RNIRG):
                 v[i]=1
         else:
             v=pr
+            
             
         # If it's only one species and self mantained, the reuturns the specie
         # itself
@@ -312,7 +333,7 @@ class RNDS(RNIRG):
     # overproducible species, if it is -2 to a catalytic species and if it 
     # is 0 the species is not present. The integer values indicate belonging 
     # to the current fragile cycle.
-    def getDcomArray(self,opsp_set,sp_set,pr):
+    def getDcomArray(self,opsp_set,sp_set,pr=None):
         
         # Checks if input is bitarray, if it is not, it make the 
         # transformation
@@ -338,7 +359,11 @@ class RNDS(RNIRG):
         else:
             opsp=opsp_set
       
-        if not (isinstance(pr,bt)):
+        if pr is None:
+            v=bt(self.MpDf.shape[0])
+            v.setall(1)    
+            
+        elif not (isinstance(pr,bt)):
             v=bt(self.MpDf.shape[0])
             v.setall(0)
             
