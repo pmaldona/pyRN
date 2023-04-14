@@ -96,15 +96,15 @@ def initialize_transitions_df(rndws):
     counts         = []
     for rndw in rndws:
         for i in range(len(rndw)-1):
-            a_1 = str(rndw[i])
-            a_2 = str(rndw[i+1])
-            if (a_1,a_2) not in transitions:
-                transitions.append((a_1,a_2))
+            initial_state    = str(rndw[i])
+            convergent_state = str(rndw[i+1])
+            if (initial_state,) not in transitions:
+                transitions.append((initial_state,convergent_state))
                 counts.append(1)
             else:
-                counts[transitions.index((a_1,a_2))] +=1
+                counts[transitions.index((initial_state,convergent_state))] +=1
     
-    transitions_df = pandas.DataFrame({'a_1': [t[0] for t in transitions], 'a_2': [t[1] for t in transitions], 'counts': counts})
+    transitions_df = pandas.DataFrame({'initial_state': [t[0] for t in transitions], 'convergent_state': [t[1] for t in transitions], 'counts': counts})
     return transitions_df
 
 def transitions_df_add_set_changes(transitions_df):
@@ -116,8 +116,8 @@ def transitions_df_add_set_changes(transitions_df):
     nrows = transitions_df.shape[0]
     transitions_df.assign(change_local=[0 for i in range(nrows)], change_global=[0 for i in range(nrows)])
     for i in range(nrows):
-        a1 = sos.from_string(transitions_df.loc[i, 'a_1']) # Abstraction before transition
-        a2 = sos.from_string(transitions_df.loc[i, 'a_2']) # Abstraction after transition
+        a1 = sos.from_string(transitions_df.loc[i, 'initial_state']) # Abstraction before transition
+        a2 = sos.from_string(transitions_df.loc[i, 'convergent_state']) # Abstraction after transition
         transitions_df.loc[i, 'change_local']  = sos.change_local(a1,a2)
         transitions_df.loc[i, 'change_global'] = sos.normalized_hamming_distance(a1,a2)
 
@@ -132,8 +132,8 @@ def transitions_df_add_complexity_changes(transitions_df, abstractions_df):
     nrows = transitions_df.shape[0]
     transitions_df.assign(change_complexity=[0 for i in range(nrows)])
     for i in range(nrows):
-        a1 = transitions_df.loc[i, 'a_1'] # Abstraction before transition
-        a2 = transitions_df.loc[i, 'a_2'] # Abstraction after transition
+        a1 = transitions_df.loc[i, 'initial_state']    # Abstraction before transition
+        a2 = transitions_df.loc[i, 'convergent_state'] # Abstraction after transition
         c1 = abstractions_df.loc[abstractions_df['abstraction'] == a1, 'complexity']
         c2 = abstractions_df.loc[abstractions_df['abstraction'] == a2, 'complexity']
         transitions_df.loc[i, 'change_complexity']  = c1.values[0]-c2.values[0]
@@ -150,10 +150,10 @@ def transitions_df_add_abstraction_indexes(transitions_df, abstractions_df):
     a1 = []
     a2 = []
     for i in range(transitions_df.shape[0]):
-        a1.append(list(abstractions_df.index[abstractions_df['abstraction']==transitions_df.loc[i, 'a_1']])[0])
-        a2.append(list(abstractions_df.index[abstractions_df['abstraction']==transitions_df.loc[i, 'a_2']])[0])
-    transitions_df.insert(0, 'a1', a2)
-    transitions_df.insert(0, 'a2', a1)
+        a1.append(list(abstractions_df.index[abstractions_df['abstraction']==transitions_df.loc[i, 'initial_state']])[0])
+        a2.append(list(abstractions_df.index[abstractions_df['abstraction']==transitions_df.loc[i, 'convergent_state']])[0])
+    transitions_df.insert(0, 'initial_state', a2)
+    transitions_df.insert(0, 'convergent_state', a1)
 
     return transitions_df
 
@@ -164,13 +164,13 @@ def transitions_df_add_transitions_probabilities(df):
     Adds a column to the transitions_df with the transition probabilities in the Markov-model
     '''
     df.assign(probability=[0 for i in range(df.shape[0])])
-    starts = df['a_1'].unique()
+    starts = df['initial_state'].unique()
     for start in starts:
         transitions_from_start = df.loc[df['a_1']==start]
         n = transitions_from_start['counts'].sum()
         ends = transitions_from_start['a_2']
         for end in ends:
-            df.loc[(df['a_1']==start) & (df['a_2']==end),'probability'] = df.loc[(df['a_1']==start) & (df['a_2']==end),'counts']/n
+            df.loc[(df['initial_state']==start) & (df['convergent_state']==end),'probability'] = df.loc[(df['initial_state']==start) & (df['convergent_state']==end),'counts']/n
     return df
 
 def dataframes(path, abstraction_type):
