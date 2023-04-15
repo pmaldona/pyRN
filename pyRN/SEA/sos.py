@@ -114,7 +114,7 @@ def intersection(a1,a2):
     return [(lambda x,y: 1 if (x==1 and y==1) else 0)(a1[i],a2[i]) for i in range(len(a1))]
 
 def difference(a1,a2):
-    return [(lambda x,y: 1 if (x==1 and y==0) else 0)(a1[i],a2[i]) for i in range(len(a1))]
+    return [(lambda x,y: 1 if (x==1 and y==0) or (x==0 and y==1) else 0)(a1[i],a2[i]) for i in range(len(a1))]
 
 def is_subset_of(a1,a2):
     if n_elements(difference(a1,a2))==0:
