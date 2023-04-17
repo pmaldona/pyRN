@@ -18,3 +18,4 @@ Fixed Error on Simulations Tab
 Fix Linux Version
 Bumped Linux Up - Bumped Pillow down
 Auto Yes for uninstall
+Made Fixes for different problems

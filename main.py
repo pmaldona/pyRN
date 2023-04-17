@@ -1,5 +1,8 @@
 from typing import Union, Any
+import base64
+from io import BytesIO
 import eel
+import matplotlib.pyplot as plt
 from src.Simulation.Simulation import plot_abstractions_callable, plot_df, plot_hist_simple_rw, plot_markov_callable, plot_random_walk_callable, plot_stoich, plot_trajectory_callable
 from src.Network.Network import get_network_from_set
 from src.store.Store import State
@@ -234,6 +237,32 @@ def get_parameters():
         return False
     else:
         return state.get_parameters()
+
+@eel.expose
+def get_basics_from_set(ids):
+    if state.reaction_network == None:
+        return False
+    else:
+        print(state.reaction_network.SpIdStrArray)
+        print(ids)
+        print(state.reaction_network.getSpPresenceInBGArray(ids))
+        
+        histo=state.reaction_network.getSpPresenceInBGArray(ids)
+        
+        names=histo[0].columns.to_list()
+        values=histo[0].iloc[0].tolist()
+
+        fig, ax = plt.subplots(1, 1, figsize = (10, 5))
+        ax.bar(names, values, color ='maroon', width = 0.4)
+         
+        ax.set_xlabel("Species")
+        ax.set_ylabel("Number of basics sets")
+        ax.set_title("Number of basic sets that contain each species")
+        tmpfile = BytesIO()
+        fig.savefig(tmpfile, format='png')
+        encoded = base64.b64encode(tmpfile.getvalue()).decode('utf-8')
+
+        return encoded
 
 print("[eel]: Start");
 

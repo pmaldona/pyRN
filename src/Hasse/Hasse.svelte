@@ -4,6 +4,8 @@
     import Modal,{getModal} from '../components/Modal.svelte'
     import { GraphType, setVisObject } from '../misc/drawNetwork';
     import exportSvg from '../misc/svg';
+    import getSpeciesReactions from './getSpeciesReactions';
+    import { createActivation } from './changed';
 
     export let is_loaded;
     
@@ -16,6 +18,8 @@
 	];
 
 	let selected = graphs[0];
+
+    let orgs = []; 
 
     let statistics = {
         species_count: 0,
@@ -39,6 +43,8 @@
     
     let network = {};
 
+    const changed = createActivation(false);
+
     drawLattice();
 
     function genOrgStr() {
@@ -50,6 +56,7 @@
             if(result == null) {
                 return;
             }
+            console.log(result);
             for(let i = 0; i < result.edges.length; i++) {
                 let edge = result.edges[i];
                 //console.log(edge);
@@ -60,7 +67,28 @@
             }
             console.log(result.nodes);
             network = setVisObject(GraphType.Hasse, result.nodes, result.edges, result.options, false, {"improvedLayout": false});
+            
 
+            // To Do: Resolve Promise
+            console.log(network.body.nodes);
+            let nodes = network.body.nodes;
+            let keys = Object.keys(nodes);
+            for(let i = 0; i < keys.length; i++) {
+                let res = {name: "", species: [], reactions: []};
+                getSpeciesReactions(nodes[keys[i]].options).then(result => {
+                    res.name = nodes[keys[i]].options.label;
+                    res.species = result.species;
+                    res.reactions = result.reactions;
+                    orgs.push(res);
+                    if(i == keys.length-1) {
+                        console.log("Activated");
+                        changed.activate();
+                    }
+                });
+            }
+
+            
+            
             network.on('click', async function(properties) {
                 var ids = properties.nodes;
                 console.log(network);
@@ -99,7 +127,7 @@
         });
     }
 
-    function drawLattice() {
+    async function drawLattice() {
         if(selected.id == 2) {
             genSynStr();
         } else {
@@ -149,7 +177,7 @@
     <div style="display: flex;">
         <div id="hasse"></div>
         <div style="margin: 15px; height: 650px">
-            <select bind:value={selected} on:change="{() => drawLattice()}" style="display:block">
+            <select bind:value={selected} on:change="{async () => await drawLattice()}" style="display:block">
                 {#each graphs as graph}
                     <option value={graph}>
                         {graph.text}
@@ -172,6 +200,30 @@
             <br>
             <!-- svelte-ignore a11y-missing-attribute -->
             <a class="waves-effect waves-light btn" style="margin-top: 20px;" on:click={() => exportSvg()}>Export to SVG</a>
+            <div  style="height:400px; overflow:auto;">
+                {#if selected.id == 1}
+                    {#if $changed}
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>id</th>
+                                <th># Species</th>
+                                <th># Reactions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                {#each orgs as org}
+                                    <tr>
+                                        <td>{org.name}</td>
+                                        <td>{org.species.length}</td>
+                                        <td>{org.reactions.length}</td>
+                                    </tr>
+                                {/each}
+                            </tbody>
+                        </table>
+                    {/if}
+                {/if}
+            </div>
         </div>
     </div>
     <!-- <div style="position: absolute; bottom: 51px; right: 5px;">

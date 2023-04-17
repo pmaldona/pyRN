@@ -125,6 +125,7 @@ class State:
                 self.reaction_network.setGenerators()
                 self.reaction_network.setSynStr()
                 self.organizations = self.reaction_network.SynStrOrgListBtArray
+                print(self.organizations)
                 net=self.reaction_network.getHasseNxFromBtList(self.reaction_network.SynStrOrgListBtArray,setlabel="L")
                 rn: pyRN = self.reaction_network
                 net = nx.relabel_nodes(net, lambda x: str(rn.getIndArrayFromBt(bt(x))))

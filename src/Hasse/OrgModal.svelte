@@ -1,6 +1,10 @@
 <script>
     import { GraphType } from '../misc/drawNetwork';
     import { genRNStr } from '../Network/Network';
+    import Modal,{getModal} from '../components/Modal.svelte'
+    import ImageModal from '../components/ImageModal.svelte';
+
+    let modal;
 
     let network = {};
     let organization = {};
@@ -9,17 +13,22 @@
     let inflowReactions = [];
     let outflowReactions = [];
     let catalystSpecies = [];
+    let image_source;
 
     export async function init(org) {
         organization = org;
         console.log(organization);
-        species_ids = organization.title.substring(1,organization.title.length-1).replaceAll("'", "").split(" ");
+        console.log(organization.title);
+        //"['cows' 'dung' 'farmer' 'fertilizer' 'grass' 'infrastructure' 'milk'
+ //'money' 'water' 'worms']"
+        species_ids = organization.title.substring(1,organization.title.length-1).replaceAll("'", "").replaceAll("\n","").replaceAll("\r","").split(" ");
         network = await genRNStr(GraphType.OrgNetwork);
         console.log(network);
         let nodes = Object.values(network.body.nodes);
         let reaction_str = await eel.get_reactions()();
         let reactions = [];
-        let not_included_reactions = [];
+        let included_reactions = [];
+        console.log(species_ids);
         nodes.forEach(node => {
             if(!species_ids.includes(node.id)){
                 let included = true
@@ -55,7 +64,6 @@
                     node.labelModule.lineCount = 0;
                     node.labelModule.lines = [];
                     if(node.options.shape=="square") {
-                        not_included_reactions.push(node);
                         
                         node.edges.forEach(edge => {
                             edge.options.color = {color: '#E8E8E8', highlight: '#E8E8E8', hover: '#E8E8E8', inherit: false, opacity: 1.0};;
@@ -75,7 +83,7 @@
                                     reac = str.substring(node.id.length+2);
                                 }
                             });
-                            
+                            included_reactions.push(node);
                             reactions.push({id: node.id, str: reac});
                         }
                     }
@@ -84,7 +92,9 @@
         });
         reaction_ids = reactions;
         catalystSpecies = getCatalists();
-        getInOutflow(not_included_reactions);
+        getInOutflow(included_reactions);
+        getBasicSets();
+        console.log(inflowReactions);
         network.redraw();
     }
 
@@ -135,21 +145,39 @@
         return catalysts;
     }
 
-    function getInOutflow(notIncluded) {
+    function getInOutflow(included) {
+        console.log(included)
         let outflow = [];
         let inflow = [];
-        notIncluded.forEach(reaction => {
-            reaction.edges.forEach(edge => {
-                if(species_ids.includes(edge.fromId)) {
+        included.forEach(reaction => {
+            if(reaction.edges.length == 1) {
+                if(species_ids.includes(reaction.edges[0].fromId)) {
                     outflow.push(reaction.id);
                 }
-                if(species_ids.includes(edge.toId)) {
+                if(species_ids.includes(reaction.edges[0].toId)) {
                     inflow.push(reaction.id);
                 }
-            });
+            }
         });
         inflowReactions = inflow;
         outflowReactions = outflow;
+    }
+
+    function getBasicSets() {
+
+        let promise = eel.get_basics_from_set(species_ids)();
+        promise.then(result => {
+            if(result == null) {
+                return;
+            }
+            image_source = result;
+        });
+    }
+
+    async function onImgClick() {
+        //modal.setReactions(reactions);
+        getModal('inner').open();
+        await modal.init(image_source);
     }
 </script>
 
@@ -185,12 +213,18 @@
                 <hr class="solid">
                 <p>Size of outflow: {outflowReactions.length}</p>
                 <hr class="solid">
-                <p>Number of Basic Sets: {reaction_ids.length}</p>
+                {#if image_source != undefined}
+                    <!-- svelte-ignore a11y-missing-attribute -->
+                    <img src='data:image/png;base64,{image_source}' style="max-width: 100%; height: auto; object-fit: contain;" on:click={onImgClick}>
+                {/if}
                 <hr class="solid">
                 <p>Number of Synergies: {reaction_ids.length}</p>
             </div>
         </div>
     </div>
+    <Modal id="inner">
+        <ImageModal bind:this={modal}></ImageModal>
+    </Modal>
 </main>
 
 <style>
