@@ -966,7 +966,7 @@ class RNSRW(CRNSMP):
         if not org_list is None:
             w=range(len(org_list))
         for j in w:
-            X=self.GInBListBt[0].copy()
+            X=bt(self.MpDf.shape[0])
             X.setall(0)
             
             if not (init_gen is None):
