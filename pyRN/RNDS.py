@@ -13,17 +13,368 @@ from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 from scipy.optimize import linprog
 import networkx as nx
-import pypoman as ph
 from itertools import chain, combinations
 from typing import List, Any, Iterable
-
+from functools import reduce
+from bitarray.util import subset
+from pulp import *
 
 class RNDS(RNIRG):
-    
+
     # Verifies which species of a reaction network (not necessarily an organization) 
     # are overproducible. Inputs are species sp_set and process vector pr, 
     # returns a list of overproducible species
-    def getOpSpBt(self,sp_set,pr=None):     
+    def getOpSpBt(self,sp_set,opsp_set=None,pr=None,only_ver=False):     
+        # Checks if input is bitarray, if it is not, it make the 
+        # transformation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+        
+        if opsp_set is None:
+            opts=sp.copy()
+        else:
+            if not (isinstance(opsp_set,bt)):
+                opts=bt(self.MpDf.shape[0])
+                opts.setall(0)
+                
+                for i in opsp_set:
+                    if i in self.MpDf.index.values:
+                        ind=self.MpDf.index.get_loc(i)
+                        opts[ind]=1
+            else:
+                opts=opsp_set
+        
+        if pr is None:
+            v=bt(self.MpDf.shape[1])
+            v.setall(1)    
+            
+        elif not (isinstance(pr,bt)):
+            v=bt(self.MpDf.shape[1])
+            v.setall(0)
+            
+            for i in pr:
+                v[i]=1
+        else:
+            v=pr
+            
+        # If it's only one species and self mantained, the reuturns the specie
+        # itself
+        if sp.count()==1 and self.isSmFromSp(sp):
+            return sp
+        
+        Ns=sp.count() # number of species (rows)
+        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+        
+        rc =[] # creating variable of available reaction 
+        for j in self.getIndArrayFromBt(v):
+            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+        
+        if len(rc)==0:
+            sp.setall(0)
+            return sp
+        
+        
+        # stoichiometric matrix of rn with prepended destruction reactions
+        S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
+        print("shape",S.shape)
+        sp_names=S.index
+        S=S.to_numpy()
+        S=np.column_stack((-np.identity(Ns),S))
+        S=S.tolist()
+        
+        # flow vector constraint: production of every species = 0
+        f=np.zeros(Ns) #norm of porcess vector for minimization 
+        f=f.tolist()
+
+
+        # cost 0 for every reaction
+        cost=np.zeros(Ns+len(rc)) #norm of porcess vector for minimization 
+        cost=cost.tolist()
+        
+        # overproducible status for species (initially False, until proven to be True).
+        o=[]
+        for i in range(len(sp)):
+            o.append(False)
+            # cost[i]=1
+        
+        op_ind=np.empty(opts.count())
+        k=0
+        for i in opts.search(1):
+            op_ind[k]=np.where(self.SpIdStrArray[i] == sp_names)[0]
+            k+=1
+        op_ind=op_ind.astype(int)
+        
+        for p in op_ind:
+            print("p",p)
+            S[p][p]=1 # creation instead of destruction for p
+            f[p]=1 # production of p = 1 instead of 0, if it is possible with creation rate 0, then it is overproducible
+            cost[p]=1  # cost for creation of p = 1 instead of 0
+        # print("f",f)
+        # print("S",S)
+        # lineal programing calculation of existance of a solution to be 
+        # self-mantainend
+        
+        res = linprog(cost, A_eq=S, b_eq=f,method='highs')
+        # The unknown is the process vector v. The equations are S v = f with the inequality constraint v>=0 (rates can be 0).
+        # Only the creation reaction for p is penalized in Cost (the rate should be 0 if p is overproducible).
+        
+        opsp=opts.copy()
+        
+        for i in range(Ns):
+            if res.x[i]>0:
+                opsp[i]=1
+        # print("opsp",opsp)
+        # print("opts",opts)
+        print("solution",res.x)
+        
+        if all(res.x[op_ind]==0) and (not only_ver):
+            return(opsp,res.x[self.MpDf.shape[0]:(self.MpDf.shape[0]+self.MpDf.shape[1])])
+        
+        elif all(res.x[op_ind]==0) and only_ver and (opsp==opts):
+            return(opsp,res.x[self.MpDf.shape[0]:(self.MpDf.shape[0]+self.MpDf.shape[1])])
+        
+        else:
+            opsp.setall(0)
+            v=res.x[self.MpDf.shape[0]:(self.MpDf.shape[0]+self.MpDf.shape[1])]
+            for ind,value in enumerate(v):
+                v[ind]=0
+            return(opsp,v)
+        
+    
+    def getOpOrgProcess(self,sp_set,opsp_set=None,pr=None):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : Numpy arrary or Bitarray
+            Species Id array or bitarray of species of an organization.
+        opsp_set : Numpy arrary or Bitarray, 
+            Species Id Array or species bitarray of species that must be 
+            overproduced. The default is None.
+        pr : Numpy array ot bitarray, optional
+            indexes of active reactions. The default is None.
+
+        Returns
+        -------
+        sp : list
+            A feasible procees vector for a organization that also overproduce opsp_set.
+
+        '''
+        # Checks if input is bitarray, if it is not, it make the 
+        # transformation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+        
+        if opsp_set is None:
+            opts=sp.copy()
+        else:
+            if not (isinstance(opsp_set,bt)):
+                opts=bt(self.MpDf.shape[0])
+                opts.setall(0)
+                
+                for i in opsp_set:
+                    if i in self.MpDf.index.values:
+                        ind=self.MpDf.index.get_loc(i)
+                        opts[ind]=1
+            else:
+                opts=opsp_set
+        
+        if pr is None:
+            v=bt(self.MpDf.shape[1])
+            v.setall(1)    
+            
+        elif not (isinstance(pr,bt)):
+            v=bt(self.MpDf.shape[1])
+            v.setall(0)
+            
+            for i in pr:
+                v[i]=1
+        else:
+            v=pr
+            
+        # If it's only one species and self mantained, the reuturns the specie
+        # itself
+        if sp.count()==1 and self.isSmFromSp(sp):
+            return sp
+        
+        Ns=sp.count() # number of species (rows)
+        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+        
+        rc =[] # creating variable of available reaction 
+        for j in self.getIndArrayFromBt(v):
+            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+        
+        if len(rc)==0:
+            sp.setall(0)
+            return sp
+        
+        
+        # stoichiometric matrix of rn with prepended destruction reactions
+        S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
+        sp_names=S.index
+        S=-S.to_numpy()
+        S=S.tolist()
+        
+        # opverprodcible index respect a reduced stochimetric matrix
+        op_ind=np.empty(opts.count())
+        k=0
+        for i in opts.search(1):
+            op_ind[k]=np.where(self.SpIdStrArray[i] == sp_names)[0]
+            k+=1
+        op_ind=op_ind.astype(int)
+        
+        
+        # flow vector constraint: production of every species = 0
+        f=np.zeros(Ns) #norm of porcess vector for minimization 
+        f[op_ind]=-1 # condition for the overproducied species
+        f=f.tolist()
+        
+        # lower bound for all reaction, so all have to take place
+        bounds=[]
+        for i in range(len(rc)):
+            bounds.append((1,None))
+           
+        # cost 0 for every reaction
+        cost=np.ones(len(rc)) #norm of porcess vector for minimization 
+        cost=cost.tolist()
+        
+        # Resloving the Lp under the organization condition 
+        res = linprog(cost, A_ub=S, b_ub=f, bounds=bounds, method='highs')
+        
+        # creating result vector
+        v=np.zeros(self.MpDf.shape[1])
+        if res.status==0:
+            k=0
+            for i in rc:
+               v[i]=res.x[k]
+               k+=1
+            return(v)
+        
+        else:
+            return(None)
+
+    # # Verifies which species of a reaction network (not necessarily an organization) 
+    # # are overproducible. Inputs are species sp_set and process vector pr, 
+    # # returns a list of overproducible species
+    # def getOpSpBtnew(self,sp_set,opsp_set=None,pr=None,M=1000):     
+    #     # Checks if input is bitarray, if it is not, it make the 
+    #     # transformation
+    #     if not (isinstance(sp_set,bt)):
+    #         sp=bt(self.MpDf.shape[0])
+    #         sp.setall(0)
+            
+    #         for i in sp_set:
+    #             if i in self.MpDf.index.values:
+    #                 ind=self.MpDf.index.get_loc(i)
+    #                 sp[ind]=1
+    #     else:
+    #         sp=sp_set
+        
+    #     if opsp_set is None:
+    #         opts=sp.copy()
+    #     else:
+    #         if not (isinstance(opsp_set,bt)):
+    #             opts=bt(self.MpDf.shape[0])
+    #             opts.setall(0)
+                
+    #             for i in opsp_set:
+    #                 if i in self.MpDf.index.values:
+    #                     ind=self.MpDf.index.get_loc(i)
+    #                     opts[ind]=1
+    #         else:
+    #             opts=opsp_set
+        
+    #     if pr is None:
+    #         v=bt(self.MpDf.shape[1])
+    #         v.setall(1)    
+            
+    #     elif not (isinstance(pr,bt)):
+    #         v=bt(self.MpDf.shape[1])
+    #         v.setall(0)
+            
+    #         for i in pr:
+    #             v[i]=1
+    #     else:
+    #         v=pr
+            
+    #     # If it's only one species and self mantained, the reuturns the specie
+    #     # itself
+    #     if sp.count()==1 and self.isSmFromSp(sp):
+    #         return sp
+        
+    #     Ns=sp.count() # number of species (rows)
+    #     nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+        
+    #     rc =[] # creating variable of available reaction 
+    #     for j in self.getIndArrayFromBt(v):
+    #         if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
+    #             rc.append(j) # selecting reactions that can be trigger with available species
+        
+    #     if len(rc)==0:
+    #         sp.setall(0)
+    #         return sp
+        
+        
+    #     # stoichiometric matrix of rn with prepended destruction reactions
+    #     S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
+    #     # S=np.column_stack((-np.identity(Ns),S))
+    #     # S=S.tolist()
+        
+    #     # flow vector constraint: production of every species = 0
+    #     f=np.zeros(Ns) #norm of porcess vector for minimization 
+    #     # f=f.tolist()
+        
+    #     # Definir el problema de maximización
+    #     prob = LpProblem("Problema de optimización", LpMinimize)
+        
+    #     # Definir las variables de decisión x
+    #     x = LpVariable.dicts("x", range(S.shape[1]), lowBound=1, cat='Continuous')
+    #     # y = LpVariable.dicts("y", range(Ns+len(rc)), cat='Binary')
+        
+    #     # Definir la función objetivo
+    #     M = Ns+len(rc) * M # Factor suficientemente grande para garantizar que y[i] sea 1 si x[i] > 0
+    #     prob += lpSum(x[i] for i in range(Ns)), "Función objetivo"
+        
+    #     # Definir las restricciones
+        
+    #     for i in range(Ns):
+    #             prob += S[i] @ x >= 0, f"Restricción {i}"
+               
+    #     # Resolver el problema
+    #     prob.solve()
+        
+    #     # Imprimir el resultado
+    #     print("Estado:", LpStatus[prob.status])
+    #     print("Valor óptimo de la función objetivo:", value(prob.objective))
+    #     print("Solución:")
+    #     # for i in range(Ns+len(rc)):
+    #     #     print(f"x[{i}] = {value(x[i])}, y[{i}] = {value(y[i])}")
+    #     for i in range(Ns):
+    #         print(f"x[{i}] = {value(x[i])}")
+                
+    # Verifies which species of a reaction network (not necessarily an organization) 
+    # are overproducible. Inputs are species sp_set and process vector pr, 
+    # returns a list of overproducible species
+    def getallOpSpBt(self,sp_set,pr=None,):     
         # Checks if input is bitarray, if it is not, it make the 
         # transformation
         if not (isinstance(sp_set,bt)):
@@ -39,11 +390,11 @@ class RNDS(RNIRG):
         
         
         if pr is None:
-            v=bt(self.MpDf.shape[0])
+            v=bt(self.MpDf.shape[1])
             v.setall(1)    
             
         elif not (isinstance(pr,bt)):
-            v=bt(self.MpDf.shape[0])
+            v=bt(self.MpDf.shape[1])
             v.setall(0)
             
             for i in pr:
@@ -141,11 +492,11 @@ class RNDS(RNIRG):
             sp=sp_set
         
         if pr is None:
-            v=bt(self.MpDf.shape[0])
+            v=bt(self.MpDf.shape[1])
             v.setall(1)    
             
         elif not (isinstance(pr,bt)):
-            v=bt(self.MpDf.shape[0])
+            v=bt(self.MpDf.shape[1])
             v.setall(0)
             
             for i in pr:
@@ -208,7 +559,7 @@ class RNDS(RNIRG):
         
         return(dict(inf=np.where(res.x[0:Ns]>0)[0],ovp=np.where(res.x[Ns+1:2*Ns]>0)[0],v=res.x[0:Ns]))
 
-    
+
     # Generates a base of overproduced species of a reaction network 
     # (not necessarily an organization). Inputs are species sp_set and 
     # process vector pr, returns a list of minium overproducible species sets.    
@@ -227,11 +578,11 @@ class RNDS(RNIRG):
             sp=sp_set
         
         if pr is None:
-            v=bt(self.MpDf.shape[0])
+            v=bt(self.MpDf.shape[1])
             v.setall(1)    
             
         elif not (isinstance(pr,bt)):
-            v=bt(self.MpDf.shape[0])
+            v=bt(self.MpDf.shape[1])
             v.setall(0)
             
             for i in pr:
@@ -360,11 +711,11 @@ class RNDS(RNIRG):
             opsp=opsp_set
       
         if pr is None:
-            v=bt(self.MpDf.shape[0])
+            v=bt(self.MpDf.shape[1])
             v.setall(1)    
             
         elif not (isinstance(pr,bt)):
-            v=bt(self.MpDf.shape[0])
+            v=bt(self.MpDf.shape[1])
             v.setall(0)
             
             for i in pr:
@@ -532,7 +883,252 @@ class RNDS(RNIRG):
             return True
         else:
             return False
+    
+    
+    # def genCombElements(self,G,level,sp,pr):
+    #     '''
+        
+
+    #     Parameters
+    #     ----------
+    #     G : TYPE
+    #         DESCRIPTION.
+    #     level : TYPE
+    #         DESCRIPTION.
+    #     sp : TYPE
+    #         DESCRIPTION.
+    #     pr : TYPE
+    #         DESCRIPTION.
+
+    #     Returns
+    #     -------
+    #     G : TYPE
+    #         DESCRIPTION.
+    #     bool
+    #         DESCRIPTION.
+
+    #     '''
+    #     print("Comb level:",level)
+    #     try:
+    #         sup_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']>level, G.nodes(data=True))))
+    #     except:
+    #         return G, False
+    #     try:
+    #         inf_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']<=level, G.nodes(data=True))))
+    #     except:
+    #         return G, True
+        
+    #     not_in_inf_level=sup_level_sp & ~inf_level_sp
+        
+    #     if not_in_inf_level.count()==0.:
+    #         return G, False
+    #     else:
+    #         for i in not_in_inf_level.search(1):
+    #             level_sets=list(map(lambda x: (bt(x[0]),x[1]),filter(lambda x: x[1]['level']==level, G.nodes(data=True))))
+    #             for j in level_sets:
+    #                 opts=j.copy()
+    #                 opts[i]=1
+    #                 opsp , v = self.getOpSpBt(sp_set=sp,opsp_set=opts,pr=pr)
+    #                 if opsp.count()>0:
+    #                     G.add_node(fbt(opsp), level=opsp.count(), v=v)
+                        
+    #     return G, True
+    
+    # def genNextLevel(self,G,level):
+    #     '''
+        
+
+    #     Parameters
+    #     ----------
+    #     G : networkx DiGraph
+    #         overproducible lattice structure.
+    #     level : int
+    #         level ( number of species) for the unnion to create new added sets.
+
+    #     Returns
+    #     -------
+    #     G : networkx DiGraph
+    #         Updated overproducible lattice structure.
+
+    #     '''
+    #     print("next level:",level)
+    #     def add_node_and_edges(a_node,b_node):
+    #         G.add_node(fbt(a_node[0]|b_node[0]),level=(a_node[0]|b_node[0]).count()
+    #                                       ,v=a_node[1]['v']+b_node[1]['v'])
+    #         G.add_edge(fbt(a_node[0]),fbt(a_node[0]))
+    #         G.add_edge(fbt(a_node[0]),fbt(b_node[0]))
+            
+    #     level_sets=list(map(lambda x: (bt(x[0]),x[1]),filter(lambda x: x[1]['level']==level, G.nodes(data=True))))
+        
+    #     for ind,f_set in enumerate(level_sets):
+    #         print(f_set)
+    #         union_sets=list(filter(lambda x: (f_set[0]|x[0]).count()==(level+1),level_sets[(ind+1):]))
+    #         print(union_sets)
+    #         if len(union_sets)>0:
+    #             list(map(lambda x: add_node_and_edges(f_set, x),union_sets))
                 
+    #     return G    
+        
+    # def setOpStr(self,sp_set=None,pr=None):
+    #     '''
+        
+
+    #     Parameters
+    #     ----------
+    #     sp_set : TYPE, optional
+    #         DESCRIPTION. The default is None.
+    #     pr : TYPE, optional
+    #         DESCRIPTION. The default is None.
+
+    #     Returns
+    #     -------
+    #     G : TYPE
+    #         DESCRIPTION.
+
+    #     '''
+        
+    #     if sp_set is None:
+    #         sp=bt(self.MpDf.shape[0])
+    #         sp.setall(1)
+            
+    #     elif not (isinstance(sp_set,bt)):
+    #         sp=bt(self.MpDf.shape[0])
+    #         sp.setall(0)
+            
+    #         for i in sp_set:
+    #             if i in self.MpDf.index.values:
+    #                 ind=self.MpDf.index.get_loc(i)
+    #                 sp[ind]=1
+    #     else:
+    #         sp=sp_set
+        
+    #     if pr is None:
+    #         v=bt(self.MpDf.shape[1])
+    #         v.setall(1)    
+            
+    #     elif not (isinstance(pr,bt)):
+    #         v=bt(self.MpDf.shape[1])
+    #         v.setall(0)
+            
+    #         for i in pr:
+    #             v[i]=1
+    #     else:
+    #         v=pr
+            
+    #     G = nx.DiGraph() # lattice overproducible structre as network graph
+    #     opts=sp.copy()
+    #     for level in range(1,sp.count()+1):
+    #         if level==1:
+    #             for i in sp.search(1):
+    #                 opts.setall(0)
+    #                 opts[i]=1
+    #                 opsp , v = self.getOpSpBt(sp_set=sp,opsp_set=opts,pr=pr)
+    #                 if opsp.count()>0:
+    #                     G.add_node(fbt(opsp), level=opsp.count(), v=v)
+    #             G, verification = self.genCombElements(G, level, sp, pr)
+    #             G = self.genNextLevel(G,level)
+    #         else:
+    #             if verification:
+    #                 verification = self.genCombElements(G, level, sp, pr)
+    #                 G = self.genNextLevel(G,level)
+    #             else:
+    #                 G = self.genNextLevel(G,level)
+                    
+                    
+    #     return G
+    
+    def getAllPermutation(self,sp_set,level):
+        
+        all_comb=combinations(self.getIndArrayFromBt(sp_set), level)
+        return list(map(lambda x: fbt(self.getBtFromIndArray(x,len(sp_set))),all_comb))
+    
+    def addfOpfromList(self,G,sp,oplist,pr):
+        
+        for i in oplist:
+            opsp , v = self.getOpSpBt(sp_set=sp,opsp_set=bt(i),pr=pr,only_ver=False)
+            
+            try:
+                inf_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']<=i.count()-1, G.nodes(data=True))))
+            except:
+                inf_level_sp=opsp.copy()
+                inf_level_sp.setall(0)
+                
+            if opsp.count()>0 and (not subset(opsp, inf_level_sp)):
+                G.add_node(fbt(opsp), level=opsp.count(), v=v)
+              
+    def genOpBase(self,sp_set=None,pr=None):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : TYPE, optional
+            DESCRIPTION. The default is None.
+        pr : TYPE, optional
+            DESCRIPTION. The default is None.
+
+        Returns
+        -------
+        G : TYPE
+            DESCRIPTION.
+
+        '''
+        
+        if sp_set is None:
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(1)
+            
+        elif not (isinstance(sp_set,bt)):
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+        
+        if pr is None:
+            v=bt(self.MpDf.shape[1])
+            v.setall(1)    
+            
+        elif not (isinstance(pr,bt)):
+            v=bt(self.MpDf.shape[1])
+            v.setall(0)
+            
+            for i in pr:
+                v[i]=1
+        else:
+            v=pr
+            
+        G = nx.DiGraph() # lattice overproducible structre as network graph
+        for level in range(1,sp.count()+1):
+            
+            # try:
+            #     sup_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']>level, G.nodes(data=True))))
+            # except:
+            #     break
+            try:
+                inf_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']<=level-1, G.nodes(data=True))))
+                pos_comb=self.getAllPermutation(inf_level_sp, level)
+            except:
+                pos_comb=[]
+            print("pos_pert",pos_comb)
+            all_comb=self.getAllPermutation(sp, level)
+            print("all_pert",all_comb)
+            new_comb=list(filter(lambda x: x not in pos_comb, all_comb))
+            new_comb=list(filter(lambda x: x not in list(G.nodes), new_comb))
+            print("new_pert",new_comb)
+            if len(new_comb)>0: 
+                self.addfOpfromList(G, sp, new_comb, pr)            
+            else:
+                break
+        
+        return G
+         
+                    
+            
     # Function that generates a Hasse diagram from a set of species with all 
     # the combinations of the overproduced base, obtaining all the 
     # decompositions. The input corresponds to a set of sp_set species which 

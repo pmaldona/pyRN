@@ -45,13 +45,14 @@ class CRNS(RNIRG):
     # RpInWhichGArray: corresponds to a array of integers, of the length 
     # of the number of reactions, where the integer indicates to which 
     # generator the reaction belongs.
-    def setGenerators(self):
+    def setGenerators(self,verbose=False):
         # creating all closed set for closure of reactant part
         c_reac=[]
           
         k=1
         for i in self.ReacListBt:
-            print(k," closures of ",len(self.ReacListBt))
+            if verbose:
+                print(k," closures of ",len(self.ReacListBt))
             c_reac.append(self.getClosureFromSp(i,bt_type=True))
             k+=1
             
@@ -69,7 +70,8 @@ class CRNS(RNIRG):
         # closure and so each basic can be created
         
         for i in range(len(x_r_a)):
-            print(i+1," equivalance classes of ",len(x_r_a))
+            if verbose:
+                print(i+1," equivalance classes of ",len(x_r_a))
             
             st+=1
             # reaction already assigned to equivalnce class
@@ -130,7 +132,8 @@ class CRNS(RNIRG):
         
         # Assignation of other related variables:
         for i in range(len(self.BSpListBt)):
-            print(i+1," bitarrays assignations of ",len(self.BSpListBt))
+            if verbose:
+                print(i+1," bitarrays assignations of ",len(self.BSpListBt))
             a_b.append(self.getGBtInSpBt(self.BSpListBt[i]))
             r_b.append(b_r.copy())
             rsp_b.append(b_sp.copy())
@@ -170,7 +173,8 @@ class CRNS(RNIRG):
             dyn_conn.append(b_c.copy())
             
         for i in range(len(conn)):
-            print(i," connectivity assingments of ",len(self.BSpListBt))
+            if verbose:
+                print(i," connectivity assingments of ",len(self.BSpListBt))
             for j in range(len(conn)):
                 # connectivity conditions
                 if (not j==i) and a_b[i][j]==0 and (rsp_b[i] & psp_b[j]).any():
@@ -430,7 +434,7 @@ class CRNS(RNIRG):
     # The function also creates the class member (SynStrSsmListSpArray) and (SynStrOrgListSpArray) which 
     # corresponds to a list of the closed semi-self-maintained set and 
     # organizations respectively
-    def setSynStr(self,partial_save=None):
+    def setSynStr(self,partial_save=None,verbose=False):
         if not hasattr(self, 'GInBListBt'):
             print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
@@ -473,7 +477,8 @@ class CRNS(RNIRG):
              # Generating closures whit connected basics sets for each set in level i
             for j in nodes:
                 node_n+=1
-                print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
+                if verbose:
+                    print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
                 for k in self.getIndArrayFromBt(self.getGBtNotInBBt(bt(j))):
                     st+=1    
                     # Closure result
@@ -517,7 +522,12 @@ class CRNS(RNIRG):
         self.SynStrSsmListBtArray=ssms_bt
         self.SynStrOrgListBtArray=org_bt
         return(st)
-                    
+     
+    def getconnStrNx(G):
+        H=nx.MultiDiGraph()
+        
+        
+                
 
     # Synergistic structure calculation function, requires the setGenerators() 
     # function to be executed beforehand .It returns an directed multi-graph
@@ -535,7 +545,7 @@ class CRNS(RNIRG):
     # This algorithm differs from setSynStr() by considering the basic to 
     # be conjugated which can contribute to be semi-self maintained by use of 
     # the getGBtContribBBt() function.
-    def setSsmStr(self,partial_save=None):
+    def setSsmStr(self,partial_save=None,verbose=False):
         if not hasattr(self, 'GInBListBt'):
             print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
@@ -578,19 +588,24 @@ class CRNS(RNIRG):
              # Generating closures whit connected basics sets for each set in level i
             for j in nodes:
                 node_n+=1
-                print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
+                if verbose:
+                    print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
                 # if node is semi-self-maintained (ssm), the it explore other possible 
                 # combinations to search for ssm sets, if not search for basic that can 
                 # contribute to be ssm
                 
                 if G.nodes[j]["is_ssm"]:
                      conn=self.getIndArrayFromBt(self.getGBtNotInBBt(bt(j)))
+                     # connected nodes
+                     conn_nodes=self.getGBtConnectedToBBt(bt(j)).search(1)
+                     
                 else:
-                     contib=self.getGBtContribBBt(bt(j))
-                     if not contib.any():
+                     contrib=self.getGBtContribBBt(bt(j))
+                     if not contrib.any():
                          continue
-                     conn=self.getIndArrayFromBt(contib)
-                 
+                     conn=self.getIndArrayFromBt(contrib)
+                     conn_nodes=contrib.search(1)
+
                 for k in conn:
                      st+=1
                      # Closure result
@@ -617,18 +632,28 @@ class CRNS(RNIRG):
          
                      # Adding edges corresponding to the colsure, and verifing if is a sinergy:
                      if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
-                        G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
+                        G.add_edge(j,cr_a,key=k,syn=True,added_basic=k,conn=(k in conn_nodes))
                      else:
-                        G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
+                        G.add_edge(j,cr_a,key=k,syn=False,added_basic=k,conn=(k in conn_nodes))
             
             if not partial_save is None:
                 self.saveToPkl(partial_save) 
         
+        connected_edges = [(u,v,k,e) for u,v,k,e in G.edges(keys=True,data=True) if e['conn']]
+        H=nx.MultiDiGraph(connected_edges)
+        nx.set_node_attributes(H,dict(G.nodes(data=True)))
+        
         self.SsmStrNx=G
+        self.SsmStrConnectedNx=H
         self.SsmStrSsmListSpArray=ssms
+        self.SsmStrConnectedSsmListBtArray = [bt(x) for x,y in H.nodes(data=True) if y['is_ssm']]
         self.SsmStrOrgListSpArray=org
+        self.SsmStrConnectedOrgListBtArray = [bt(x) for x,y in H.nodes(data=True) if y['is_org']]
         self.SsmStrSsmListBtArray=ssms_bt
         self.SsmStrOrgListBtArray=org_bt
+        self.SsmStrConnectedSsmListSpArray=list(map(self.getSpBtInGBt,self.SsmStrConnectedSsmListBtArray))
+        self.SsmStrConnectedOrgListSpArray=list(map(self.getSpBtInGBt,self.SsmStrConnectedOrgListBtArray))
+        
         return(st)
     
     
@@ -648,7 +673,7 @@ class CRNS(RNIRG):
     # This algorithm differs from setSynStr() by considering the connected basic 
     # by use of the function getGBtConnectedToBBt(), The result is a structrure 
     # where the nodes only connected closed sets.
-    def setConnectedStr(self,partial_save=None):
+    def setConnectedStr(self,partial_save=None,verbose=False):
         if not hasattr(self, 'GInBListBt'):
             print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
@@ -690,7 +715,8 @@ class CRNS(RNIRG):
              # Generating closures whit connected basics sets for each set in level i
             for j in nodes:
                 node_n+=1
-                print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
+                if verbose:
+                    print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
                 # if node is semi-self-maintained (ssm), the it explore other possible 
                 # combinations only whit dynamically connected basics
                 # if not search for basic that can contribute to be ssm
@@ -755,7 +781,7 @@ class CRNS(RNIRG):
     # the getGBtContribBBt() function and use of the function getGBtConnectedToBBt(), which 
     # only connect to basics if there are reactively connected. The result is a structrure 
     # where the nodes are semi-self-mantianed and only dynamically connected.
-    def setSsmConnectedStr(self,partial_save=None):
+    def setSsmConnectedStr(self,partial_save=None,verbose=False):
         if not hasattr(self, 'GInBListBt'):
             print("The basic sets have not been initialized, please run the setGenerators() function.")
             return 
@@ -797,7 +823,8 @@ class CRNS(RNIRG):
              # Generating closures whit connected basics sets for each set in level i
             for j in nodes:
                 node_n+=1
-                print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
+                if verbose:
+                    print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
                 # if node is semi-self-maintained (ssm), the it explore other possible 
                 # combinations only whit dynamically connected basics
                 # if not search for basic that can contribute to be ssm
@@ -805,10 +832,10 @@ class CRNS(RNIRG):
                 if G.nodes[j]["is_ssm"]:
                      conn=self.getIndArrayFromBt(self.getGBtConnectedToBBt(bt(j)))
                 else:
-                     contib=self.getGBtContribBBt(bt(j))
-                     if not contib.any():
+                     contrib=self.getGBtContribBBt(bt(j))
+                     if not contrib.any():
                          continue
-                     conn=self.getIndArrayFromBt(contib)
+                     conn=self.getIndArrayFromBt(contrib)
                  
                 for k in conn:
                      st+=1    

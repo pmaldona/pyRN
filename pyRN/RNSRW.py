@@ -1288,3 +1288,369 @@ class RNSRW(CRNSMP):
                 orgs_df[i]=orgs_df[i].apply(fbt)
             self.SimpleTransSpDict=orgs_dict
             self.SimpleTransSpDf=orgs_df
+    
+    
+    
+    def getSpDynFunc(self,sp_set,pr):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : bitarray
+            Species of the to analize.
+        pr : Numpy array
+            Indexes of the reaction to be considered.
+
+        Returns
+        -------
+        Dynamical role of its production given a process vector, the values of the componentes are:
+            - op: overprduced
+            - Sm: self-mantained
+            - c: consumed
+            - nr:  non-reactive.
+
+        '''
+        # Checks if input is bitarray, if it is not, it make the 
+        # transformation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+        
+        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+
+        rc =[] # creating variable of available reaction 
+        rsp=set()
+        for j in np.where(pr>0)[0]:
+            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+                rsp=rsp.union(np.where(self.MpDf.iloc[:,j]!=0)[0]).union(np.where(self.MrDf.iloc[:,j]!=0)[0])
+        
+        #non-reactive species
+        nrsp=list(set(self.getIndArrayFromBt(sp))-rsp)
+                
+        # stoichiometric matrix of rn with prepended destruction reactions
+        S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
+        v=pr[pr>0]
+        f=S@v
+        
+        #classification of species
+        cl=f.copy()
+        cl[f>0]="op"
+        cl[f==0]="sm"
+        cl[f<0]="c"
+        
+        nrsp=self.MpDf.index[nrsp]
+        for i in nrsp:
+            if i in S.index:
+                k=np.where(S.index==i)[0][0]
+                cl[k]="nr"
+        
+        
+            
+        return(cl)
+
+            
+    def setInflowPert(self,org_v,v,pert_sp,reset_values=False):
+        '''
+        
+
+        Parameters
+        ----------
+        org_v : Numpy array
+            Organization process vector.
+        v : Numpy array
+            current process vector.
+        pert_sp : 
+            Inflow species to be pertrub.
+        reset_values: Bool, optional
+            Reset the values the pertubed process vector to the organization ones. The default is False.
+        Returns
+        -------
+        Numpy array of the pertubed porcess vector. Where active comopnentes become unactive and viceversa.
+        The values of the new unactive components become 0, meanwhile the new active components have a proportional
+        component to de organization porcess vector. If the current state vector is zero, then the components corresponds
+        to de organization vector.
+
+        '''
+        
+        out_v=v.copy()
+        if any(v!=0):
+            alpha=v[v!=0][0]/org_v[v!=0][0]
+        else:
+            alpha=1
+        bt_pert_sp=bt(self.MpDf.shape[0])
+        bt_pert_sp.setall(0)
+        for i in pert_sp:
+           bt_pert_sp[i]=1 
+        
+        for i in range(len(self.ReacListBt)):
+            if (self.ProdListBt[i].any()) and (not self.ReacListBt[i].any()) and ((self.ProdListBt[i] & bt_pert_sp).count() >0):
+                if out_v[i]!=0:
+                    out_v[i]=0
+                else:
+                    out_v[i]=alpha*org_v[i]
+        
+        if reset_values:
+            out_v[org_v!=0]=org_v[org_v!=0]
+        return(out_v)
+    
+    
+    # def setStructPert(org_list,)
+    
+    def setInflowRandomPert(self,org_v,v,sp_set=None,min_pert_size=1,max_pert_size=2,only_des=False,reset_values=False):
+        '''
+        
+
+        Parameters
+        ----------
+        org_v : Numpy array
+            Original organization process vector.
+        v : Numpy array
+            Current process vector.
+        sp_set : bitarray, optional
+            Species of the set(organization) to consider . The default is None.
+        min_pert_size : int, optional
+            Minimum number of iflow species to pertub. The default is 1.
+        max_pert_size : int, optional
+            Maximum number of species to perturb. The default is 2.
+        only_des : bool, optional
+            Consider removing inflow reactions. The default is False.
+       reset_values: Bool, optional
+           Reset the values the pertubed process vector to the organization ones. The default is False.
+    
+        Returns
+        -------
+        out_v : Numpy array
+            Random pertubed porcess vector. Where active comopnentes become unactive and viceversa.
+            The values of the new unactive components become 0, meanwhile the new active components have a proportional
+            component to de organization porcess vector. If the current state vector is zero, then the components corresponds
+            to de organization vector.
+.
+
+        '''
+        #searching for the inflow compoenets
+        inflow_reac=bt(self.MpDf.shape[1])
+        inflow_reac.setall(0)
+        
+        for i in range(len(self.ReacListBt)):
+            if (self.ProdListBt[i].any()) and (not self.ReacListBt[i].any()):
+                inflow_reac[i]=1            
+        avail_reac=inflow_reac.copy()
+        avail_reac.setall(0)
+        
+        # searching for the possible reaction to be perturb considering the current process vector v
+        for ind, val in enumerate(v):
+            if val>0:
+                  avail_reac[ind]=1       
+        if only_des:
+            mask=avail_reac&inflow_reac
+        else:
+            mask=inflow_reac
+        out_v=v.copy()
+        
+        
+        # ajusting the values for the new components
+        if any(v!=0):
+            alpha=v[v!=0][0]/org_v[v!=0][0]
+        else:
+            alpha=1
+        
+        if mask.count()>0:
+            n_size=np.random.choice(np.arange(max(0,min_pert_size),min(max_pert_size,mask.count())+1),1)
+            if n_size>0:
+                pert=np.random.choice(mask.search(1),n_size,replace=False)
+                for i in pert:
+                    if mask[i]==1:
+                        out_v[i]=0
+                        
+                    else:
+                        out_v[i]=alpha*org_v[i]
+                        # out_v[i]=np.random.uniform(0,max_size,1)
+        
+        if reset_values:
+            out_v[org_v!=0]=org_v[org_v!=0]
+       
+        return out_v
+    
+    
+    def getChangeCoff(self,sp_set,v,vp,round_order=9):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : bitarray
+            set to condisder in the dyanamic step.
+        v : Numpy array
+            original process vector.
+        vp : Numpy array
+            pertrurbation porcess vector.
+        round_order : int, optional
+            exponetial round order, i.e. concentration below 1e-(round_order) are zero. The default is 9.
+
+        Returns
+        -------
+        The function calculates a minimum alpha factor where at least one species is depleted, considering the 
+        concentration as S(v+alphav*v_p). As result a new proccess is created, where the support of 
+        recations that containg the depleted species are truned off, i.e. n_v[i]=0. In some cases only
+        reaction can result unactive, those cases consider alpha=0.
+        n_f : Numpy Array 
+            Production after perturbation.
+        n_v : Numpy array
+            Next pretrubation vector.
+        a : float
+            Depletion coefficient.
+        changed : bool
+            Value that indicates if any species has been depleted.
+        cl : Dataframe Series
+            Dynamical role of its production, where the values of the componentes correspond to:
+                - op: overprduced
+                - Sm: self-mantained
+                - c: consumed
+                - nr: non-reactive.
+
+        '''
+        
+        S=self.MpDf-self.MrDf
+        
+        f_i=S@v
+        f_p=S@vp
+        
+        low_bound = 10 ** (-round_order)
+        
+        if all(f_p>=0):
+            n_f = (f_i+f_p)
+            n_v = vp.copy()
+
+            n_f[n_f<low_bound]=0
+            n_v[n_v<low_bound]=0
+            dp_sp=[]
+            a=0
+            changed=False
+        else:
+            
+            alist=[]
+            ind_list=[]
+            nsp=bt(self.MpDf.shape[0])
+            nsp.setall(0)
+            for ind, val in enumerate(f_i):
+                if f_p[ind]<0:
+                    
+                    # nsp[ind]=1
+                    c=-f_i[ind]/f_p[ind]
+                    if c < low_bound:
+                        c=0
+                        
+                    alist.append(c)
+                    ind_list.append(ind)
+            
+            alist=np.array(alist)
+            a=min(alist)
+            dp_sp=np.array(ind_list)
+            dp_sp=dp_sp[alist==a]
+            for i in dp_sp:
+                nsp[i]=1
+            
+            n_f = (f_i+a*f_p)
+            n_v = vp.copy()
+    
+            for ind, val in enumerate(n_v):
+                if any(self.ReacListBt[ind]&nsp):
+                    n_v[ind]=0
+            
+            n_f[n_f<low_bound]=0
+            n_v[n_v<low_bound]=0
+            changed=True
+            
+        nsp=list(set(range(len(sp_set)))-set(self.getIndArrayFromBt(sp_set))) #species no present
+
+        rc =[] # creating variable of available reaction 
+        rsp=set()
+        for j in np.where(n_v>0)[0]:
+            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+                rsp=rsp.union(np.where(self.MpDf.iloc[:,j]!=0)[0]).union(np.where(self.MrDf.iloc[:,j]!=0)[0])
+        
+        #non-reactive species
+        nrsp=list(set(self.getIndArrayFromBt(sp_set))-rsp)
+                
+        f=n_f[self.getIndArrayFromBt(sp_set)]
+        
+        #classification of species
+        cl=f.copy()
+        cl[f>0]="op"
+        cl[f==0]="sm"
+
+
+            
+        nrsp=self.MpDf.index[nrsp]
+        for i in nrsp:
+            if i in S.index:
+                k=np.where(f.index==i)[0][0]
+                cl[k]="nr"
+        
+        dp_sp=self.MpDf.index[dp_sp]
+        for i in dp_sp:
+            if i in S.index:
+                k=np.where(f.index==i)[0][0]
+                cl[k]="d"
+
+        return n_f, n_v, a, changed, cl
+    
+    def getRecursiveChangCoff(self,sp_set,v,vp,round_order=9): # ,search_fact=False):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : bitarray
+            set to condisder in the dyanamic step.
+        v : Numpy array
+            original process vector.
+        vp : Numpy array
+            pertrurbation porcess vector.
+        round_order : int, optional
+            exponetial round order, i.e. concentration below 1e-(round_order) are zero. The default is 9.
+
+        Returns
+        -------
+        A dictionary for recusive steps of getChangeCoff funtion, it will consider the result production and 
+        process vector for next iteration until the change value is True, the dictinary variables are:
+        - `production` corresponds to the cumulative concentration
+        - `processes` list of the porceses of each iteraction
+        - `coefficients` list of $\alpha$ values of each iteration
+        - `species_function` dynamical rol of species in each iteration.
+
+
+
+        '''        
+        
+        changed=True
+        production_list=[(self.MpDf-self.MrDf)@v]
+        process_list=[v]
+        alpha_list=[1]
+        sp_fun=[self.getSpDynFunc(sp_set, v)]
+        while changed:
+            
+            f,v_result,a,changed,current_sp_fun=self.getChangeCoff(sp_set,v, vp,round_order=round_order)
+
+            production_list.append(f)  
+            process_list.append(vp)
+            alpha_list.append(a)
+            current_sp_fun[sp_fun[-1]=="d"]="d"
+            sp_fun.append(current_sp_fun)        
+            v=v+a*vp
+            vp=v_result
+            
+        return dict(productions=production_list,processes=process_list,coefficients=alpha_list,species_function=sp_fun)
+    
+    
+        

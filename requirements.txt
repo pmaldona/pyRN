@@ -7,6 +7,5 @@ networkx
 libroadrunner
 lxml
 pyvis
-pypoman
 matplotlib
 joblib

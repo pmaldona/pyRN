@@ -670,8 +670,54 @@ class RNIRG:
             if len(np.where(self.MpDf.iloc[:,i]!=0)[0])>0:
                 p_text=p_text[:-2]    
             print(p_text)
+            
+    # Function that displays the reactions on the screen. It receives as
+    # input a list p of integers corresponding to the reactions to be displayed. 
+    # If p is not entered, the complete network is displayed.
+    def printRpFromProcess(self,r_set=np.array([]),pr=np.array([])):
+        
+        if (isinstance(r_set,bt)):
+           r_i=self.getIndArrayFromBt(r_set)
+           # r=self.MpDf.columns[r_i]
+        else:
+            if (r_set.size==0):
+                # r=self.MpDf.columns
+                r_i=range(self.MpDf.shape[1])
+            else:
+                r_i=[]
+                for i in r_set:
+                    if i in self.MpDf.columns:
+                        r_i.append(i)
+                # r=r_set
+                 
+        # Checks if input is or not a 
+        for i in r_i:
+            p_text="r"+str(i)+":   "
+            for j in np.where(self.MrDf.iloc[:,i]!=0)[0]:
+                if self.MrDf.iloc[j,i]==1.0:
+                    p_text+=self.MrDf.index[j]+" "
+                elif self.MrDf.iloc[j,i]==int(self.MrDf.iloc[j,i]):
+                    p_text+=str(int(self.MrDf.iloc[j,i]))+self.MrDf.index[j]+" "
+                else:
+                    p_text+=str(self.MrDf.iloc[j,i])+self.MrDf.index[j]+" "
+                p_text+="+ "
+            if len(np.where(self.MrDf.iloc[:,i]!=0)[0])>0:
+                p_text=p_text[:-2]
+            p_text+="("+str(pr[i])+") => "
+            
+            for j in np.where(self.MpDf.iloc[:,i]!=0)[0]:
+                if self.MpDf.iloc[j,i]==1.0:
+                    p_text+=self.MpDf.index[j]+" "
+                elif self.MpDf.iloc[j,i]==int(self.MpDf.iloc[j,i]):
+                    p_text+=str(int(self.MpDf.iloc[j,i]))+self.MpDf.index[j]+" "
+                else:
+                    p_text+=str(self.MpDf.iloc[j,i])+self.MpDf.index[j]+" "
+                p_text+="+ "
+            if len(np.where(self.MpDf.iloc[:,i]!=0)[0])>0:
+                p_text=p_text[:-2]    
+            print(p_text)
 
-
+    
     # Function that displays the rspecies on the screen. It receives as
     # input a list p of integers or bitarray corresponding to the reactions to be displayed. 
     # If p is not entered, all species is displayed.
@@ -722,8 +768,8 @@ class RNIRG:
             # size=len(self.SpIdStrArray[self.getIndArrayFromBt(self.SpIdStrArray_p[i])])*3
             G.add_node("r"+str(i), color = "yellow", label="r"+str(i), shape="square", size=7)
         
-        inf=set(self.getInflowFromSp(np.array(list(sp)),True))
-        out=set(self.getOutflowFromSp(np.array(list(sp)),True))
+        inf=set(self.getInflowFromSp(np.array(list(sp)),"id"))
+        out=set(self.getOutflowFromSp(np.array(list(sp)),"id"))
         sp-=inf
         sp-=out
         
@@ -1112,7 +1158,7 @@ class RNIRG:
     # Function that confirms if a set is self-mantained, 
     # input is "sp_set" that can be an bitarray or an species array. 
     # returns a true or false depending if the property is achived
-    def isSmFromSp(self,sp_set):
+    def isSmFromSp(self,sp_set,ret_vect=False):
         
         # Checks if input is or not bitarray, if it's no, it make the 
         # transmation
@@ -1181,6 +1227,12 @@ class RNIRG:
         
         res = linprog(c, A_ub=S, b_ub=b, bounds=bounds,method='highs')
         
+        if ret_vect:
+            
+            v=np.zeros(self.MpDf.shape[1])
+            v[r_ind]=res.x
+            return res.success , v
+        
         return res.success
         
     
@@ -1238,7 +1290,7 @@ class RNIRG:
         
     # Function that receives a set of species (sp_set) and returns 
     # the idexes of which are inflow.
-    def getInflowFromSp(self,sp_set,set_type=False):
+    def getInflowFromSp(self,sp_set,return_type="index"):
                 
         # Checks if input is or not bitarray, if it's no, it make the 
         # transmation
@@ -1260,10 +1312,14 @@ class RNIRG:
                 out |= self.ProdListBt[i]
         
         out&=sp
-        if set_type:
+        if return_type=="id":
             return self.SpIdStrArray[self.getIndArrayFromBt(out)]
         
-        return self.getIndArrayFromBt(out)
+        elif return_type=="index":
+            return self.getIndArrayFromBt(out)
+        
+        elif return_type=="bt":
+            return out
     
     def getRandNat(self,Sum,size):
         '''
