@@ -18,6 +18,7 @@ from typing import List, Any, Iterable
 from functools import reduce
 from bitarray.util import subset
 from pulp import *
+import re
 
 class RNDS(RNIRG):
 
@@ -167,7 +168,7 @@ class RNDS(RNIRG):
         Returns
         -------
         sp : list
-            A feasible procees vector for a organization that also overproduce opsp_set.
+            A feasible procees vector for a organization that also overproduce at least opsp_set.
 
         '''
         # Checks if input is bitarray, if it is not, it make the 
@@ -272,105 +273,123 @@ class RNDS(RNIRG):
         else:
             return(None)
 
-    # # Verifies which species of a reaction network (not necessarily an organization) 
-    # # are overproducible. Inputs are species sp_set and process vector pr, 
-    # # returns a list of overproducible species
-    # def getOpSpBtnew(self,sp_set,opsp_set=None,pr=None,M=1000):     
-    #     # Checks if input is bitarray, if it is not, it make the 
-    #     # transformation
-    #     if not (isinstance(sp_set,bt)):
-    #         sp=bt(self.MpDf.shape[0])
-    #         sp.setall(0)
-            
-    #         for i in sp_set:
-    #             if i in self.MpDf.index.values:
-    #                 ind=self.MpDf.index.get_loc(i)
-    #                 sp[ind]=1
-    #     else:
-    #         sp=sp_set
+    
+    def verifiyOp(self,sp_set,opsp_set,pr=None):     
+        '''
         
-    #     if opsp_set is None:
-    #         opts=sp.copy()
-    #     else:
-    #         if not (isinstance(opsp_set,bt)):
-    #             opts=bt(self.MpDf.shape[0])
-    #             opts.setall(0)
+
+        Parameters
+        ----------
+        sp_set : bitarray
+            Set of species to check.
+        opsp_set : bitarray
+            Set of overproduced whitin sp_set to check..
+        pr : list of integers or numpy array of integers, optional
+            Indexes of active reactions. The default is None.
+
+        Returns
+        -------
+        bool
+            True if opsp are overproduced in the set sp_set, and reaction pr. Else False.
+        numpy array
+            If latter condition is True, returns related process vector. If False, return vector of zeros.
+
+        '''
+        # Checks if input is bitarray, if it is not, it make the 
+        # transformation
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set
+        
+        if opsp_set is None:
+            opts=sp.copy()
+        else:
+            if not (isinstance(opsp_set,bt)):
+                opts=bt(self.MpDf.shape[0])
+                opts.setall(0)
                 
-    #             for i in opsp_set:
-    #                 if i in self.MpDf.index.values:
-    #                     ind=self.MpDf.index.get_loc(i)
-    #                     opts[ind]=1
-    #         else:
-    #             opts=opsp_set
+                for i in opsp_set:
+                    if i in self.MpDf.index.values:
+                        ind=self.MpDf.index.get_loc(i)
+                        opts[ind]=1
+            else:
+                opts=opsp_set
         
-    #     if pr is None:
-    #         v=bt(self.MpDf.shape[1])
-    #         v.setall(1)    
+        if pr is None:
+            v=bt(self.MpDf.shape[1])
+            v.setall(1)    
             
-    #     elif not (isinstance(pr,bt)):
-    #         v=bt(self.MpDf.shape[1])
-    #         v.setall(0)
+        elif not (isinstance(pr,bt)):
+            v=bt(self.MpDf.shape[1])
+            v.setall(0)
             
-    #         for i in pr:
-    #             v[i]=1
-    #     else:
-    #         v=pr
-            
-    #     # If it's only one species and self mantained, the reuturns the specie
-    #     # itself
-    #     if sp.count()==1 and self.isSmFromSp(sp):
-    #         return sp
+            for i in pr:
+                v[i]=1
+        else:
+            v=pr
         
-    #     Ns=sp.count() # number of species (rows)
-    #     nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+        opsp=self.SpIdStrArray[opsp_set.search(1)]
         
-    #     rc =[] # creating variable of available reaction 
-    #     for j in self.getIndArrayFromBt(v):
-    #         if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
-    #             rc.append(j) # selecting reactions that can be trigger with available species
+        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
+           
+        rc =[] # creating variable of available reaction 
+        for j in self.getIndArrayFromBt(v):
+            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+           
+        if len(rc)==0:
+            sp.setall(0)
         
-    #     if len(rc)==0:
-    #         sp.setall(0)
-    #         return sp
-        
-        
-    #     # stoichiometric matrix of rn with prepended destruction reactions
-    #     S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
-    #     # S=np.column_stack((-np.identity(Ns),S))
-    #     # S=S.tolist()
-        
-    #     # flow vector constraint: production of every species = 0
-    #     f=np.zeros(Ns) #norm of porcess vector for minimization 
-    #     # f=f.tolist()
-        
-    #     # Definir el problema de maximización
-    #     prob = LpProblem("Problema de optimización", LpMinimize)
-        
-    #     # Definir las variables de decisión x
-    #     x = LpVariable.dicts("x", range(S.shape[1]), lowBound=1, cat='Continuous')
-    #     # y = LpVariable.dicts("y", range(Ns+len(rc)), cat='Binary')
-        
-    #     # Definir la función objetivo
-    #     M = Ns+len(rc) * M # Factor suficientemente grande para garantizar que y[i] sea 1 si x[i] > 0
-    #     prob += lpSum(x[i] for i in range(Ns)), "Función objetivo"
-        
-    #     # Definir las restricciones
-        
-    #     for i in range(Ns):
-    #             prob += S[i] @ x >= 0, f"Restricción {i}"
+        else:   
                
-    #     # Resolver el problema
-    #     prob.solve()
+            # stoichiometric matrix of rn with prepended destruction reactions
+            S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
+            # S=np.column_stack((-np.identity(Ns),S))
+            # S=S.tolist()
+               
+            # flow vector constraint: production of every species = 0
+            # f=np.zeros(Ns) #norm of porcess vector for minimization 
+            # f=f.tolist()
+               
+            # Name and type of problem
+            prob = LpProblem("LP_Org_test", LpMinimize)
+               
+            # Definition of problem warabiles
+            x = LpVariable.dicts("process", S.iloc[3].index, lowBound=0, cat='Continuous')
+            # y = LpVariable.dicts("y", range(Ns+len(rc)), cat='Binary')
+            
+            # We define the objective function
+            prob += lpSum([x[i] for i in x])
+            for j in S.index:
+                    if j in opsp:
+                        prob +=lpSum([S.loc[j][i] * x[i] for i in S.loc[j].index]) >= 1
+                    else:
+                        prob +=lpSum([S.loc[j][i] * x[i] for i in S.loc[j].index]) == 0            
+
+                  
+            # Resolver el problema
+            prob.solve()
+               
+            v_result=np.zeros(self.MpDf.shape[1])
+            for v in prob.variables():        
+                ind=int(re.search(r'\d+', v.name).group())
+                v_result[ind]=v.varValue
         
-    #     # Imprimir el resultado
-    #     print("Estado:", LpStatus[prob.status])
-    #     print("Valor óptimo de la función objetivo:", value(prob.objective))
-    #     print("Solución:")
-    #     # for i in range(Ns+len(rc)):
-    #     #     print(f"x[{i}] = {value(x[i])}, y[{i}] = {value(y[i])}")
-    #     for i in range(Ns):
-    #         print(f"x[{i}] = {value(x[i])}")
-                
+            print("production:",S @ v_result[rc])
+            
+            if LpStatus[prob.status]=='Optimal':
+                return True, v_result
+            else:
+                return False, np.zeros(self.MpDf.shape[1])
+            
+            
     # Verifies which species of a reaction network (not necessarily an organization) 
     # are overproducible. Inputs are species sp_set and process vector pr, 
     # returns a list of overproducible species

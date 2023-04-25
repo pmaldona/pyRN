@@ -9,3 +9,7 @@ lxml
 pyvis
 matplotlib
 joblib
+pulp
+cysignals
+pplpy
+gmpy2

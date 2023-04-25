@@ -1337,8 +1337,11 @@ class RNSRW(CRNSMP):
         nrsp=list(set(self.getIndArrayFromBt(sp))-rsp)
                 
         # stoichiometric matrix of rn with prepended destruction reactions
-        S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
-        v=pr[pr>0]
+        # S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
+        # v=pr[pr>0]
+        # f=S@v
+        S=self.MpDf-self.MrDf
+        v=pr.copy()
         f=S@v
         
         #classification of species
@@ -1353,7 +1356,12 @@ class RNSRW(CRNSMP):
                 k=np.where(S.index==i)[0][0]
                 cl[k]="nr"
         
-        
+        nsp=self.MpDf.index[nsp]
+        for i in nsp:
+            if i in S.index:
+                k=np.where(S.index==i)[0][0]
+                cl[k]="np"
+
             
         return(cl)
 
@@ -1544,7 +1552,6 @@ class RNSRW(CRNSMP):
             for ind, val in enumerate(f_i):
                 if f_p[ind]<0:
                     
-                    # nsp[ind]=1
                     c=-f_i[ind]/f_p[ind]
                     if c < low_bound:
                         c=0
@@ -1582,14 +1589,13 @@ class RNSRW(CRNSMP):
         #non-reactive species
         nrsp=list(set(self.getIndArrayFromBt(sp_set))-rsp)
                 
-        f=n_f[self.getIndArrayFromBt(sp_set)]
+        f=n_f.copy()
+        
         
         #classification of species
         cl=f.copy()
         cl[f>0]="op"
         cl[f==0]="sm"
-
-
             
         nrsp=self.MpDf.index[nrsp]
         for i in nrsp:
@@ -1602,7 +1608,12 @@ class RNSRW(CRNSMP):
             if i in S.index:
                 k=np.where(f.index==i)[0][0]
                 cl[k]="d"
-
+        
+        nsp=self.MpDf.index[nsp]
+        for i in nsp:
+            if i in S.index:
+                k=np.where(S.index==i)[0][0]
+                cl[k]="np"
         return n_f, n_v, a, changed, cl
     
     def getRecursiveChangCoff(self,sp_set,v,vp,round_order=9): # ,search_fact=False):
