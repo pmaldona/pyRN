@@ -977,26 +977,27 @@ class RNDS(RNIRG):
         # print("total levels: ",all_op.count())  
         # Generation of the multigraph of overproduced hasse, by number of 
         # overproduced species
-        for i in op_b:
-            for j in list(op_hasse.nodes()):
-                op_new=i | bt(j)
-                # print("exploring: ",op_new)
-                if not (op_new in op_hasse):
-                    dcom=self.getDcomArray(op_new, sp, self.getTriggerableRpBtFromSp(sp))
-                    process=op_hasse.nodes(data="process")[j]+op_hasse.nodes(data="process")[fbt(i)]
-                    op_hasse.add_node(fbt(op_new),level=op_new.count(),
-                                      decomposition=self.getDcomArray(op_new, sp, self.getTriggerableRpBtFromSp(sp)),
-                                      process=process)#,
-     
-                     # Adding edges corresponding to the hasse diagram
-        
-        
-                    if i.count()>0:
-                        low_level = [x for x,y in op_hasse.nodes(data=True) if y['level']==i.count()-1]
-                        for m in low_level:    
-                            if bt(m) & bt(op_new) == bt(m):  
-                                op_hasse.add_edge(m,fbt(op_new))
-             
+        for i in range(1,all_op.count()+1):
+            level_nodes=list(map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']==i, op_hasse.nodes(data=True))))
+            for j in level_nodes:
+                for k in op_b:
+                    op_new= fbt(j|k)
+                    # print("exploring: ",op_new)
+                    if not (op_new in op_hasse.nodes()):
+      
+                        process=op_hasse.nodes(data="process")[fbt(j)]+op_hasse.nodes(data="process")[fbt(k)]
+                        dcom=self.getDcomArray(sp,bt(op_new),pr=np.where(process>0)[0])
+                        op_hasse.add_node(fbt(op_new),level=op_new.count(),
+                                          decomposition=dcom,
+                                          process=process)#,
+         
+                        if op_new.count()>0:
+                            low_level_nodes = list(map(lambda x: x[0],filter(lambda x: x[1]['level']==op_new.count()-1, op_hasse.nodes(data=True))))
+                            # [x for x,y in op_hasse.nodes(data=True) if y['level']==i.count()-1]
+                            for m in low_level_nodes:    
+                                if bt(m) & bt(op_new) == bt(m):  
+                                    op_hasse.add_edge(m,fbt(op_new))
+                 
         return op_hasse
     
     
