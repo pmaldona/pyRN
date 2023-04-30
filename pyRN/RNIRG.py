@@ -626,7 +626,7 @@ class RNIRG:
     # Function that displays the reactions on the screen. It receives as
     # input a list p of integers corresponding to the reactions to be displayed. 
     # If p is not entered, the complete network is displayed.
-    def printRp(self,r_set=np.array([])):
+    def printRp(self,r_set=None):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
@@ -635,7 +635,7 @@ class RNIRG:
            r_i=self.getIndArrayFromBt(r_set)
            # r=self.MpDf.columns[r_i]
         else:
-            if (r_set.size==0):
+            if r_set is None:
                 # r=self.MpDf.columns
                 r_i=range(self.MpDf.shape[1])
             else:

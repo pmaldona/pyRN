@@ -22,135 +22,7 @@ import re
 
 class RNDS(RNIRG):
 
-    # Verifies which species of a reaction network (not necessarily an organization) 
-    # are overproducible. Inputs are species sp_set and process vector pr, 
-    # returns a list of overproducible species
-    def getOpSpBt(self,sp_set,opsp_set=None,pr=None,only_ver=False):     
-        # Checks if input is bitarray, if it is not, it make the 
-        # transformation
-        if not (isinstance(sp_set,bt)):
-            sp=bt(self.MpDf.shape[0])
-            sp.setall(0)
             
-            for i in sp_set:
-                if i in self.MpDf.index.values:
-                    ind=self.MpDf.index.get_loc(i)
-                    sp[ind]=1
-        else:
-            sp=sp_set
-        
-        if opsp_set is None:
-            opts=sp.copy()
-        else:
-            if not (isinstance(opsp_set,bt)):
-                opts=bt(self.MpDf.shape[0])
-                opts.setall(0)
-                
-                for i in opsp_set:
-                    if i in self.MpDf.index.values:
-                        ind=self.MpDf.index.get_loc(i)
-                        opts[ind]=1
-            else:
-                opts=opsp_set
-        
-        if pr is None:
-            v=bt(self.MpDf.shape[1])
-            v.setall(1)    
-            
-        elif not (isinstance(pr,bt)):
-            v=bt(self.MpDf.shape[1])
-            v.setall(0)
-            
-            for i in pr:
-                v[i]=1
-        else:
-            v=pr
-            
-        # If it's only one species and self mantained, the reuturns the specie
-        # itself
-        if sp.count()==1 and self.isSmFromSp(sp):
-            return sp
-        
-        Ns=sp.count() # number of species (rows)
-        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
-        
-        rc =[] # creating variable of available reaction 
-        for j in self.getIndArrayFromBt(v):
-            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
-                rc.append(j) # selecting reactions that can be trigger with available species
-        
-        if len(rc)==0:
-            sp.setall(0)
-            return sp
-        
-        
-        # stoichiometric matrix of rn with prepended destruction reactions
-        S=self.MpDf.iloc[self.getIndArrayFromBt(sp),rc]-self.MrDf.iloc[self.getIndArrayFromBt(sp),rc]
-        print("shape",S.shape)
-        sp_names=S.index
-        S=S.to_numpy()
-        S=np.column_stack((-np.identity(Ns),S))
-        S=S.tolist()
-        
-        # flow vector constraint: production of every species = 0
-        f=np.zeros(Ns) #norm of porcess vector for minimization 
-        f=f.tolist()
-
-
-        # cost 0 for every reaction
-        cost=np.zeros(Ns+len(rc)) #norm of porcess vector for minimization 
-        cost=cost.tolist()
-        
-        # overproducible status for species (initially False, until proven to be True).
-        o=[]
-        for i in range(len(sp)):
-            o.append(False)
-            # cost[i]=1
-        
-        op_ind=np.empty(opts.count())
-        k=0
-        for i in opts.search(1):
-            op_ind[k]=np.where(self.SpIdStrArray[i] == sp_names)[0]
-            k+=1
-        op_ind=op_ind.astype(int)
-        
-        for p in op_ind:
-            print("p",p)
-            S[p][p]=1 # creation instead of destruction for p
-            f[p]=1 # production of p = 1 instead of 0, if it is possible with creation rate 0, then it is overproducible
-            cost[p]=1  # cost for creation of p = 1 instead of 0
-        # print("f",f)
-        # print("S",S)
-        # lineal programing calculation of existance of a solution to be 
-        # self-mantainend
-        
-        res = linprog(cost, A_eq=S, b_eq=f,method='highs')
-        # The unknown is the process vector v. The equations are S v = f with the inequality constraint v>=0 (rates can be 0).
-        # Only the creation reaction for p is penalized in Cost (the rate should be 0 if p is overproducible).
-        
-        opsp=opts.copy()
-        
-        for i in range(Ns):
-            if res.x[i]>0:
-                opsp[i]=1
-        # print("opsp",opsp)
-        # print("opts",opts)
-        print("solution",res.x)
-        
-        if all(res.x[op_ind]==0) and (not only_ver):
-            return(opsp,res.x[self.MpDf.shape[0]:(self.MpDf.shape[0]+self.MpDf.shape[1])])
-        
-        elif all(res.x[op_ind]==0) and only_ver and (opsp==opts):
-            return(opsp,res.x[self.MpDf.shape[0]:(self.MpDf.shape[0]+self.MpDf.shape[1])])
-        
-        else:
-            opsp.setall(0)
-            v=res.x[self.MpDf.shape[0]:(self.MpDf.shape[0]+self.MpDf.shape[1])]
-            for ind,value in enumerate(v):
-                v[ind]=0
-            return(opsp,v)
-        
-    
     def getOpOrgProcess(self,sp_set,opsp_set=None,pr=None):
         '''
         
@@ -274,7 +146,7 @@ class RNDS(RNIRG):
             return(None)
 
     
-    def verifiyOp(self,sp_set,opsp_set,pr=None):     
+    def veriOpSpBt(self,sp_set,opsp_set,pr=None,force_org=False):     
         '''
         
 
@@ -286,6 +158,8 @@ class RNDS(RNIRG):
             Set of overproduced whitin sp_set to check..
         pr : list of integers or numpy array of integers, optional
             Indexes of active reactions. The default is None.
+        force_org: bool
+            Forces the activacion all reactions (rates greater that zero) of pr
 
         Returns
         -------
@@ -340,13 +214,19 @@ class RNDS(RNIRG):
         nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
            
         rc =[] # creating variable of available reaction 
+        rsp=set()
         for j in self.getIndArrayFromBt(v):
             if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
                 rc.append(j) # selecting reactions that can be trigger with available species
-           
-        if len(rc)==0:
-            sp.setall(0)
+                rsp=rsp.union(np.where(self.MpDf.iloc[:,j]!=0)[0]).union(np.where(self.MrDf.iloc[:,j]!=0)[0])
         
+        rsp=list(rsp)
+        rsp=self.SpIdStrArray[rsp]
+# 
+        if len(rc)==0:
+            return False, np.zeros(self.MpDf.shape[1])
+        
+     
         else:   
                
             # stoichiometric matrix of rn with prepended destruction reactions
@@ -362,28 +242,29 @@ class RNDS(RNIRG):
             prob = LpProblem("LP_Org_test", LpMinimize)
                
             # Definition of problem warabiles
-            x = LpVariable.dicts("process", S.iloc[3].index, lowBound=0, cat='Continuous')
-            # y = LpVariable.dicts("y", range(Ns+len(rc)), cat='Binary')
+            if force_org:
+                x = LpVariable.dicts("process", S.iloc[3].index, lowBound=1, cat='Continuous')
+            else:
+                x = LpVariable.dicts("process", S.iloc[3].index, lowBound=0, cat='Continuous')
+          
             
             # We define the objective function
             prob += lpSum([x[i] for i in x])
             for j in S.index:
                     if j in opsp:
                         prob +=lpSum([S.loc[j][i] * x[i] for i in S.loc[j].index]) >= 1
-                    else:
+                    elif j in rsp:
                         prob +=lpSum([S.loc[j][i] * x[i] for i in S.loc[j].index]) == 0            
 
                   
             # Resolver el problema
-            prob.solve()
+            prob.solve(solver=GLPK(msg=False))
                
             v_result=np.zeros(self.MpDf.shape[1])
             for v in prob.variables():        
                 ind=int(re.search(r'\d+', v.name).group())
                 v_result[ind]=v.varValue
         
-            print("production:",S @ v_result[rc])
-            
             if LpStatus[prob.status]=='Optimal':
                 return True, v_result
             else:
@@ -574,9 +455,10 @@ class RNDS(RNIRG):
         # It implies that there is at least one original process vector that can sustain every species (and even increase
         # them if destruction reactions have positive rate). In that case the reaction network is a proper organization.
         # If not it can be converted into one by adding the extra inflow of species with creation rate > 0.
-        # Returns the indexes of species needed as extra inflow and overproduced species in the particular solution found.        
+        # Returns the indexes of species needed as extra inflow and overproduced species in the particular found solution.        
         
-        return(dict(inf=np.where(res.x[0:Ns]>0)[0],ovp=np.where(res.x[Ns+1:2*Ns]>0)[0],v=res.x[0:Ns]))
+        # return(dict(inflow=np.where(res.x[0:Ns]>0)[0],opsp=np.where(res.x[Ns+1:2*Ns]>0)[0],v=res.x[0:Ns]))
+        return (np.where(res.x[0:Ns]>0)[0],np.array(rc))
 
 
     # Generates a base of overproduced species of a reaction network 
@@ -703,7 +585,7 @@ class RNDS(RNIRG):
     # overproducible species, if it is -2 to a catalytic species and if it 
     # is 0 the species is not present. The integer values indicate belonging 
     # to the current fragile cycle.
-    def getDcomArray(self,opsp_set,sp_set,pr=None):
+    def getDcomArray(self,sp_set,opsp_set,pr=None):
         
         # Checks if input is bitarray, if it is not, it make the 
         # transformation
@@ -737,11 +619,11 @@ class RNDS(RNIRG):
             v=bt(self.MpDf.shape[1])
             v.setall(0)
             
-            for i in pr:
+            for i in np.where(pr>0)[0]:
                 v[i]=1
         else:
             v=pr
-        
+
         # generetinf the decompotion vector
         dcom=np.zeros(len(sp))
         
@@ -760,35 +642,47 @@ class RNDS(RNIRG):
         c_m = self.MrDf.iloc[sp_ind,:].copy()
         nc_m = c_m.copy()
         
+        #not present specues as index
+        nsp=sp.search(0)
+        
+        rsp=set()
+        rc=[]
         for i in self.getIndArrayFromBt(v):
+            # Matrix for identifaction of catalysts species identifications
             c_m.iloc[:,i] = ((self.MpDf.iloc[sp_ind,i]!=0) & (self.MrDf.iloc[sp_ind,i]!=0)) & (self.MpDf.iloc[sp_ind,i]==self.MrDf.iloc[sp_ind,i])
+            # Matrix for identifaction of non-catalysts species identifications
             nc_m.iloc[:,i] = (self.MpDf.iloc[sp_ind,i])!=(self.MrDf.iloc[sp_ind,i])
+            
+            if (all(self.MpDf.iloc[nsp,i]==0) and all(self.MrDf.iloc[nsp,i]==0)):
+                rc.append(i) # selecting reactions that can be trigger with available species
+                rsp=rsp.union(np.where(self.MpDf.iloc[:,i]!=0)[0]).union(np.where(self.MrDf.iloc[:,i]!=0)[0])
         
-        
+        # Removing reaction with zero rate
         c_m=c_m.iloc[:,self.getIndArrayFromBt(v)]
         nc_m=nc_m.iloc[:,self.getIndArrayFromBt(v)]     
-        
-        #finding catalytic species
+         
+        # finding catalytic species
         csp=sp.copy()
         csp.setall(0)
-        j=0
-        
-        
-        
+        j=0 
         for i in ((c_m.sum(axis=1)!=0) & (nc_m.sum(axis=1)==0)):
             if i:
                 csp[sp_ind[j]]=1
             j+=1
-
+            
+        # non-reactive species
+        nrsp_ind=list(set(self.getIndArrayFromBt(sp))-rsp)
+        
+        nrsp=sp.copy()
+        nrsp.setall(0)
+        # as index vector
+        for i in nrsp_ind:
+            nrsp[i]=1
+            # setting as -3 non reactive species
+            dcom[i]=-3
+        
         # findinng all other species that aren't catalysers o opverproducble
-        fsp=sp.copy() & ~(csp.copy() | opsp.copy())
-        
-        nsp=list(set(range(len(sp)))-set(self.getIndArrayFromBt(sp))) #species no present
-        
-        rc =[] # creating variable of available reaction 
-        for j in self.getIndArrayFromBt(v):
-            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
-                rc.append(j) # selecting reactions that can be trigger with available species
+        fsp=sp.copy() & ~(csp.copy() | opsp.copy() | nrsp.copy())
         
         # if there aren't reactive 
         if(len(rc)==0):
@@ -904,178 +798,72 @@ class RNDS(RNIRG):
             return False
     
     
-    # def genCombElements(self,G,level,sp,pr):
-    #     '''
+    def getallPermutation(self,sp_set,level):
+        '''
         
 
-    #     Parameters
-    #     ----------
-    #     G : TYPE
-    #         DESCRIPTION.
-    #     level : TYPE
-    #         DESCRIPTION.
-    #     sp : TYPE
-    #         DESCRIPTION.
-    #     pr : TYPE
-    #         DESCRIPTION.
+        Parameters
+        ----------
+        sp_set : TYPE
+            DESCRIPTION.
+        level : TYPE
+            DESCRIPTION.
 
-    #     Returns
-    #     -------
-    #     G : TYPE
-    #         DESCRIPTION.
-    #     bool
-    #         DESCRIPTION.
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
 
-    #     '''
-    #     print("Comb level:",level)
-    #     try:
-    #         sup_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']>level, G.nodes(data=True))))
-    #     except:
-    #         return G, False
-    #     try:
-    #         inf_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']<=level, G.nodes(data=True))))
-    #     except:
-    #         return G, True
-        
-    #     not_in_inf_level=sup_level_sp & ~inf_level_sp
-        
-    #     if not_in_inf_level.count()==0.:
-    #         return G, False
-    #     else:
-    #         for i in not_in_inf_level.search(1):
-    #             level_sets=list(map(lambda x: (bt(x[0]),x[1]),filter(lambda x: x[1]['level']==level, G.nodes(data=True))))
-    #             for j in level_sets:
-    #                 opts=j.copy()
-    #                 opts[i]=1
-    #                 opsp , v = self.getOpSpBt(sp_set=sp,opsp_set=opts,pr=pr)
-    #                 if opsp.count()>0:
-    #                     G.add_node(fbt(opsp), level=opsp.count(), v=v)
-                        
-    #     return G, True
-    
-    # def genNextLevel(self,G,level):
-    #     '''
-        
-
-    #     Parameters
-    #     ----------
-    #     G : networkx DiGraph
-    #         overproducible lattice structure.
-    #     level : int
-    #         level ( number of species) for the unnion to create new added sets.
-
-    #     Returns
-    #     -------
-    #     G : networkx DiGraph
-    #         Updated overproducible lattice structure.
-
-    #     '''
-    #     print("next level:",level)
-    #     def add_node_and_edges(a_node,b_node):
-    #         G.add_node(fbt(a_node[0]|b_node[0]),level=(a_node[0]|b_node[0]).count()
-    #                                       ,v=a_node[1]['v']+b_node[1]['v'])
-    #         G.add_edge(fbt(a_node[0]),fbt(a_node[0]))
-    #         G.add_edge(fbt(a_node[0]),fbt(b_node[0]))
-            
-    #     level_sets=list(map(lambda x: (bt(x[0]),x[1]),filter(lambda x: x[1]['level']==level, G.nodes(data=True))))
-        
-    #     for ind,f_set in enumerate(level_sets):
-    #         print(f_set)
-    #         union_sets=list(filter(lambda x: (f_set[0]|x[0]).count()==(level+1),level_sets[(ind+1):]))
-    #         print(union_sets)
-    #         if len(union_sets)>0:
-    #             list(map(lambda x: add_node_and_edges(f_set, x),union_sets))
-                
-    #     return G    
-        
-    # def setOpStr(self,sp_set=None,pr=None):
-    #     '''
-        
-
-    #     Parameters
-    #     ----------
-    #     sp_set : TYPE, optional
-    #         DESCRIPTION. The default is None.
-    #     pr : TYPE, optional
-    #         DESCRIPTION. The default is None.
-
-    #     Returns
-    #     -------
-    #     G : TYPE
-    #         DESCRIPTION.
-
-    #     '''
-        
-    #     if sp_set is None:
-    #         sp=bt(self.MpDf.shape[0])
-    #         sp.setall(1)
-            
-    #     elif not (isinstance(sp_set,bt)):
-    #         sp=bt(self.MpDf.shape[0])
-    #         sp.setall(0)
-            
-    #         for i in sp_set:
-    #             if i in self.MpDf.index.values:
-    #                 ind=self.MpDf.index.get_loc(i)
-    #                 sp[ind]=1
-    #     else:
-    #         sp=sp_set
-        
-    #     if pr is None:
-    #         v=bt(self.MpDf.shape[1])
-    #         v.setall(1)    
-            
-    #     elif not (isinstance(pr,bt)):
-    #         v=bt(self.MpDf.shape[1])
-    #         v.setall(0)
-            
-    #         for i in pr:
-    #             v[i]=1
-    #     else:
-    #         v=pr
-            
-    #     G = nx.DiGraph() # lattice overproducible structre as network graph
-    #     opts=sp.copy()
-    #     for level in range(1,sp.count()+1):
-    #         if level==1:
-    #             for i in sp.search(1):
-    #                 opts.setall(0)
-    #                 opts[i]=1
-    #                 opsp , v = self.getOpSpBt(sp_set=sp,opsp_set=opts,pr=pr)
-    #                 if opsp.count()>0:
-    #                     G.add_node(fbt(opsp), level=opsp.count(), v=v)
-    #             G, verification = self.genCombElements(G, level, sp, pr)
-    #             G = self.genNextLevel(G,level)
-    #         else:
-    #             if verification:
-    #                 verification = self.genCombElements(G, level, sp, pr)
-    #                 G = self.genNextLevel(G,level)
-    #             else:
-    #                 G = self.genNextLevel(G,level)
-                    
-                    
-    #     return G
-    
-    def getAllPermutation(self,sp_set,level):
-        
+        '''
         all_comb=combinations(self.getIndArrayFromBt(sp_set), level)
         return list(map(lambda x: fbt(self.getBtFromIndArray(x,len(sp_set))),all_comb))
     
-    def addfOpfromList(self,G,sp,oplist,pr):
+    def addfOpfromList(self,G,sp,oplist,pr,force_org=False):
+        '''
         
+
+        Parameters
+        ----------
+        G : TYPE
+            DESCRIPTION.
+        sp : TYPE
+            DESCRIPTION.
+        oplist : TYPE
+            DESCRIPTION.
+        pr : TYPE
+            DESCRIPTION.
+        force_org : bool
+            Forces the activacion all reactions (rates greater that zero) of pr
+
+        Returns
+        -------
+        None.
+
+        '''
         for i in oplist:
-            opsp , v = self.getOpSpBt(sp_set=sp,opsp_set=bt(i),pr=pr,only_ver=False)
+            # Verifying if propused set of overproducibles are overproduced
+            verifi , process = self.veriOpSpBt(sp_set=sp,opsp_set=bt(i),pr=pr,force_org=force_org)
             
+            # Estimating whether lower level sets exist
             try:
-                inf_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']<=i.count()-1, G.nodes(data=True))))
+                low_level=list(map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']<=i.count()-1, G.nodes(data=True))))
+                inf_level_sp=reduce(lambda x,y : x|y,low_level)
             except:
-                inf_level_sp=opsp.copy()
+                inf_level_sp=bt(i)
                 inf_level_sp.setall(0)
-                
-            if opsp.count()>0 and (not subset(opsp, inf_level_sp)):
-                G.add_node(fbt(opsp), level=opsp.count(), v=v)
+            
+            # Adding new nodes
+            if verifi and (not subset(i, inf_level_sp)):
+                dcom=self.getDcomArray(sp, i, pr)
+                G.add_node(i, level=i.count(), process=process,decomposition=dcom)
               
-    def genOpBase(self,sp_set=None,pr=None):
+                # Adding new edges to hasse diagram
+                for m in low_level:    
+                    if m & i == m:  
+                        G.add_edge(fbt(m),fbt(i))
+            
+              
+    def genOpBase(self,sp_set=None,pr=None,force_org=False):
         '''
         
 
@@ -1085,7 +873,8 @@ class RNDS(RNIRG):
             DESCRIPTION. The default is None.
         pr : TYPE, optional
             DESCRIPTION. The default is None.
-
+        force_org : bool
+            Forces the activacion all reactions (rates greater that zero) of pr
         Returns
         -------
         G : TYPE
@@ -1120,30 +909,34 @@ class RNDS(RNIRG):
                 v[i]=1
         else:
             v=pr
-            
+        
+        opsp=self.getallOpSpBt(sp,v)
         G = nx.DiGraph() # lattice overproducible structre as network graph
-        for level in range(1,sp.count()+1):
+        # We want to generate al possible overproducible species combiantion 
+        # that are ovreproduced but not comination of existing overprducible species
+        for level in range(1,opsp.count()+1):
             
             # try:
             #     sup_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']>level, G.nodes(data=True))))
             # except:
             #     break
             try:
+                # we get the union of all inferior species if it is possible (case we are not at level=1)
                 inf_level_sp=reduce(lambda x,y : x|y,map(lambda x: bt(x[0]),filter(lambda x: x[1]['level']<=level-1, G.nodes(data=True))))
-                pos_comb=self.getAllPermutation(inf_level_sp, level)
+                pos_comb=self.getallPermutation(inf_level_sp, level)
             except:
                 pos_comb=[]
-            print("pos_pert",pos_comb)
-            all_comb=self.getAllPermutation(sp, level)
-            print("all_pert",all_comb)
+                
+            all_comb=self.getallPermutation(opsp, level) #we obtain all posible combinations
             new_comb=list(filter(lambda x: x not in pos_comb, all_comb))
-            new_comb=list(filter(lambda x: x not in list(G.nodes), new_comb))
-            print("new_pert",new_comb)
+            # new_comb=list(filter(lambda x: x not in list(G.nodes), new_comb))
             if len(new_comb)>0: 
-                self.addfOpfromList(G, sp, new_comb, pr)            
+                self.addfOpfromList(G, sp, new_comb, pr,force_org=force_org)                        
+            
             else:
+                # No more cases to explore
                 break
-        
+            
         return G
          
                     
@@ -1155,7 +948,7 @@ class RNDS(RNIRG):
     # vertexs correspond to the different combinations of overproduced species. 
     # The edges corresponds to the join and meet of the overproduced species. 
     # Each vertex has an attribute that is the decomposition vector. 
-    def getOpHasseNx(self,sp_set):
+    def getOpHasseNx(self,sp_set,force_org=False):
         # Checks if input is a bitarray, if it is not, it make the 
         # transformation
         if not (isinstance(sp_set,bt)):
@@ -1169,115 +962,19 @@ class RNDS(RNIRG):
         else:
             sp=sp_set
       
-        # generation of the overproduced base
-        op_b=self.getOpBaseBtList(sp_set, self.getTriggerableRpBtFromSp(sp_set))
-        # initialization of multigraph of opverproduced hasse 
-        G = nx.DiGraph()
+        # initialization of multigraph of opverproduced by inducing the base 
+        op_hasse = self.genOpBase(sp_set, self.getTriggerableRpBtFromSp(sp_set),force_org=force_org)
         all_op=sp.copy()
         all_op.setall(0)
         
-        # steps count
-        st=0
-        
-        if len(op_b)==0:
-            st+=1
-            op=bt(len(sp))
-            op.all()
-            dcom=self.getDcomArray(op, sp, self.getTriggerableRpBtFromSp(sp))
-            G.add_node(fbt(op),level=0,
-                        dcom=dcom)#,
-            return G, st
+        op_b=[]
         
         # The nodes corresponding to the overproduced base.
-        for i in op_b:
-            st+=1
-            dcom=self.getDcomArray(i, sp, self.getTriggerableRpBtFromSp(sp))
-            G.add_node(fbt(i),level=i.count(),
-                        dcom=dcom)#,
-                        # is_org=self.getDcomArray_ssm(dcom))
-            all_op|=i
+        for i in op_hasse.nodes():
+            op_b.append(bt(i))
+            all_op|=bt(i)
         
-        
-
         # print("total levels: ",all_op.count())  
-        # Generation of the multigraph of overproduced hasse, by number of 
-        # overproduced species
-        for i in range(all_op.count()):
-            # print("level: ",i)
-            # Overproudced sets by level (number of overproduced species)
-            nodes = [x for x,y in G.nodes(data=True) if y['level']==i+1]
-             
-            # union whit connected opverproduced bases for each set in level i
-            for j in nodes:
-                
-                # generating connected nodes, nodes that are not containend in j
-                conn_nodes=[];
-                for l in op_b:
-                    if (not (l & bt(j)) == l) and (not fbt(bt(j)|l) in G):
-                        conn_nodes.append(l)
-                
-                for k in conn_nodes:
-                    op_new=fbt(bt(j)|k)
-                    st+=1
-                    # decomposition result
-                    dcom=self.getDcomArray(op_new, sp, self.getTriggerableRpBtFromSp(sp))
-                     
-                    # node is added if si not in structrue
-                    if not (op_new in G):
-                        
-                        G.add_node(op_new,level=op_new.count(),
-                                  dcom=dcom)#,
-                                  # is_org=self.getDcomArray_ssm(dcom))
-       
-                    # Adding edges corresponding to the hasse diagram
-                    if i>0:
-                        low_level = [x for x,y in G.nodes(data=True) if y['level']==i-1]
-                        for m in low_level:    
-                            if bt(m) & bt(op_new) == bt(m):  
-                                G.add_edge(m,op_new)
-      
-        return G, st
-        
-    # Function that generates a Hasse diagram from a set of species with all 
-    # the combinations of the overproduced base, obtaining all the 
-    # decompositions. The input corresponds to a set of sp_set species which 
-    # must be an organization and the output corresponds to a graph whose 
-    # vertexs correspond to the different combinations of overproduced species. 
-    # The edges corresponds to the join and meet of the overproduced species. 
-    # Each vertex has an attribute that is the decomposition vector. 
-    def getOpHasseNx_2(self,sp_set):
-        # Checks if input is a bitarray, if it is not, it make the 
-        # transformation
-        if not (isinstance(sp_set,bt)):
-            sp=bt(self.MpDf.shape[0])
-            sp.setall(0)
-            
-            for i in sp_set:
-                if i in self.MpDf.index.values:
-                    ind=self.MpDf.index.get_loc(i)
-                    sp[ind]=1
-        else:
-            sp=sp_set
-      
-        # generation of the overproduced base
-        op_b=self.getOpBaseBtList(sp_set, self.getTriggerableRpBtFromSp(sp_set))
-        # initialization of multigraph of opverproduced hasse 
-        op_hasse = nx.DiGraph()
-        all_op=sp.copy()
-        all_op.setall(0)
-        
-        # The nodes corresponding to the overproduced base.
-        for i in op_b:
-            dcom=self.getDcomArray(i, sp, self.getTriggerableRpBtFromSp(sp))
-            op_hasse.add_node(fbt(i),level=i.count(),
-                        dcom=dcom)#,
-                        # is_org=self.getDcomArray_ssm(dcom))
-            all_op|=i
-        
-        # present opverpruced base elements to combine
-        p_op=bt(len(op_b))
-        p_op.setall(1)
-        
         # Generation of the multigraph of overproduced hasse, by number of 
         # overproduced species
         for i in op_b:
@@ -1285,88 +982,22 @@ class RNDS(RNIRG):
                 op_new=i | bt(j)
                 # print("exploring: ",op_new)
                 if not (op_new in op_hasse):
+                    dcom=self.getDcomArray(op_new, sp, self.getTriggerableRpBtFromSp(sp))
+                    process=op_hasse.nodes(data="process")[j]+op_hasse.nodes(data="process")[fbt(i)]
                     op_hasse.add_node(fbt(op_new),level=op_new.count(),
-                                      dcom=self.getDcomArray(op_new, sp, self.getTriggerableRpBtFromSp(sp)))#,
-                   
-        #generating the edges of the graph:
-        # for i in range(all_op.count()):
-        #     for j in [x for x,y in op_hasse.nodes(data=True) if y['level']==i]:
-        #         if i>0:
-        #             for m in [x for x,y in op_hasse.nodes(data=True) if y['level']==i-1]:    
-        #                 if bt(m) & bt(j) == bt(m):  
-        #                     op_hasse.add_edge(m,j)
-        print("op_hasse: ", len(op_hasse.nodes()))
-        return(op_hasse)
-
-    # Flatten a list using generators comprehensions.
-    # Returns a flattened version of list lst.
-    def flatten(self,lst: List[Any]) -> Iterable[Any]:
-
-
-        for sublist in lst:
-             if isinstance(sublist, list):
-                 for item in sublist:
-                     yield item
-             else:
-                 yield sublist
-                 
-    # Generates the powerset of an list of elements, returns a list of tuples
-    # of each comination posible.
-    def powerset(self,iterable):
-        s = list(iterable)
-        return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
-    
-    
-    # Function that generates a Hasse diagram from a set of species with all 
-    # the combinations of the overproduced base, obtaining all the 
-    # decompositions. The input corresponds to a set of sp_set species which 
-    # must be an organization and the output corresponds to a graph whose 
-    # vertexs correspond to the different combinations of overproduced species. 
-    # The edges corresponds to the join and meet of the overproduced species. 
-    # Each vertex has an attribute that is the decomposition vector. 
-    def getOpHasseNx_3(self,sp_set):
-        # Checks if input is a bitarray, if it is not, it make the 
-        # transformation
-        if not (isinstance(sp_set,bt)):
-            sp=bt(self.MpDf.shape[0])
-            sp.setall(0)
-            
-            for i in sp_set:
-                if i in self.MpDf.index.values:
-                    ind=self.MpDf.index.get_loc(i)
-                    sp[ind]=1
-        else:
-            sp=sp_set
-      
-        # generation of the overproduced base
-        op_b=self.getOpBaseBtList(sp_set, self.getTriggerableRpBtFromSp(sp_set))
-        # initialization of multigraph of opverproduced hasse 
-        op_hasse = nx.DiGraph()
-        all_op=sp.copy()
-        all_op.setall(0)
+                                      decomposition=self.getDcomArray(op_new, sp, self.getTriggerableRpBtFromSp(sp)),
+                                      process=process)#,
+     
+                     # Adding edges corresponding to the hasse diagram
         
-        # The nodes corresponding to the overproduced base.
-        for i in op_b:
-            dcom=self.getDcomArray(i, sp, self.getTriggerableRpBtFromSp(sp))
-            op_hasse.add_node(fbt(i),level=i.count(),
-                        dcom=dcom)#,
-                        # is_org=self.getDcomArray_ssm(dcom))
-            all_op|=i
         
-        # generating the powerset and eliminating redudant variables.
-        op_b=list(map(self.getIndArrayFromBt,op_b))
-        op_hasse=list(self.powerset(op_b))
-        op_hasse=list(map(lambda x: set(list(self.flatten(x))),list(map(list,op_hasse))))
-        op_hasse=list(map(sorted,op_hasse))
-        op_hasse = [list(x) for x in set(tuple(x) for x in op_hasse)]
-
-        # op_hasse=list(map(list,op_hasse))
-        
-        # generating all decompositions
-        dcom=list(map(lambda x: self.getDcomArray(self.sp[x], sp, self.getTriggerableRpBtFromSp(sp)),op_hasse))
-        print("op_hasse2: ", len(op_hasse))
-        return(op_hasse)
-    
+                    if i.count()>0:
+                        low_level = [x for x,y in op_hasse.nodes(data=True) if y['level']==i.count()-1]
+                        for m in low_level:    
+                            if bt(m) & bt(op_new) == bt(m):  
+                                op_hasse.add_edge(m,fbt(op_new))
+             
+        return op_hasse
     
     
     # Function that generates the polyhedra and polytopes that the fragile and 
