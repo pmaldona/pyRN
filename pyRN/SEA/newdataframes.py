@@ -191,8 +191,8 @@ def determine_perturbation_size(state, perturbation):
     '''
     state        = list(state)
     perturbation = list(perturbation)
-    added        = sos.n_elements(sos.difference(perturbation, state))
-    removed      = sos.n_elements(sos.intersection(state, perturbation))
+    added        = sum([1 for i in range(len(state)) if state[i]==0 and perturbation[i]==1])
+    removed      = sum([1 for i in range(len(state)) if state[i]==1 and perturbation[i]==1])
     return (added, removed)
 
 ###############################################################################################################################################################################
