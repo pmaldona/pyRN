@@ -19,6 +19,7 @@ from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 from itertools import combinations
 import networkx as nx
+from pyvis.network import Network
 
 class RNSRW(CRNSMP):
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
@@ -1846,3 +1847,75 @@ class RNSRW(CRNSMP):
                 cl[k]="np"
         return n_f, n_v, a, changed, cl
  
+    def displayDynRolePv(self,dyn_role,process,x_size='500px',y_size='500px',notebook=False,cdn_resources='local'):
+        G = nx.MultiDiGraph()
+        r_i=np.where(process>0)[0]
+        
+        
+        for i in np.unique(dyn_role):
+            if i =="d":
+                for j in np.where(dyn_role==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = "#FF6666", label=self.SpIdStrArray[j], size=14, shape="dot")
+            elif i == "sm":
+                for j in np.where(dyn_role==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = "#0080FF", label=self.SpIdStrArray[j], size=14, shape="dot")
+            elif i == "op":
+                for j in np.where(dyn_role==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = "#00FF80", label=self.SpIdStrArray[j], size=14, shape="dot")
+            elif i == "np":
+                for j in np.where(dyn_role==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = "#E0E0E0", label=self.SpIdStrArray[j], size=14, shape="dot")
+            elif i == "nr":        
+                for j in np.where(dyn_role==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = "#FFFF99", label=self.SpIdStrArray[j], size=14, shape="dot")
+        
+        for i in range(self.MpDf.shape[1]):
+            if i in r_i:
+                if process[i]==1:
+                    G.add_node("r"+str(i), color = "#4B0082", label="r"+str(i), shape="square", size=7,title="")
+                else:
+                    G.add_node("r"+str(i), color = "#4B0082", label="r"+str(i), shape="square", size=7,title=str(process[i]))
+                    
+                for j in self.getIndArrayFromBt(self.ReacListBt[i]):
+                    st_value=self.MrDf.iloc[j,i]
+                    label=""
+                    if st_value!=1:
+                        label=str(st_value)
+                    G.add_edge(str(self.SpIdStrArray[j]), "r"+str(i), color="#4B0082",
+                               label=label,title=label)
+                    
+                for j in self.getIndArrayFromBt(self.ProdListBt[i]):
+                    st_value=self.MpDf.iloc[j,i]
+                    label=""
+                    if st_value!=1:
+                        label=str(st_value)
+                    G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="#4B0082",
+                               label=label,title=label)
+            
+            else:
+                G.add_node("r"+str(i), color = "#E0E0E0", label="r"+str(i), shape="square", size=7,title="")
+            
+            
+                for j in self.getIndArrayFromBt(self.ReacListBt[i]):
+                    st_value=self.MrDf.iloc[j,i]
+                    label=""
+                    if st_value!=1:
+                        label=str(st_value)
+                    G.add_edge(str(self.SpIdStrArray[j]), "r"+str(i), color="#E0E0E0",
+                               label=label,title=label)
+                
+                for j in self.getIndArrayFromBt(self.ProdListBt[i]):
+                    st_value=self.MpDf.iloc[j,i]
+                    label=""
+                    if st_value!=1:
+                        label=str(st_value)
+                    G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="#E0E0E0",
+                               label=label,title=label)
+            
+        nt = Network(x_size, y_size ,directed=True,notebook=notebook,cdn_resources=cdn_resources)
+        nt.from_nx(G)
+        nt.toggle_physics(False)
+        # nt.show('proto.html')
+        return(nt)            
+
+        

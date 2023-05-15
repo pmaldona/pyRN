@@ -1318,7 +1318,7 @@ class CRNS(RNIRG):
             
         
     def recursiveCloseReac(self,pb,sp,o,closed_cnt,N,conn_search,ssm_search):
-        print("entering recusrion at level",o)
+        # print("entering recusrion at level",o)
         self.AllCloseSteps+=1
         # print("level",o)
         # if explored cases exceeds N cases to explore  
@@ -1334,13 +1334,13 @@ class CRNS(RNIRG):
         
         # verifing if correspond to cases to explore
         if not subset(ib,pb):
-            print("ib",ib.search(1),"is't in cases to explore",pb.search(1))
+            # print("ib",ib.search(1),"is't in cases to explore",pb.search(1))
             return 1
         
         # adding new closed set 
         self.CloseReacSpBt.append(csp)
         self.CloseReacBBt.append(ib)
-        print("closed set",ib.search(1),"added")
+        # print("closed set",ib.search(1),"added")
         if self.isSmFromSp(csp):
             self.CloseReacOrgSpBt.append(csp)
             self.saveToPkl("Kegg.pkl")
@@ -1349,33 +1349,33 @@ class CRNS(RNIRG):
         
         if conn_search:
             pb&=self.getGBtConnectedToBBt(ib,inculde_itself=True)
-        print("pb",pb)
+        # print("pb",pb)
         iter_range=np.array(pb.search(1))
         iter_range=iter_range[iter_range>=o]
-        print("iter_range",iter_range)
+        # print("iter_range",iter_range)
         # for i in range(o,len(self.BSpListBt)):
         for i in iter_range:
             
-            print("exploring level",i)
+            # print("exploring level",i)
             if ib[i]==1:
                 print("level",i,"in closure",ib.search(1))
                 continue
             if subset(self.GInBListBt[i],pb):
-                print("level",i,"define by basic",self.GInBListBt[i].search(1),"is subset of pb,",pb.search(1))
+                # print("level",i,"define by basic",self.GInBListBt[i].search(1),"is subset of pb,",pb.search(1))
                 new_set=csp|self.BSpListBt[i]
-                tmp_ib=self.getGBtInSpBt(new_set)
-                print("Entering recursion with following closure",tmp_ib.search(1))
+                # tmp_ib=self.getGBtInSpBt(new_set)
+                # print("Entering recursion with following closure",tmp_ib.search(1))
                 if not self.recursiveCloseReac(pb.copy(), new_set, i, closed_cnt, N,conn_search=conn_search,ssm_search=ssm_search):
-                    print("new candidate found")
+                    # print("new candidate found")
                     return 0
-            if pb[i]==0:
-                print("component",i,"not there")
-            else:
-                print("component",i,"eliminated")
+            # if pb[i]==0:
+                # print("component",i,"not there")
+            # else:
+                # print("component",i,"eliminated")
             pb[i]=0
-            print("pb changed to",pb.search(1))
+            # print("pb changed to",pb.search(1))
         
-        print("all cases aready fonund, returning to level",o-1)
+        # print("all cases aready fonund, returning to level",o-1)
         return 1
         
     
