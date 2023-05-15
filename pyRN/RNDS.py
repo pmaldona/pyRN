@@ -19,6 +19,9 @@ from functools import reduce
 from bitarray.util import subset
 from pulp import *
 import re
+import random
+from pyvis.network import Network
+from colorsys import hsv_to_rgb
 
 class RNDS(RNIRG):
 
@@ -1000,6 +1003,88 @@ class RNDS(RNIRG):
                  
         return op_hasse
     
+    def getDecomDisplayPv(self,decom_array,process,x_size='500px',y_size='500px',notebook=False,cdn_resources='local'):
+
+        G = nx.MultiDiGraph()
+        r_i=np.where(process>0)[0]
+        
+        exluded_colors=["#E0E0E0","#0080FF","#FF6666","#00FF80","#4B0082"]
+        
+        for i in np.unique(decom_array):
+            if i ==-3:
+                for j in np.where(decom_array==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = "#FF6666", label=self.SpIdStrArray[j], size=14, shape="dot")
+            elif i == -2:
+                for j in np.where(decom_array==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = "#0080FF", label=self.SpIdStrArray[j], size=14, shape="dot")
+            elif i == -1:
+                for j in np.where(decom_array==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = "#00FF80", label=self.SpIdStrArray[j], size=14, shape="dot")
+            elif i == 0:
+                for j in np.where(decom_array==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = "#E0E0E0", label=self.SpIdStrArray[j], size=14, shape="dot")
+            else:                
+                # generate a new color that is visually distinguishable from the existing colors
+                while True:
+                    hue = random.random()
+                    saturation = random.uniform(0.5, 1.0)
+                    brightness = random.uniform(0.5, 1.0)
+                    r, g, b = hsv_to_rgb(hue, saturation, brightness)
+                    color = "#{:02x}{:02x}{:02x}".format(int(r * 255), int(g * 255), int(b * 255))
+                    if color not in exluded_colors:
+                        break
+                    
+                for j in np.where(decom_array==i)[0]:
+                    G.add_node(self.SpIdStrArray[j], color = color, label=self.SpIdStrArray[j], size=14, shape="dot")
+        
+        for i in range(self.MpDf.shape[1]):
+            if i in r_i:
+                if process[i]==1:
+                    G.add_node("r"+str(i), color = "#4B0082", label="r"+str(i), shape="square", size=7,title="")
+                else:
+                    G.add_node("r"+str(i), color = "#4B0082", label="r"+str(i), shape="square", size=7,title=str(process[i]))
+                    
+                for j in self.getIndArrayFromBt(self.ReacListBt[i]):
+                    st_value=self.MrDf.iloc[j,i]
+                    label=""
+                    if st_value!=1:
+                        label=str(st_value)
+                    G.add_edge(str(self.SpIdStrArray[j]), "r"+str(i), color="#4B0082",
+                               label=label,title=label)
+                
+                for j in self.getIndArrayFromBt(self.ProdListBt[i]):
+                    st_value=self.MpDf.iloc[j,i]
+                    label=""
+                    if st_value!=1:
+                        label=str(st_value)
+                    G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="#4B0082",
+                               label=label,title=label)
+            
+            else:
+                G.add_node("r"+str(i), color = "#E0E0E0", label="r"+str(i), shape="square", size=7,title="")
+            
+            
+                for j in self.getIndArrayFromBt(self.ReacListBt[i]):
+                    st_value=self.MrDf.iloc[j,i]
+                    label=""
+                    if st_value!=1:
+                        label=str(st_value)
+                    G.add_edge(str(self.SpIdStrArray[j]), "r"+str(i), color="#E0E0E0",
+                               label=label,title=label)
+                
+                for j in self.getIndArrayFromBt(self.ProdListBt[i]):
+                    st_value=self.MpDf.iloc[j,i]
+                    label=""
+                    if st_value!=1:
+                        label=str(st_value)
+                    G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="#E0E0E0",
+                               label=label,title=label)
+            
+        nt = Network(x_size, y_size ,directed=True,notebook=notebook,cdn_resources=cdn_resources)
+        nt.from_nx(G)
+        nt.toggle_physics(False)
+        # nt.show('proto.html')
+        return(nt)            
     
     # Function that generates the polyhedra and polytopes that the fragile and 
     # overproduced cycles of a decomposition. It takes as an increment the 

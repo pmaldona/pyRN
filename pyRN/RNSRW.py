@@ -18,6 +18,7 @@ import copy
 from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 from itertools import combinations
+import networkx as nx
 
 class RNSRW(CRNSMP):
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
@@ -1664,4 +1665,184 @@ class RNSRW(CRNSMP):
         return dict(productions=production_list,processes=process_list,coefficients=alpha_list,species_function=sp_fun)
     
     
+    def getAllOrgBuffConv(self,org_list):
+        '''
         
+
+        Parameters
+        ----------
+        org_list : list of bitarrays
+            organizations we want to analyse the buffering convergence.
+
+        Returns
+        -------
+        Returns a list of dictonary created by getRecursiveChangCoff applyed to an onganization under 
+        one possible inflow perturbation. All organization under all possible inflow perturbation are 
+        calculated.
+
+        '''
+        
+        inflow_species=self.getInflowFromSp(self.SpIdStrArray) # Getting indexes of inflow species, 
+        # so we can choose which one to perturb
+        
+        pert_range=range(1,len(inflow_species)+1)
+        pert = [com for sub in pert_range for com in combinations(inflow_species, sub)] # creating powerset of all possible perturbations
+        pert=list(map(list,pert))
+        
+        # We now create an auxiliar variabel to iterate over all perturbation for each organization of the network
+        init_variables=[]
+        
+        for i in org_list:
+            opsp=self.getallOpSpBt(i) # calculation all overproducible species
+            v=self.getOpOrgProcess(sp_set=i,opsp_set=opsp) # obtaining the process to ovreproduce all overproducible species
+            for j in pert:
+                init_variables.append([i,v,self.setInflowPert(v,v,j),j])
+                
+        # Sorting the convergence for each perturbation
+        convergence=[]
+        for i in init_variables:
+            single_conv=self.getRecursiveChangCoff(i[0],i[1],i[2])
+            single_conv['inflow perturbation']=self.SpIdStrArray[i[3]]
+            
+            print("species indexes",i[0].search(1))
+            print("selected species",self.SpIdStrArray[i[0].search(1)].tolist())
+            
+            causal_conn_subset=self.SpCConnNx.subgraph(self.SpIdStrArray[i[0].search(1)].tolist())
+            
+            # calculate all nodes transitively connected to the initial set of nodes
+            transitively_connected_nodes = set() # create an empty set to hold the transitively connected nodes
+            for node in self.SpIdStrArray[i[3]]:
+                transitively_connected_nodes |= set(nx.descendants(causal_conn_subset, node))
+            
+            single_conv['casual connectivity']=list(transitively_connected_nodes)
+            convergence.append(single_conv)
+            
+        self.AllBuffOrgConv=convergence
+        
+    def getSepDyn(self,sp_set,v,vp,round_order=9):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : bitarray
+            set to condisder in the dyanamic step.
+        v : Numpy array
+            original process vector.
+        vp : Numpy array
+            pertrurbation porcess vector.
+        round_order : int, optional
+            exponetial round order, i.e. concentration below 1e-(round_order) are zero. The default is 9.
+
+        Returns
+        -------
+        The function calculates a minimum alpha factor where at least one species is depleted, considering the 
+        concentration as S(v+alphav*v_p). As result a new proccess is created, where the support of 
+        recations that containg the depleted species are truned off, i.e. n_v[i]=0. In some cases only
+        reaction can result unactive, those cases consider alpha=0.
+        n_f : Numpy Array 
+            Production after perturbation.
+        n_v : Numpy array
+            Next pretrubation vector.
+        a : float
+            Depletion coefficient.
+        changed : bool
+            Value that indicates if any species has been depleted.
+        cl : Dataframe Series
+            Dynamical role of its production, where the values of the componentes correspond to:
+                - op: overprduced
+                - Sm: self-mantained
+                - d: depleted
+                - nr: non-reactive.
+
+        '''
+        
+        S=self.MpDf-self.MrDf
+        
+        f_i=S@v
+        f_p=S@vp
+        
+        low_bound = 10 ** (-round_order)
+        
+        if all(f_p>=0):
+            n_f = (f_i+f_p)
+            n_v = vp.copy()
+
+            n_f[n_f<low_bound]=0
+            n_v[n_v<low_bound]=0
+            dp_sp=[]
+            a=0
+            changed=False
+        else:
+            
+            alist=[]
+            ind_list=[]
+            nsp=bt(self.MpDf.shape[0])
+            nsp.setall(0)
+            for ind, val in enumerate(f_i):
+                if f_p[ind]<0:
+                    
+                    c=-f_i[ind]/f_p[ind]
+                    if c < low_bound:
+                        c=0
+                        
+                    alist.append(c)
+                    ind_list.append(ind)
+            
+            alist=np.array(alist)
+            a=min(alist)
+            dp_sp=np.array(ind_list)
+            dp_sp=dp_sp[alist==a]
+            for i in dp_sp:
+                nsp[i]=1
+            
+            n_f = (f_i+a*f_p)
+            n_v = vp.copy()
+    
+            for ind, val in enumerate(n_v):
+                if any(self.ReacListBt[ind]&nsp):
+                    n_v[ind]=0
+            
+            n_f[n_f<low_bound]=0
+            n_v[n_v<low_bound]=0
+            changed=True
+            
+        nsp=list(set(range(len(sp_set)))-set(self.getIndArrayFromBt(sp_set))) #species no present
+
+        rc =[] # creating variable of available reaction 
+        rsp=set()
+        for j in np.where(n_v>0)[0]:
+            if (all(self.MpDf.iloc[nsp,j]==0) and all(self.MrDf.iloc[nsp,j]==0)):
+                rc.append(j) # selecting reactions that can be trigger with available species
+                rsp=rsp.union(np.where(self.MpDf.iloc[:,j]!=0)[0]).union(np.where(self.MrDf.iloc[:,j]!=0)[0])
+        
+        #non-reactive species
+        nrsp=list(set(self.getIndArrayFromBt(sp_set))-rsp)
+                
+        f=n_f.copy()
+        
+        
+        #classification of species
+        cl=f.copy()
+        cl[f>0]="op"
+        cl[f==0]="sm"
+            
+        nrsp=self.MpDf.index[nrsp]
+        for i in nrsp:
+            if i in S.index:
+                k=np.where(f.index==i)[0][0]
+                cl[k]="nr"
+        
+        dp_sp=self.MpDf.index[dp_sp]
+        for i in dp_sp:
+            if i in S.index:
+                k=np.where(f.index==i)[0][0]
+                cl[k]="d"
+        
+        nsp=self.MpDf.index[nsp]
+        for i in nsp:
+            if i in S.index:
+                k=np.where(S.index==i)[0][0]
+                cl[k]="np"
+        return n_f, n_v, a, changed, cl
+ 

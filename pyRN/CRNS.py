@@ -367,14 +367,17 @@ class CRNS(RNIRG):
     
     # For a given bitarray of contained basic set, return the dynamically 
     # connected basics sets to it
-    def getGBtConnectedToBBt(self,s):
+    def getGBtConnectedToBBt(self,s,inculde_itself=False):
         c=bt(len(self.BSpListBt))
         c.setall(0)
         
         for i in self.getIndArrayFromBt(s):
             c|=self.ConnectedBListBt[i]
             
-        c= c & ~s
+        if not inculde_itself:
+            c= c & ~s
+        else:
+            c= c | s
         return c
     
     
@@ -1285,3 +1288,95 @@ class CRNS(RNIRG):
         nt.toggle_physics(True)
         # nt.show('RN.html')
         return(nt)
+    
+    def setAllClosedReac(self,N=None,conn_search=True,ssm_search=True):
+        
+        self.AllCloseSteps=0
+        
+        # creation of close set lists (species and reactions)
+        self.CloseReacSpBt=[]
+        self.CloseReacBBt=[]
+        self.CloseReacOrgSpBt=[]
+        # number of basic molecules
+        nb=len(self.BRpListBt)
+        
+        # index of basic molecules to explore
+        pb=bt(nb)
+        pb.setall(1)
+        
+        # found closed set counter
+        closed_cnt=0
+        
+        # begining of the recursive search tree, iterating over all basic molecule
+        for i in range(nb):
+            #recursive search over the node
+            if not self.recursiveCloseReac(pb.copy(),self.BSpListBt[i],i,
+                                           closed_cnt,N,conn_search=conn_search,
+                                           ssm_search=ssm_search):
+                break
+            pb[i]=0
+            
+        
+    def recursiveCloseReac(self,pb,sp,o,closed_cnt,N,conn_search,ssm_search):
+        print("entering recusrion at level",o)
+        self.AllCloseSteps+=1
+        # print("level",o)
+        # if explored cases exceeds N cases to explore  
+        if not N is None:
+            if closed_cnt>=N:
+                return(0)
+        
+        csp=self.getClosureFromSp(sp,bt_type=True)
+        # print("csp",csp)
+        ib=self.getGBtInSpBt(csp)
+        # print("ib",ib.search(1))
+        # print("pb",pb.search(1))
+        
+        # verifing if correspond to cases to explore
+        if not subset(ib,pb):
+            print("ib",ib.search(1),"is't in cases to explore",pb.search(1))
+            return 1
+        
+        # adding new closed set 
+        self.CloseReacSpBt.append(csp)
+        self.CloseReacBBt.append(ib)
+        print("closed set",ib.search(1),"added")
+        if self.isSmFromSp(csp):
+            self.CloseReacOrgSpBt.append(csp)
+            self.saveToPkl("Kegg.pkl")
+        closed_cnt+=1
+        o+=1
+        
+        if conn_search:
+            pb&=self.getGBtConnectedToBBt(ib,inculde_itself=True)
+        print("pb",pb)
+        iter_range=np.array(pb.search(1))
+        iter_range=iter_range[iter_range>=o]
+        print("iter_range",iter_range)
+        # for i in range(o,len(self.BSpListBt)):
+        for i in iter_range:
+            
+            print("exploring level",i)
+            if ib[i]==1:
+                print("level",i,"in closure",ib.search(1))
+                continue
+            if subset(self.GInBListBt[i],pb):
+                print("level",i,"define by basic",self.GInBListBt[i].search(1),"is subset of pb,",pb.search(1))
+                new_set=csp|self.BSpListBt[i]
+                tmp_ib=self.getGBtInSpBt(new_set)
+                print("Entering recursion with following closure",tmp_ib.search(1))
+                if not self.recursiveCloseReac(pb.copy(), new_set, i, closed_cnt, N,conn_search=conn_search,ssm_search=ssm_search):
+                    print("new candidate found")
+                    return 0
+            if pb[i]==0:
+                print("component",i,"not there")
+            else:
+                print("component",i,"eliminated")
+            pb[i]=0
+            print("pb changed to",pb.search(1))
+        
+        print("all cases aready fonund, returning to level",o-1)
+        return 1
+        
+    
+        

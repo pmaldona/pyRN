@@ -1237,7 +1237,7 @@ class RNIRG:
         
     
     # Subset funcntion for bitarrays
-    def BtIsSubsetofBt(a, b):
+    def BtIsSubsetofBt(self, a, b):
         return (a & b) == a
       
     # Function that returns Bitarray indexes for postition with 1 value 
