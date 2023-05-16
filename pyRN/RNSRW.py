@@ -948,7 +948,13 @@ class RNSRW(CRNSMP):
         -------
         Add a RwDict Dictinary the simple random walks.
 
-        '''    
+        '''
+        
+        try:
+            self.SpConnNx
+        except:
+            self.setSpConnMat()
+        
         try:
             self.SetsDictOrgsBelow
         except:
@@ -1192,6 +1198,11 @@ class RNSRW(CRNSMP):
         for the current starting organization and the convert organization. For the corresponding perturbation type pert_type and size pert_size.
 
         '''
+        try:
+            self.SpConnNx
+        except:
+            self.setSpConnMat()
+            
         if org_below_reset:
             self.SetsDictOrgsBelow={}
             

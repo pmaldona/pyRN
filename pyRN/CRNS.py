@@ -1285,7 +1285,7 @@ class CRNS(RNIRG):
                     G.add_edge("p"+str(i), j, color="teal")
         nt = Network('500px', '500px',directed=True,notebook=notebook)
         nt.from_nx(G)
-        nt.toggle_physics(True)
+        nt.toggle_physics(False)
         # nt.show('RN.html')
         return(nt)
     
