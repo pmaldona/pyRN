@@ -1358,7 +1358,7 @@ class CRNS(RNIRG):
             
             # print("exploring level",i)
             if ib[i]==1:
-                print("level",i,"in closure",ib.search(1))
+                # print("level",i,"in closure",ib.search(1))
                 continue
             if subset(self.GInBListBt[i],pb):
                 # print("level",i,"define by basic",self.GInBListBt[i].search(1),"is subset of pb,",pb.search(1))
