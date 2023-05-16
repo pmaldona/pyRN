@@ -1862,11 +1862,13 @@ class RNSRW(CRNSMP):
         G = nx.MultiDiGraph()
         r_i=np.where(process>0)[0]
         
+        non_sp=[]
         
         for i in np.unique(dyn_role):
             if i =="d":
                 for j in np.where(dyn_role==i)[0]:
                     G.add_node(self.SpIdStrArray[j], color = "#FF6666", label=self.SpIdStrArray[j], size=14, shape="dot")
+                    non_sp.append(j)
             elif i == "sm":
                 for j in np.where(dyn_role==i)[0]:
                     G.add_node(self.SpIdStrArray[j], color = "#0080FF", label=self.SpIdStrArray[j], size=14, shape="dot")
@@ -1876,10 +1878,24 @@ class RNSRW(CRNSMP):
             elif i == "np":
                 for j in np.where(dyn_role==i)[0]:
                     G.add_node(self.SpIdStrArray[j], color = "#E0E0E0", label=self.SpIdStrArray[j], size=14, shape="dot")
+                    non_sp.append(j)
             elif i == "nr":        
                 for j in np.where(dyn_role==i)[0]:
                     G.add_node(self.SpIdStrArray[j], color = "#FFFF99", label=self.SpIdStrArray[j], size=14, shape="dot")
+                    non_sp.append(j)
+            
+        non_bt_sp=bt(self.MpDf.shape[0])
+        non_bt_sp.setall(0)
         
+        for i in non_sp:
+            non_bt_sp[i]=1
+        
+        non_reac=[]
+        for ind, i in enumerate(self.ReacListBt):
+            if (i&non_bt_sp).any():
+                non_reac.append(ind)
+                
+        r_i = list(set(r_i)-set(non_reac))
         for i in range(self.MpDf.shape[1]):
             if i in r_i:
                 if process[i]==1:
