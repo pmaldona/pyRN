@@ -702,7 +702,7 @@ class RNSRW(CRNSMP):
             while mask!=mask_i:
                 mask_i=mask.copy()
                 mask=mask_i|self.getGBtConnectedToBBt(mask_i)
-                
+            
         else:
             mask=g.copy()
             mask.setall(1)

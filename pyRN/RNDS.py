@@ -626,7 +626,7 @@ class RNDS(RNIRG):
                 v[i]=1
         else:
             v=pr
-
+            
         # generetinf the decompotion vector
         dcom=np.zeros(len(sp))
         
@@ -672,12 +672,13 @@ class RNDS(RNIRG):
             if i:
                 csp[sp_ind[j]]=1
             j+=1
-            
+        
         # non-reactive species
         nrsp_ind=list(set(self.getIndArrayFromBt(sp))-rsp)
-        
+
         nrsp=sp.copy()
         nrsp.setall(0)
+        
         # as index vector
         for i in nrsp_ind:
             nrsp[i]=1
