@@ -246,9 +246,9 @@ class RNDS(RNIRG):
                
             # Definition of problem warabiles
             if force_org:
-                x = LpVariable.dicts("process", S.iloc[3].index, lowBound=1, cat='Continuous')
+                x = LpVariable.dicts("process", S.iloc[0].index, lowBound=1, cat='Continuous')
             else:
-                x = LpVariable.dicts("process", S.iloc[3].index, lowBound=0, cat='Continuous')
+                x = LpVariable.dicts("process", S.iloc[0].index, lowBound=0, cat='Continuous')
           
             
             # We define the objective function
@@ -264,10 +264,11 @@ class RNDS(RNIRG):
             prob.solve(solver=GLPK(msg=False))
                
             v_result=np.zeros(self.MpDf.shape[1])
-            for v in prob.variables():        
-                ind=int(re.search(r'\d+', v.name).group())
-                v_result[ind]=v.varValue
-        
+            for v in prob.variables():
+                if not ("dummy" in v.name):
+                    ind=int(re.search(r'\d+', v.name).group())
+                    v_result[ind]=v.varValue
+                
             if LpStatus[prob.status]=='Optimal':
                 return True, v_result
             else:

@@ -19,6 +19,9 @@ from bitarray.util import subset
 from collections import Counter as count
 import json
 import pickle as pk
+from pulp import *
+import re
+from functools import reduce
 
 # Class that calculates the synergistic and organizational structure 
 # of the closed reactants of a reaction network. 
@@ -192,6 +195,7 @@ class CRNS(RNIRG):
         self.ConnectedBListBt=dyn_conn
         return(st)
     
+            
     # Function that returns the number of basic sets in which each species of 
     # the vector sp appears. The input vector sp can be a list of 
     # strings or a bitarray.
@@ -380,6 +384,37 @@ class CRNS(RNIRG):
             c= c | s
         return c
     
+    def setTransGConn(self):
+        
+        trans_dyn_conn=[]
+        dyn_conn_bt=self.GInBListBt[0].copy()        
+        for i in self.ConnectedBListBt:
+            dyn_conn_bt=self.getGBtConnectedToBBt(i,inculde_itself=True)
+            closure=False
+            while closure:
+                add_conn_bt=self.getGBtConnectedToBBt(dyn_conn_bt,inculde_itself=True)
+                if subset(add_conn_bt,dyn_conn_bt):
+                    closure=True
+                dyn_conn_bt=add_conn_bt
+                
+            trans_dyn_conn.append(dyn_conn_bt)
+            
+        self.TransConnectedBListBt=trans_dyn_conn
+            
+    # For a given bitarray of contained basic set, return the dynamically 
+    # connected basics sets to it
+    def getGBtTransConnectedToBBt(self,s,inculde_itself=False):
+        c=bt(len(self.BSpListBt))
+        c.setall(0)
+        
+        for i in self.getIndArrayFromBt(s):
+            c|=self.TransConnectedBListBt[i]
+            
+        if not inculde_itself:
+            c= c & ~s
+        else:
+            c= c | s
+        return c
     
     # For a given bitarray of contained basic set, return the basic sets that 
     # can contribute for the current set to be semi-self-maintained 
@@ -1289,7 +1324,7 @@ class CRNS(RNIRG):
         # nt.show('RN.html')
         return(nt)
     
-    def setAllClosedReac(self,N=None,conn_search=True,ssm_search=True):
+    def setAllClosedReac(self,N=None,conn_search=True,heuristic_search=True):
         
         self.AllCloseSteps=0
         
@@ -1300,10 +1335,18 @@ class CRNS(RNIRG):
         # number of basic molecules
         nb=len(self.BRpListBt)
         
-        # index of basic molecules to explore
-        pb=bt(nb)
-        pb.setall(1)
+        # index of generators to explore
         
+
+        
+        # case of huristic exploration
+        if heuristic_search:
+            pb=bt(len(self.FeasGBt.search(1)))
+            
+        else:
+            pb=bt(nb)
+            
+        pb.setall(1)
         # found closed set counter
         closed_cnt=0
         
@@ -1312,71 +1355,383 @@ class CRNS(RNIRG):
             #recursive search over the node
             if not self.recursiveCloseReac(pb.copy(),self.BSpListBt[i],i,
                                            closed_cnt,N,conn_search=conn_search,
-                                           ssm_search=ssm_search):
+                                           heuristic_search=heuristic_search):
                 break
             pb[i]=0
-            
+        return closed_cnt    
         
-    def recursiveCloseReac(self,pb,sp,o,closed_cnt,N,conn_search,ssm_search):
-        # print("entering recusrion at level",o)
+    def recursiveCloseReac(self,pb,sp,o,closed_cnt,N,conn_search,heuristic_search):
         self.AllCloseSteps+=1
-        # print("level",o)
         # if explored cases exceeds N cases to explore  
         if not N is None:
             if closed_cnt>=N:
                 return(0)
         
         csp=self.getClosureFromSp(sp,bt_type=True)
-        # print("csp",csp)
         ib=self.getGBtInSpBt(csp)
-        # print("ib",ib.search(1))
-        # print("pb",pb.search(1))
+        
+        # auxilar variable for heuristic search
+        explore_sets=ib.copy()
+        explore_sets.setall(0)
         
         # verifing if correspond to cases to explore
-        if not subset(ib,pb):
-            # print("ib",ib.search(1),"is't in cases to explore",pb.search(1))
+        if (not heuristic_search) and not subset(ib,pb):
             return 1
+        else:
+            for i in pb.search(1):
+                explore_sets[self.FeasGBt.search(1)[i]]=1
+            if not subset(ib,self.getClosureFromSp(self.getSpBtInGBt(explore_sets))):
+                return 1
         
         # adding new closed set 
         self.CloseReacSpBt.append(csp)
         self.CloseReacBBt.append(ib)
-        # print("closed set",ib.search(1),"added")
-        if self.isSmFromSp(csp):
-            self.CloseReacOrgSpBt.append(csp)
-            self.saveToPkl("Kegg.pkl")
+        if self.isSsmFromSp(csp):
+            if self.isSsmFromSp(csp):
+                self.CloseReacOrgSpBt.append(csp)
         closed_cnt+=1
         o+=1
         
-        if conn_search:
-            pb&=self.getGBtConnectedToBBt(ib,inculde_itself=True)
-        # print("pb",pb)
+        # if conn_search:
+        #     pb&=self.getGBtConnectedToBBt(ib,inculde_itself=True)
+        # # if heuristic_search:
+        #     pb&=self.getGBtFeasbleConnectedtoBBt(ib,True)
         iter_range=np.array(pb.search(1))
         iter_range=iter_range[iter_range>=o]
-        # print("iter_range",iter_range)
-        # for i in range(o,len(self.BSpListBt)):
+        print_range=iter_range.copy()
+        explore_sets=ib.copy()
+        
         for i in iter_range:
             
-            # print("exploring level",i)
+            if heuristic_search:
+                ind = self.FeasGBt.search(1)[i]
+            else:
+                ind=i
+            print("exploting cases",print_range)
             if ib[i]==1:
-                # print("level",i,"in closure",ib.search(1))
+                print_range=print_range[print_range!=i]
                 continue
-            if subset(self.GInBListBt[i],pb):
-                # print("level",i,"define by basic",self.GInBListBt[i].search(1),"is subset of pb,",pb.search(1))
-                new_set=csp|self.BSpListBt[i]
-                # tmp_ib=self.getGBtInSpBt(new_set)
-                # print("Entering recursion with following closure",tmp_ib.search(1))
-                if not self.recursiveCloseReac(pb.copy(), new_set, i, closed_cnt, N,conn_search=conn_search,ssm_search=ssm_search):
-                    # print("new candidate found")
-                    return 0
-            # if pb[i]==0:
-                # print("component",i,"not there")
-            # else:
-                # print("component",i,"eliminated")
+            
+            add_gen=ib.copy()
+            add_gen.setall(0)
+            add_gen[ind]=1
+            print("current added generator",self.SpIdStrArray[self.getSpBtInGBt(add_gen).search(1)])
+            print("current closed set",self.SpIdStrArray[self.getSpBtInGBt(ib).search(1)])    
+            print("connectivity condition",subset(add_gen,self.getGBtTransConnectedToBBt(ib)))
+            print("heuristic condition",subset(add_gen,self.FeasGBt))
+            
+            if heuristic_search:
+                explore_sets.setall(0)
+                for i in pb.search(1):
+                    try:
+                        explore_sets[self.FeasGBt.search(1)[i]]=1
+                    except:
+                        print("i",i)
+                        
+                condition=(explore_sets&self.GInBListBt[ind]).any() # and not (ib&self.GInBListBt[ind]).any()
+            else:
+                condition=subset(self.GInBListBt[i],pb)
+               
+            if condition:
+                if (not heuristic_search) and (not conn_search):
+                    
+                    new_set=csp|self.BSpListBt[ind]
+                    if not self.recursiveCloseReac(pb.copy(), new_set, i, closed_cnt, 
+                                                    N,conn_search=conn_search,heuristic_search=heuristic_search):
+                        return 0
+                
+                elif heuristic_search and (not conn_search) and subset(add_gen,self.FeasGBt):
+                    print("entre")
+                    new_set=csp|self.BSpListBt[ind]
+                    if not self.recursiveCloseReac(pb.copy(), new_set, i, closed_cnt, 
+                                                    N,conn_search=conn_search,heuristic_search=heuristic_search):
+                        return 0
+
+                elif (not heuristic_search) and conn_search and subset(add_gen,self.getGBtTransConnectedToBBt(ib)):
+                    # print("current added generator",RN.SpIdStrArray[add_gen.search(1)])
+                    # print("current closed set",RN.SpIdStrArray[ib.search(1)])
+                    new_set=csp|self.BSpListBt[ind]
+                    if not self.recursiveCloseReac(pb.copy(), new_set, i, closed_cnt, 
+                                                   N,conn_search=conn_search,heuristic_search=heuristic_search):
+                        return 0
+                    
+                elif heuristic_search and conn_search and subset(add_gen,self.getGBtTransConnectedToBBt(ib)) and\
+                    subset(add_gen,self.FeasGBt):
+                    
+                    new_set=csp|self.BSpListBt[ind]
+                    if not self.recursiveCloseReac(pb.copy(), new_set, i, closed_cnt, 
+                                                    N,conn_search=conn_search,heuristic_search=heuristic_search):
+                        return 0
             pb[i]=0
-            # print("pb changed to",pb.search(1))
-        
-        # print("all cases aready fonund, returning to level",o-1)
+            
         return 1
         
-    
+    def isFeasibleGBt(self,gen_ind):
+                
+        # stoichiometric matrix of rn with prepended destruction reactions
+        S=self.MpDf-self.MrDf
+        M=100*self.MpDf.shape[0]*self.MpDf.shape[1]
+        # Name and type of problem
+        prob = LpProblem("LP_Org_test", LpMinimize)
+        x={}
+        for i in range(self.MpDf.shape[1]): 
+
+            if i in self.GRpListBt[gen_ind].search(1): 
+                x_i = LpVariable(f"process_{i}", lowBound=1, cat='Continuous')
+            else:
+                x_i = LpVariable(f"process_{i}", lowBound=0, cat='Continuous')
+            
+            
+            
+            x[i]=x_i
+            
+        y = LpVariable.dicts("upbond", S.iloc[0].index, lowBound=1, cat='integer')
+        # We define the objective function
         
+        objective = lpSum([x[i] for i in x])+M*lpSum([y[i] for i in y])
+        prob += objective
+       
+        # prob += lpSum([x[i] for i in x])
+        for j in S.index:
+            prob +=lpSum([S.loc[j][i] * x[i] for i in S.loc[j].index]) >= 0
+            prob += x[i] <= y[i]*M
+        # Resolver el problema
+        prob.solve(solver=GLPK(msg=False))
+
+        if LpStatus[prob.status]=='Optimal':
+            v_result=np.zeros(self.MpDf.shape[1])
+            
+            for v in prob.variables():
+                
+                if ("process" in v.name):
+
+                    ind=int(re.search(r'\d+', v.name).group())
+                    v_result[ind]=v.varValue
+            
+            reac_ind=np.where(v_result>0)[0]
+            reac_ind=list((set(reac_ind)-set(self.GRpListBt[gen_ind].search(1))))
+
+            reac_bt=bt(self.MpDf.shape[1])
+            reac_bt.setall(0)
+            
+            if len(reac_ind)>0:
+                for i in reac_ind:
+                    reac_bt[i]=1
+                
+            required_G=bt(len(self.GRpListBt))
+            required_G.setall(0)
+            for ind, i in enumerate(self.GRpListBt):
+                if (i&reac_bt).any():
+                    required_G[ind]=1
+                    
+            return True, v_result, required_G
+        else:
+            
+            required_G=bt(len(self.GRpListBt))
+            required_G.setall(0)
+            
+            return False, np.zeros(self.MpDf.shape[1]), required_G
+        
+        
+    def setFeasG(self):
+        
+        feasible_generators=[]
+        self.ReqGBtforFeas=[]
+        
+        for i in range(len(self.GRpListBt)):
+            feasible_generators.append(self.isFeasibleGBt(i))
+            self.ReqGBtforFeas.append(feasible_generators[-1][2])
+            
+        G_candidates=bt(len(feasible_generators))
+        G_candidates.setall(1)
+ 
+        NullGbt=G_candidates.copy()
+        NullGbt.setall(0)
+        
+        remcand=True
+
+        while(remcand):
+            remcand=False
+            for i in G_candidates.search(1):
+                if feasible_generators[i][0]==False:
+                    G_candidates[i]=0
+                    remcand=True
+                if not subset(feasible_generators[i][2],G_candidates):
+                    G_candidates[i]=0
+                    remcand=True
+                    
+        self.FeasGBt=G_candidates
+        
+        self.ReqGIndforFeas=G_candidates.search(1)
+        
+        G_to_remove=G_candidates.search(0)
+        G_to_remove.sort(reverse=True)
+        
+        for i in G_to_remove:
+            self.ReqGBtforFeas.pop(i)
+        
+        useful_reac=bt(self.MpDf.shape[1])
+        useful_reac.setall(0)
+        for i in self.FeasGBt.search(1):
+            useful_reac|=self.GRpListBt[i]
+        
+        self.FeasRpBt=useful_reac
+        
+        G_to_remove=[]
+        self.FeasHelp2SustSp=[]
+        k=0
+        for i in self.FeasGBt.search(1):
+            S_R_dict= self.getHelp2SustVer(self.BSpListBt[i])
+            # S_R_bt = reduce(lambda x,y : x[1]|y[1], self.getHelp2SustVer(self.BSpListBt[i]))
+            S_R_bt=bt(self.MpDf.shape[0])
+            S_R_bt.setall(0)
+            
+            for j in S_R_dict.keys():
+                    S_R_bt|=S_R_dict[j]
+            
+            if not (S_R_bt&self.GSpListBt[i]).any():
+                G_to_remove.append(k)
+                self.FeasGBt[i]=0
+                
+            k+=1
+            
+        G_to_remove.sort(reverse=True)
+        for i in G_to_remove:
+            self.ReqGBtforFeas.pop(i)
+        
+        self.ReqGIndforFeas=self.FeasGBt.search(1)
+        
+        useful_reac=bt(self.MpDf.shape[1])
+        useful_reac.setall(0)
+        for i in self.FeasGBt.search(1):
+            useful_reac|=self.GRpListBt[i]
+        
+        self.FeasRpBt=useful_reac
+        
+    def getHelp2SustVer(self,sp_set,r_set=None,useful_reac=False):
+        
+        # Checks if sp_set is or not a bitarray, If not, it make the 
+        # transformation to it
+        if not (isinstance(sp_set,bt)):
+            sp=bt(self.MpDf.shape[0])
+            sp.setall(0)
+            
+            for i in sp_set:
+                if i in self.MpDf.index.values:
+                    ind=self.MpDf.index.get_loc(i)
+                    sp[ind]=1
+        else:
+            sp=sp_set.copy()
+        
+        
+        # Checks if r_set is or not a bitarray, If not, it make the 
+        # transformation to it
+        if (r_set is None):
+            # creating a vector of reaction that can be triggered
+            n_reac = np.array(range(self.MpDf.shape[1]))
+        else:
+            if not (isinstance(r_set,bt)):
+                r=bt(self.MpDf.shape[1])
+                r.setall(0)
+                for i in r_set:
+                    r[i]=1
+            else:
+                r=r_set.copy()
+
+            # creating a vector of reaction that can be triggered
+            n_reac = r.search(1)
+        
+        n_reac=np.array(list(set(n_reac)&set(self.getTriggerableRpBtFromSp(sp_set).search(1))))
+        if useful_reac:
+            n_reac=np.array(list(set(n_reac)&set(self.FeasRpBt.search(1))))
+        # creating acutocatalityc set sustainable sets and the help to sustain 
+        # set
+        S_R_dict=dict()
+        
+        for i in n_reac:
+            S_R_dict[i]=bt(self.MpDf.shape[0])
+            S_R_dict[i].setall(0)
+        # assigning the variables to the sets described above
+        for i in n_reac:
+        
+            sp_i=self.ReacListBt[i]|self.ProdListBt[i]
+            
+            # estimating which of the reacting species are autocatalytic and sustained
+            auto_cata=(self.MpDf.iloc[sp_i.search(1),i]-self.MrDf.iloc[sp_i.search(1),i])>0
+            auto_cata=auto_cata[auto_cata]
+            auto_cata=np.where(self.SpIdStrArray == np.array(auto_cata.index)[:,None])[1]
+            sustain=(self.MpDf.iloc[sp_i.search(1),i]-self.MrDf.iloc[sp_i.search(1),i])>=0
+            sustain=sustain[sustain]
+            sustain=np.where(self.SpIdStrArray == np.array(sustain.index)[:,None])[1]
+            
+            a_i=bt(self.MpDf.shape[0])
+            s_i=a_i.copy()
+            a_i.setall(0)
+            s_i.setall(0)
+            
+            # assinging variables of the current reaction
+            for k in sustain:
+                s_i[k]=1
+                if k in auto_cata:
+                    a_i[k]=1
+            
+            if self.ReacListBt[i].any():
+                S_R_dict[i]|=s_i&self.ReacListBt[i]
+            else:
+                S_R_dict[i]|=s_i
+            
+            n_reac_j=n_reac.copy()
+            n_reac_j=np.delete(n_reac_j,np.where(n_reac==i)[0])
+            
+            for j in n_reac_j:
+                
+                sp_j=self.ReacListBt[j]|self.ProdListBt[j]
+                sustain=(self.MpDf.iloc[sp_j.search(1),j]-self.MrDf.iloc[sp_j.search(1),j])>=0
+                sustain=sustain[sustain]
+                sustain=np.where(self.SpIdStrArray == np.array(sustain.index)[:,None])[1]
+                s_j=s_i.copy()
+                s_j.setall(0)
+                for k in sustain:
+                    s_j[k]=1
+
+                if s_j.count(1)>0 and (self.ReacListBt[j]&a_i).count(1)>0: 
+                    
+                    S_R_dict[i]|=s_i&self.ReacListBt[j]
+
+        return(S_R_dict)
+    
+                
+    
+
+    # For a given bitarray of contained basic set, return the dynamically 
+    # connected basics sets to it
+    def getGBtFeasbleConnectedtoBBt(self,s,inculde_itself=False):
+        c=bt(len(self.BSpListBt))
+        c.setall(0)
+                
+        for i in self.FeasGBt.search(1):
+            j=np.where(np.array(self.FeasGBt.search(1))==i)[0][0]
+            if (s&self.ReqGBtforFeas[j]).any():
+                c[i]=1
+    
+        if not inculde_itself:
+            c= c & ~s
+        else:
+            c= c | s
+        return c
+        
+    def getBoolExploreFactofBBt(self,s,i):
+
+        try:
+            j=np.where(np.array(self.FeasGBt.search(1))==i)[0][0]
+            if not subset(self.ReqGBtforFeas[j],s):
+                return False
+        except:
+            return False
+        
+        return True
+        
+        
+            
+        
+                

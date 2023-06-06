@@ -69,10 +69,10 @@ class pyRN(RNLI,RNSEA):
         None.
 
         '''
-        # creates a dictionary fo all avriables of the module
+        # creates a dictionary fo all availables of the module
         obj = {k: v for k, v in self.__dict__.items() if not k.startswith('__')}
 
-        # Guarda el diccionario en un archivo pickle
+        # Saves the dictionary as a pickle object
         with open(file, 'wb') as f:   
             pickle.dump(obj, f)
             

@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from pyvis.network import Network
 import networkx as nx
 from itertools import combinations
+from .genhrn import gen_rn_csp
 
 
 # Class definition: It consist to an object generates an stoichiometric matrix 
@@ -39,7 +40,7 @@ class RNIRG:
             # ProdListBt -> List of the bitarray of species present in the productive part per reaction
             # FilenameStr -> String of the filename, if it correspond
             # IsTextBool -> boolean if is load form a textfile
-            # IsSbmlbool -> boolean if its load form a Smbl file
+            # IsSbmlBool -> boolean if its load form a Smbl file
 
     # The following constructors setFromText and from_bml, generate the same 
     # variables from the reading of a file
@@ -52,7 +53,7 @@ class RNIRG:
             self.ReacListBt=None
             self.FilenameStr=None
             self.IsTextBool=False
-            self.IsSbmlbool=False
+            self.IsSbmlBool=False
     
     # Reaction Network initialization form text file similar to antimony format, 
     # see example "rn_test.txt". calling the object can be done by RN(file_name). 
@@ -205,7 +206,7 @@ class RNIRG:
         out.ProdListBt=prod
         out.FilenameStr=file
         out.IsTextBool=True
-        out.IsSbmlbool=False
+        out.IsSbmlBool=False
         
         return out
     
@@ -443,7 +444,7 @@ class RNIRG:
             out.ReacListBt=reac
             out.FilenameStr=file.name
             out.IsTextBool=False 
-            out.IsSbmlbool=True 
+            out.IsSbmlBool=True 
             
             return out
         except:
@@ -1579,7 +1580,7 @@ class RNIRG:
         out.ProdListBt=prod
         out.FilenameStr=None
         out.IsTextBool=False
-        out.IsSbmlbool=False
+        out.IsSbmlBool=False
         
         return out
             
@@ -1695,7 +1696,7 @@ class RNIRG:
         out.ProdListBt=prod
         out.FilenameStr=None
         out.IsTextBool=False
-        out.IsSbmlbool=False
+        out.IsSbmlBool=False
         
         return out
 
@@ -1920,3 +1921,50 @@ class RNIRG:
         self.SpNameStrArray=self.SpIdStrArray.copy()
         self.ReacListBt=reac
         self.ProdListBt=prod
+    
+    @classmethod    
+    def setRandomgeneratedBoolean(cls,Nr=10,bsp_N=10,bsp=None,bsp_wf=1/3,bsp_w=None,
+    sp_len_max=10, sp_paired_p=None,
+    sp2_wf=1/3, sp2_len_w=None, sp2_right_side_p=.5,
+    new_sp_len_w=None,
+    synt_reac_p=.5, close=True,reuse=False):
+        
+        
+        RN=gen_rn_csp(bsp_N, bsp ,bsp_wf ,bsp_w, sp_len_max, sp_paired_p, 
+                      sp2_wf, sp2_len_w, sp2_right_side_p, new_sp_len_w, synt_reac_p)
+        
+        out=cls()
+        print("Nr",Nr)
+        RN.add_reactions(10,close,reuse)
+        mr, mp =RN.get_matrices()
+        out.MpDf=pd.DataFrame(mr)
+        out.MrDf=pd.DataFrame(mp)
+        out.SpIdStrArray=np.array(RN.sp)
+        out.MrDf.idexes=RN.sp
+        out.MpDf.idexes=RN.sp
+        out.SpNameStrArray=out.SpIdStrArray.copy()
+
+        reac=[]
+        prod=[]
+        for i in range(out.MpDf.shape[1]):
+            
+            r_sp=bt(out.MpDf.shape[0])
+            r_sp.setall(0)
+            p_sp=r_sp.copy()
+            
+            for j in np.where(out.MrDf.iloc[:,i]!=0)[0]:
+                r_sp[j]=1
+            for j in np.where(out.MpDf.iloc[:,i]!=0)[0]:
+                p_sp[j]=1
+            
+            reac.append(r_sp)
+            prod.append(p_sp)
+            
+        out.ReacListBt=reac
+        out.ProdListBt=prod
+        out.FilenameStr=None
+        out.IsTextBool=False
+        out.IsSbmlBool=False
+        
+        return out
+        

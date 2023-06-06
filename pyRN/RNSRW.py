@@ -100,7 +100,7 @@ class RNSRW(CRNSMP):
         #     self.model.addTrigger("e"+str(i),self.SpIdStrArray[i]+"<"+str(cutoff),forceRegenerate=True)
         
         self.model.regenerateModel()
-        self.IsSbmlbool=False
+        self.IsSbmlBool=False
         
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
     # reaction network. It recives as input a vector of the initial concentration 
@@ -196,11 +196,11 @@ class RNSRW(CRNSMP):
         #     self.model.addTrigger("e"+str(i),self.SpIdStrArray[i]+"<"+str(cutoff),forceRegenerate=True)
         
         self.model.regenerateModel()
-        self.IsSbmlbool=False
+        self.IsSbmlBool=False
         
     # Function that load dynamical model directly form the sbml file     
     def setSmblModel(self):
-        if not self.IsSbmlbool:
+        if not self.IsSbmlBool:
             print("network do not correspond to an sbml file")
             return
         # self.model = te.loadSBMLModel(self.fname)
@@ -474,7 +474,7 @@ class RNSRW(CRNSMP):
     # constant vector rt. The init value if for restart time to ti=0 (i.e. reset model)
     def setMakParam(self, i_sp=None ,rt=None,init=False):
         
-        if self.IsSbmlbool:
+        if self.IsSbmlBool:
             print("The initialized model corresponds to an sbml model, therefore the perturbation function cannot be used.")
             return
         
@@ -515,7 +515,7 @@ class RNSRW(CRNSMP):
     # ti=0 (i.e. reset model)
     def setMakParamFromFile(self, SpConFileNameStr, KConstFileNameStr, init=False):
         
-        if self.IsSbmlbool:
+        if self.IsSbmlBool:
             print("The initialized model corresponds to an sbml model, therefore the perturbation function cannot be used.")
             return
         
