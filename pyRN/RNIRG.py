@@ -450,7 +450,7 @@ class RNIRG:
         except:
             print("error reading smbl file")
     
-    def setSpConnMat(self):
+    def setSpConnMat(self,transitive=True):
         '''
         
 
@@ -480,7 +480,7 @@ class RNIRG:
                     else:                        
                         self.SpRConnNx.edges[b_sp, f_sp]["w"]+=1
         self.SpConnNx=nx.transitive_closure(self.SpRConnNx,reflexive=True)
-        
+            
     def setSpCConnMat(self):
         '''
         
@@ -744,11 +744,11 @@ class RNIRG:
         
                    
     
-    def getRnDisplayPv(self,r_set=np.array([]),x_size='500px',y_size='500px',notebook=False,cdn_resources='local'):
+    def getRnDisplayPv(self,r_set=None,x_size='500px',y_size='500px',notebook=False,cdn_resources='local'):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
-        if (r_set.size==0):
+        if r_set is None:
             r=self.MpDf.columns
             r_i=range(len(r))
         else:
@@ -769,6 +769,16 @@ class RNIRG:
             # size=len(self.SpIdStrArray[self.getIndArrayFromBt(self.SpIdStrArray_p[i])])*3
             G.add_node("r"+str(i), color = "yellow", label="r"+str(i), shape="square", size=7)
         
+        
+        not_r_i=set(range(self.MpDf.shape[1]))-set(r_i)
+        for i in not_r_i:
+            G.add_node("r"+str(i), color = "#E0E0E0", label="r"+str(i), shape="square", size=7)
+        
+        
+        nsp=set(self.SpIdStrArray)-sp
+        
+        
+        
         inf=set(self.getInflowFromSp(np.array(list(sp)),"id"))
         out=set(self.getOutflowFromSp(np.array(list(sp)),"id"))
         sp-=inf
@@ -776,6 +786,8 @@ class RNIRG:
         
         for i in sp:
             G.add_node(str(i), color = "blue", label=str(i), size=14, shape="dot")
+        for i in nsp:
+            G.add_node(str(i), color = "#E0E0E0", label=str(i), size=14, shape="dot")
         for i in inf:
             G.add_node(str(i), color = "green", label=str(i), size=14, shape="dot")
         for i in out:
@@ -797,6 +809,25 @@ class RNIRG:
                     label=str(st_value)
                 G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="gray",
                            label=label,title=label)
+        
+        for i in not_r_i:
+            
+            for j in self.getIndArrayFromBt(self.ReacListBt[i]):
+                st_value=self.MrDf.iloc[j,i]
+                label=""
+                if st_value!=1:
+                    label=str(st_value)
+                G.add_edge(str(self.SpIdStrArray[j]), "r"+str(i), color="#E0E0E0",
+                           label=label,title=label)
+            
+            for j in self.getIndArrayFromBt(self.ProdListBt[i]):
+                st_value=self.MpDf.iloc[j,i]
+                label=""
+                if st_value!=1:
+                    label=str(st_value)
+                G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="#E0E0E0",
+                           label=label,title=label)
+            
         
         nt = Network(x_size, y_size ,directed=True,notebook=notebook,cdn_resources=cdn_resources)
         nt.from_nx(G)
@@ -1308,7 +1339,7 @@ class RNIRG:
         
         out=sp.copy()
         out.setall(0)
-        for i in range(len(self.ReacListBt)):
+        for i in range(self.MpDf.shape[1]):
             if (self.ProdListBt[i].any()) and (not self.ReacListBt[i].any()):
                 out |= self.ProdListBt[i]
         

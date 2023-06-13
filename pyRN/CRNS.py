@@ -915,6 +915,124 @@ class CRNS(RNIRG):
         self.ConnectedSsmStrOrgListBtArray=org_bt
         return(st)
     
+     
+    # Synergistic structure calculation function, requires the setGenerators() 
+    # function to be executed beforehand .It returns an directed multi-graph
+    # type networkx (setConnectedStr), where each node correspond to hashed bitarray of 
+    # contained basic basic sets. Each node also contain attributes such as level (level), 
+    # set of contained species (sp) and if the set is semi-self-maintained (ssm)
+    # and an organization (is_org). 
+    # The edges characterize the closures with the different basic sets, where 
+    # the arrival set corresponds to the closure, the key to the 
+    # basic with which the closure was performed and the attribute whether the closure 
+    # is synergistic or not. 
+    # The function also creates the class member (DynStrSsmListSpArray) and (DynStrOrgListSpArray) which 
+    # corresponds to a list of the closed semi-self-maintained set and 
+    # organizations respectively
+    # This algorithm differs from setSynStr() by considering the basic to 
+    # be conjugated which can contribute to be semi-self maintained by use of 
+    # the getGBtContribBBt() function and use of the function getGBtConnectedToBBt(), which 
+    # only connect to basics if there are reactively connected. The result is a structrure 
+    # where the nodes are semi-self-mantianed and only dynamically connected.
+    def setHeuristicSsmConnectedStr(self,partial_save=None,verbose=False):
+        if not hasattr(self, 'GInBListBt'):
+            print("The basic sets have not been initialized, please run the setGenerators() function.")
+            return 
+        # Initialization of the synergistic structure as a multigraph object
+        G = nx.MultiDiGraph()
+        # Initialization of the list of semi-self-maintained sets and organizations
+        ssms=[]
+        ssms_bt=[]
+        org=[]
+        org_bt=[]
+        # number of steps
+        st=0
+        # The nodes corresponding to the basic sets are generated.
+        
+        
+        
+        for i in self.FeasGBt.search(1):
+            st+=1
+            is_ssm=self.isSsmFromSp(self.BSpListBt[i])
+            if is_ssm:
+                is_org=self.isSmFromSp(self.BSpListBt[i])
+                G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
+                       sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
+                       is_ssm=is_ssm,is_org=is_org,is_basic=True,basic_id=i)
+                ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                ssms_bt.append(self.BSpListBt[i])
+                if is_org:
+                    org.append(self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])])
+                    org_bt.append(self.BSpListBt[i])
+            else:           
+                G.add_node(fbt(self.GInBListBt[i]),level=self.GInBListBt[i].count(),
+                       sp=self.SpIdStrArray[self.getIndArrayFromBt(self.BSpListBt[i])],
+                       is_ssm=False,is_org=False,is_basic=True,basic_id=i)
+        
+        # Generation of the multigraph of the synergistic structure by set level (contained basics)
+        for i in range(len(self.BSpListBt)):
+             
+            # Closed set (nodes) at level i
+            nodes = [x for x,y in G.nodes(data=True) if y['level']==i+1]
+            n_nodes=len(nodes)
+            node_n=0  
+             # Generating closures whit connected basics sets for each set in level i
+            for j in nodes:
+                node_n+=1
+                if verbose:
+                    print("level: ",i+1, "from ",len(self.BSpListBt),", node: ",node_n," from ",n_nodes)
+                # if node is semi-self-maintained (ssm), the it explore other possible 
+                # combinations only whit dynamically connected basics
+                # if not search for basic that can contribute to be ssm
+                
+                if G.nodes[j]["is_ssm"]:
+                     conn=self.getIndArrayFromBt(self.getGBtConnectedToBBt(bt(j))&self.FeasGBt)
+                else:
+                     contrib=self.getGBtContribBBt(bt(j)&self.FeasGBt)
+                     if not contrib.any():
+                         continue
+                     conn=self.getIndArrayFromBt(contrib&self.FeasGBt)
+                 
+                for k in conn:
+                     st+=1    
+                     # Closure result
+                     cr_sp=self.getClosureFromSp(self.getSpBtInGBt(bt(j) | self.GInBListBt[k]),bt_type=True)
+                     cr_a=fbt(self.getGBtInSpBt(cr_sp))
+                     
+                     # node is added if is not in structrue
+                     if not (cr_a in G):
+                         is_ssm=self.isSsmFromSp(cr_sp)
+                         if is_ssm:
+                            is_org=self.isSmFromSp(cr_sp)
+                            G.add_node(cr_a,level=cr_a.count(),
+                                   sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
+                                   is_ssm=is_ssm,is_org=is_org,is_basic=False)
+                            ssms.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                            ssms_bt.append(cr_sp)
+                            if is_org:
+                                org.append(self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)])
+                                org_bt.append(cr_sp)
+                         else:           
+                            G.add_node(cr_a,level=cr_a.count(),
+                                   sp=self.SpIdStrArray[self.getIndArrayFromBt(cr_sp)],
+                                   is_ssm=False,is_org=False,is_basic=True)
+         
+                     # Adding edges corresponding to the colsure, and verifing if is a sinergy:
+                     if cr_a.count() > (bt(j)|self.GInBListBt[k]).count():
+                        G.add_edge(j,cr_a,key=k,syn=True,added_basic=k)
+                     else:
+                        G.add_edge(j,cr_a,key=k,syn=False,added_basic=k)
+            
+            if not partial_save is None:
+                self.saveToPkl(partial_save)
+                
+        self.HeuristicConnectedSsmStrNx=G
+        self.HeuristicConnectedSsmStrSsmListSpArray=ssms
+        self.HeuristicConnectedSsmStrOrgListSpArray=org
+        self.HeuristicConnectedSsmStrSsmListBtArray=ssms_bt
+        self.HeuristicConnectedSsmStrOrgListBtArray=org_bt
+        return(st)
+    
     # Function that generates a network of the structures. It receives as 
     # input a synergic, semi-self-maintained or dynamically connected structure. 
     # The output corresponds to a pyvis object. The colors 
