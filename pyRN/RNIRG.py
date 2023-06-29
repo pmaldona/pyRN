@@ -1954,25 +1954,21 @@ class RNIRG:
         self.ProdListBt=prod
     
     @classmethod    
-    def setRandomgeneratedBoolean(cls,Nr=10,bsp_N=10,bsp=None,bsp_wf=1/3,bsp_w=None,
-    sp_len_max=10, sp_paired_p=None,
-    sp2_wf=1/3, sp2_len_w=None, sp2_right_side_p=.5,
-    new_sp_len_w=None,
-    synt_reac_p=.5, close=True,reuse=False):
-        
+    def setRandomgeneratedBoolean(cls,init_Nr=10,add_Nr=10,bsp_N=10,bsp=None,bsp_wf=1/3,bsp_w=None,
+                                  sp_len_max=10, sp_paired_p=None,
+                                  sp2_wf=1/3, sp2_len_w=None, sp2_right_side_p=.5,
+                                  new_sp_len_w=None,synt_reac_p=.5,close=True,reuse=False):
+    
         
         RN=gen_rn_csp(bsp_N, bsp ,bsp_wf ,bsp_w, sp_len_max, sp_paired_p, 
                       sp2_wf, sp2_len_w, sp2_right_side_p, new_sp_len_w, synt_reac_p)
-        
         out=cls()
-        print("Nr",Nr)
-        RN.add_reactions(10,close,reuse)
+        RN.test(init_Nr,add_Nr,close,reuse)
+        #RN.add_reactions(Nr,close,reuse)
         mr, mp =RN.get_matrices()
-        out.MpDf=pd.DataFrame(mr)
-        out.MrDf=pd.DataFrame(mp)
+        out.MpDf=pd.DataFrame(mr,index=np.array(RN.sp))
+        out.MrDf=pd.DataFrame(mp,index=np.array(RN.sp))
         out.SpIdStrArray=np.array(RN.sp)
-        out.MrDf.idexes=RN.sp
-        out.MpDf.idexes=RN.sp
         out.SpNameStrArray=out.SpIdStrArray.copy()
 
         reac=[]

@@ -1041,33 +1041,62 @@ class CRNS(RNIRG):
     # respectively. The shape of the set is circular if it is a basic or 
     # square if it is not. Finally, the green arrows correspond to synergies 
     # and the blue arrows to spurious union.
-    def getStrDisplayPv(self,graph,notebook=False):
+    def getStrDisplayPv(self,graph,size_fact=2,height=75,width=75,notebook=True,cdn_resources='local'):
         G = nx.relabel_nodes(graph, lambda x: str(self.getIndArrayFromBt(bt(x))))
-        nt = Network('500px', '500px',directed=True,notebook=notebook)
-        # populates the nodes and edges data structures
+        nt = Network('500px', '500px',directed=True,notebook=notebook,cdn_resources=cdn_resources)
         
+
+        NSpSetsDict=count(list(map(lambda x: x.count(),list(graph.nodes()))))
+        
+        # populates the nodes and edges data structures
         # Removing the sp array for pyvis ploting
         for i in G.nodes:
-            G.nodes[i]['size']=len(G.nodes[i]['sp'])*3
+            G.nodes[i]['size']=len(G.nodes[i]['sp'])*size_fact
             G.nodes[i]['sp']=str(G.nodes[i]['sp'])
         
         nt.from_nx(G)
         # nx.draw(G, with_labels=True, font_weight='bold')
         
         nt.toggle_physics(False)
-        for i in range(len(nt.nodes)):
+        # Sorting the nodes by size
+        SortedNodes=np.array(sorted(nt.nodes,key=lambda x: x['level']))
+        nodes_array=np.array(nt.nodes)
+        old_size=0
+        c=0
+        for j in range(len(nt.nodes)):
+            i=np.where(nodes_array==SortedNodes[j])[0][0]
+            
+            size=nt.nodes[i]['level']
+
+            if old_size!=size:
+                c=0 
+            
+            NSpSets = NSpSetsDict[size]
+            
+            x = 0
+            if NSpSets > 1:
+                x = -(width*(NSpSets-1)/2) + (c+1/2)*(width*(NSpSets-1))/NSpSets
+                c += 1
+            else:
+                c = 0
+            y = -height*(size-1)
+            old_size=size
+            
+            nt.nodes[i]['x']=x
+            nt.nodes[i]['y']=y
+            nt.nodes[i]['fixed']=json.loads('{ "x":false, "y":true}')
             # nt.nodes[i]['size']=20
             # nt.nodes[i]['title']=nt.nodes[i]['id']
             nt.nodes[i]['title']=str(nt.nodes[i]['sp'])
             if nt.nodes[i]['is_org']:
-                nt.nodes[i]['color']='green'
-                # nt.nodes[i]['group']=2
-            elif nt.nodes[i]['is_ssm']:
-                nt.nodes[i]['color']='blue'
-                # nt.nodes[i]['group']=3
-            else:
-                nt.nodes[i]['color']='red'
+                nt.nodes[i]['color']='powderblue'
                 # nt.nodes[i]['group']=1
+            elif nt.nodes[i]['is_ssm']:
+                nt.nodes[i]['color']='indianred'
+                # nt.nodes[i]['group']=2
+            else:
+                nt.nodes[i]['color']='yellow'
+                # nt.nodes[i]['group']=3
             if nt.nodes[i]['is_basic']:
                 # nt.nodes[i]['title']=str(nt.nodes[i]['basic_id'])
                 nt.nodes[i]['shape']='dot'
@@ -1128,6 +1157,110 @@ class CRNS(RNIRG):
         emptyset.setall(0)
         all_orgs = [com for sub in orgslist+[emptyset] for com in self.getNonReacSets(sub)]
         return(all_orgs+orgslist)
+    
+    
+    def getHassePvFromSynStr(self,SynStr,width=75,node_size=10,height=75,notebook=True,cdn_resources='local'):
+        '''
+        
+
+        Parameters
+        ----------
+        SynStr : TYPE
+            DESCRIPTION.
+        width : TYPE, optional
+            DESCRIPTION. The default is 75.
+        node_size : TYPE, optional
+            DESCRIPTION. The default is 10.
+        height : TYPE, optional
+            DESCRIPTION. The default is 75.
+        notebook : TYPE, optional
+            DESCRIPTION. The default is True.
+        cdn_resources : TYPE, optional
+            DESCRIPTION. The default is 'local'.
+
+        Returns
+        -------
+        nt : TYPE
+            DESCRIPTION.
+
+        '''
+        NSpSetsDict=count(list(map(lambda x: self.getSpBtInGBt(x).count(),list(SynStr.nodes()))))
+        orgs = [x for x,y in SynStr.nodes(data=True) if y['is_org']]
+        ssms = [x for x,y in SynStr.nodes(data=True) if y['is_ssm'] and not y['is_org']]
+        crs = [x for x,y in SynStr.nodes(data=True) if not y['is_ssm']]
+        
+        SortedSets=[]
+        Btlist=[]
+        for i in orgs:
+            SortedSets.append([i,"org"])
+            Btlist.append(i)
+        for i in ssms:
+            SortedSets.append([i,"ssm"])
+            Btlist.append(i)
+        for i in crs:
+            SortedSets.append([i,"crs"])
+            Btlist.append(i)
+        
+        # Sorting elements by size (smallest to biggest)
+        SortedSets=sorted(SortedSets,key= lambda x: self.getSpBtInGBt(x[0]).count())
+        
+        # creation of the Graph object
+        Hasse=nx.Graph()
+        org_id_count=0
+        ssm_id_count=0
+        crs_id_count=0
+        
+        old_size=0
+        size_count=0
+        for i in SortedSets:
+            size=self.getSpBtInGBt(i[0]).count()
+        
+            if old_size!=size:
+                c=0
+                size_count+=1   
+            NSpSets = NSpSetsDict[size]
+            
+            x = 0
+            if NSpSets > 1:
+                x = -(width*(NSpSets-1)/2) + (c+1/2)*(width*(NSpSets-1))/NSpSets
+                c += 1
+            else:
+                c = 0
+            y = -height*(size_count-1)
+            old_size=size 
+            
+            if i[1]=="org":
+                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=1,label="O"+str(org_id_count),
+                               title=str(self.SpIdStrArray[self.getSpBtInGBt(i[0]).search(1)]),
+                               fixed = json.loads('{ "x":false, "y":true}'),size=node_size)
+                org_id_count+=1
+        
+            elif i[1]=="ssm":
+                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=3,label="Ssm"+str(ssm_id_count),
+                               title=str(self.SpIdStrArray[self.getSpBtInGBt(i[0]).search(1)]),
+                               fixed = json.loads('{ "x":false, "y":true}'),size=node_size)
+                ssm_id_count+=1
+        
+            elif i[1]=="crs":
+                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=2,label="C"+str(crs_id_count),
+                               title=str(self.SpIdStrArray[self.getSpBtInGBt(i[0]).search(1)]),
+                               fixed = json.loads('{ "x":false, "y":true}'),size=node_size)
+                crs_id_count+=1
+            
+        for i in SortedSets:
+            
+            DirectlyBelowSets=self.getDirectlyBelowBtList(i[0], Btlist)
+            if DirectlyBelowSets:
+                for j in DirectlyBelowSets:
+                    Hasse.add_edge(str(self.getSpBtInGBt(j).search(1)), str(self.getSpBtInGBt(i[0]).search(1)),color="gray", smooth = False)
+        
+        nt=Network('500px', '500px',notebook=notebook,cdn_resources=cdn_resources)
+        nt.from_nx(Hasse)
+        # nx.draw(G, with_labels=True, font_weight='bold')
+        
+        nt.toggle_physics(False)
+   
+        return nt
     
     
     # Generates a networkx Hasse diagram of a form a list of bitarrays 
@@ -1439,7 +1572,6 @@ class CRNS(RNIRG):
         nt = Network('500px', '500px',directed=True,notebook=notebook)
         nt.from_nx(G)
         nt.toggle_physics(False)
-        # nt.show('RN.html')
         return(nt)
     
     def setAllClosedReac(self,N=None,conn_search=True,heuristic_search=True):

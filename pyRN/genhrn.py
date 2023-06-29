@@ -23,7 +23,7 @@ class gen_rn_csp:
                   new_sp_len_w=None,
                   synt_reac_p=.5, ):
         if bsp is None: self.bsp = list(string.ascii_letters)[0:bsp_N]
-        else: self.nsp = bsp
+        else: self.bsp = bsp
         if bsp_w is None:
             bsp_w = np.exp(np.arange(len(self.bsp))*np.log(bsp_wf))
         self.bsp_w = bsp_w/np.sum(bsp_w)
@@ -92,23 +92,27 @@ class gen_rn_csp:
             else: l1 = l2
             sp1 = self.add_sp(s=self.sp[sp3][:l1])
             sp2 = self.add_sp(s=self.sp[sp3][l1:])
-        if is_synt_reac: r = ((sp1,sp2),(sp3,))
-        else: r = ((sp3,),(sp1,sp2))
+        if is_synt_reac: r = [[sp1,sp2],[sp3]]
+        else: r = [[sp3],[sp1,sp2]]
+        return r
+    
+    def add_reaction(self,r):
         self.reac.append(r)
         for i in r[0]: self.sp_nreac[i] = self.sp_nreac[i] + 1
         for i in r[1]: self.sp_nprod[i] = self.sp_nprod[i] + 1
-        return r
+        return self
     
     def add_reactions(self,n=1,close_sp=False,reuse=False):
         if not close_sp:
-            for i in range(n): self.rand_reaction(reuse=reuse)
+            for i in range(n): self.add_reaction(self.rand_reaction(reuse=reuse))
         else:
             for i in range(n):
                 k = np.argwhere(np.logical_or(np.array(self.sp_nreac)==0,np.array(self.sp_nprod)==0))
                 if k.shape[0]==0: break
                 j = np.random.choice(k[:,0])
-                if self.sp_nreac[j]==0: self.rand_reaction(j,True,reuse)
-                else: self.rand_reaction(j,False,reuse)
+                if self.sp_nreac[j]==0: self.add_reaction(self.rand_reaction(j,True,reuse))
+                else: self.add_reaction(self.rand_reaction(j,False,reuse))
+        return self
 
     def get_matrices(self):
         mr = np.zeros((len(self.sp),len(self.reac)))
@@ -117,6 +121,20 @@ class gen_rn_csp:
             for i in r[0]: mr[i,k] = mr[i,k] + 1
             for i in r[1]: mp[i,k] = mp[i,k] + 1
         return (mr,mp)
+    
+    def sort(self):
+        o = np.lexsort((self.sp,self.sp_len))
+        self.sp = [self.sp[i] for i in o]
+        self.sp_len = [self.sp_len[i] for i in o]
+        self.sp_nreac = [self.sp_nreac[i] for i in o]
+        self.sp_nprod = [self.sp_nprod[i] for i in o]
+        self.spndx = {s:i for i,s in enumerate(self.sp)}
+        x = np.argsort(o)
+        reac = [[[x[i] for i in r[0]],[x[i] for i in r[1]]] for r in self.reac]
+        o = np.lexsort(( [len(r[1])-len(r[0]) for r in reac],
+                         [max(max(r)) for r in reac] ))
+        self.reac = [reac[i] for i in o]
+        return self
     
     def display(self):
         for r in self.reac:
@@ -130,8 +148,9 @@ class gen_rn_csp:
                 p = p + self.sp[s]
             print(p)
 
-    def test(self):
-        self.add_reactions(3)
-        self.add_reactions(100,True)
-        self.display()
+    def test(self,N=3,M=100,close=True,reuse=False):
+        self.add_reactions(N)
+        self.add_reactions(M,close,reuse)
+        # self.display()
+        return self
         

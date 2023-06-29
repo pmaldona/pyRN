@@ -1858,10 +1858,12 @@ class RNSRW(CRNSMP):
                 cl[k]="np"
         return n_f, n_v, a, changed, cl
  
-    def displayDynRolePv(self,dyn_role,process,x_size='500px',y_size='500px',notebook=False,cdn_resources='local'):
+    def displayDynRolePv(self,dyn_role,process,x_size='500px',y_size='500px',
+                         notebook=False,cdn_resources='local',position=None,
+                         x_width=500,y_width=500,pos=None,ret_pos=False):
         G = nx.MultiDiGraph()
         r_i=np.where(process>0)[0]
-        
+            
         non_sp=[]
         
         for i in np.unique(dyn_role):
@@ -1884,6 +1886,7 @@ class RNSRW(CRNSMP):
                     G.add_node(self.SpIdStrArray[j], color = "#FFFF99", label=self.SpIdStrArray[j], size=14, shape="dot")
                     non_sp.append(j)
             
+            
         non_bt_sp=bt(self.MpDf.shape[0])
         non_bt_sp.setall(0)
         
@@ -1902,7 +1905,8 @@ class RNSRW(CRNSMP):
                     G.add_node("r"+str(i), color = "#4B0082", label="r"+str(i), shape="square", size=7,title="")
                 else:
                     G.add_node("r"+str(i), color = "#4B0082", label="r"+str(i), shape="square", size=7,title=str(process[i]))
-                    
+                
+                
                 for j in self.getIndArrayFromBt(self.ReacListBt[i]):
                     st_value=self.MrDf.iloc[j,i]
                     label=""
@@ -1938,11 +1942,45 @@ class RNSRW(CRNSMP):
                         label=str(st_value)
                     G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="#E0E0E0",
                                label=label,title=label)
-            
+        
+        if pos is None:
+            pos=nx.kamada_kawai_layout(G)
+        
+        for i in pos.keys():
+            G.nodes()[i]['x']=x_width*(pos[i][0]-0.5)
+            G.nodes()[i]['y']=y_width*(pos[i][1]-0.5)
+        
         nt = Network(x_size, y_size ,directed=True,notebook=notebook,cdn_resources=cdn_resources)
         nt.from_nx(G)
         nt.toggle_physics(False)
-        # nt.show('proto.html')
-        return(nt)            
+       
+        if ret_pos:
+            return pos
+        else:
+            return(nt)            
 
+    def getDispPositionList(self,x_width=500,y_width=500):
+        '''
+        
+
+        Parameters
+        ----------
+        x_width : TYPE, optional
+            DESCRIPTION. The default is 75.
+        y_width : TYPE, optional
+            DESCRIPTION. The default is 75.
+
+        Returns
+        -------
+        None.
+
+        '''
+        
+        rand_sp_pos=[]
+        for i in range(self.MpDf.shape[0]+self.MpDf.shape[1]):
+            x=np.random.uniform(-x_width,x_width,1)
+            y=np.random.uniform(-y_width,y_width,1)
+            rand_sp_pos.append([x,y])
+            
+        return(rand_sp_pos)
         
