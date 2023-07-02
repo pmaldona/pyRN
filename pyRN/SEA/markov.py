@@ -74,20 +74,8 @@ def transition_matrix_from_dataframes(abstractions_df, transitions_df):
     if ('probability' not in transitions_df.columns):
         df = add_transition_probbilities_to_dataframe(df)
     
-    n = abstractions_df.shape[0]
-    t_matrix = [ [0 for j in range(n)] for i in range(n)]
-    for i in range(n):
-        start = abstractions_df.loc[i,'abstraction']
-        transitions_from_start = transitions_df.loc[transitions_df['initial_state']==start]
-        for x in transitions_from_start.index.tolist():
-            end = transitions_from_start.loc[x, 'convergent_state']
-            # print(end)
-            j = abstractions_df.index[abstractions_df['abstraction']==end][0]
-            p = transitions_df.loc[(transitions_df['initial_state']==start) & (transitions_df['convergent_state']==end), 'probability'].tolist()[0]
-            t_matrix[i][j]=p
-    T = numpy.transpose(numpy.array(t_matrix))
-
-    return T
+    return [[transitions_df.loc[(transitions_df['initial_state']==org_1) & (transitions_df['convergent_state']==org_2)]['probability'].item()
+             for org_1 in abstractions_df['abstraction']] for org_2 in abstractions_df['abstraction']]
      
 def add_local_resiliences_to_dataframe(abstractions_df, transition_matrix):
     '''
