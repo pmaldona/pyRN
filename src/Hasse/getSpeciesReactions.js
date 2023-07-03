@@ -2,6 +2,7 @@ import { GraphType } from '../misc/drawNetwork';
 import { genRNStr } from '../Network/Network';
 
 export default async function getSpeciesReactions(organization) {
+    console.log(organization.title);
     let species_ids = organization.title.substring(1,organization.title.length-1).replaceAll("'", "").replaceAll("\n","").replaceAll("\r","").split(" ");
     let reaction_ids = ["id1"];
     let reaction_str = await eel.get_reactions()();

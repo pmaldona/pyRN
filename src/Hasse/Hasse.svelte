@@ -73,8 +73,10 @@
             console.log(network.body.nodes);
             let nodes = network.body.nodes;
             let keys = Object.keys(nodes);
+            console.log(keys);
             for(let i = 0; i < keys.length; i++) {
                 let res = {name: "", species: [], reactions: []};
+                console.log(nodes[keys[i]])
                 getSpeciesReactions(nodes[keys[i]].options).then(result => {
                     res.name = nodes[keys[i]].options.label;
                     res.species = result.species;
@@ -93,9 +95,10 @@
                 var ids = properties.nodes;
                 console.log(network);
                 var clickedNode = network.body.nodes[ids]; //nodes.get(ids)[0];
-                if (clickedNode) {
+                if (clickedNode && Array.from(clickedNode.options.label)[0] != "C") {
                     console.log('clicked nodes:', clickedNode);
                     cur_org = clickedNode.options;
+                    console.log(cur_org);
                     await modal.init(cur_org);
                     //modal.setReactions(reactions);
                     getModal().open();
@@ -110,7 +113,7 @@
         });
         let promise = eel.gen_synergetic()();
         promise.then(result => {
-            let nodes = useLayout ? layout(result.nodes, x_space[0], y_space[0]) : result.nodes;
+            let nodes = result.nodes;
             // nodes = new vis.DataSet(n);
             if(result == null) {
                 return;

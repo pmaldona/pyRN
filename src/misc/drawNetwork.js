@@ -1,14 +1,19 @@
 function generateGraph(containerName, ntwrk) {
     console.log("generate graph");
     console.log(containerName);
-    let container = document.getElementById(containerName);
     let data = {
         nodes: ntwrk.nodes ? ntwrk.nodes : [],
         edges: ntwrk.edges ? ntwrk.edges : [],
     };
+    return drawVis(containerName, data, ntwrk.options);
+}
 
-    let _network = new vis.Network(container, data, ntwrk.options);
-    _network.setOptions(ntwrk.options);
+function drawVis(containerName, data, options) {
+    console.log(containerName)
+    let container = document.getElementById(containerName); 
+    console.log(container)
+    let _network = new vis.Network(container, data, options);
+    _network.setOptions(options);
     return _network;
 }
 
@@ -19,6 +24,8 @@ const GraphType = {
 }
 
 function setVisObject(type, nodes, edges, options, physics, layout) {
+    console.log(nodes);
+    console.log(vis);
     nodes = new vis.DataSet(nodes);
     edges = new vis.DataSet(edges);
     options = JSON.parse(options);
@@ -33,4 +40,4 @@ function setVisObject(type, nodes, edges, options, physics, layout) {
     return network;
 }
 
-export { GraphType, setVisObject };
+export { GraphType, setVisObject, drawVis, generateGraph };

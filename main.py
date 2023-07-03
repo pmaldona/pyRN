@@ -3,6 +3,7 @@ import base64
 from io import BytesIO
 import eel
 import matplotlib.pyplot as plt
+import numpy as np
 from src.Simulation.Simulation import plot_abstractions_callable, plot_df, plot_hist_simple_rw, plot_markov_callable, plot_random_walk_callable, plot_stoich, plot_trajectory_callable
 from src.Network.Network import get_network_from_set
 from src.store.Store import State
@@ -75,6 +76,61 @@ def calculate_orgs():
         return {"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options}
     else:
         return None
+
+@eel.expose
+def get_selected_org(org):
+    network = state.reaction_network
+    for i, organization in enumerate(state.organizations):
+        if org == str(network.SpIdStrArray[network.getIndArrayFromBt(organization)]):
+            org = i
+            break
+    return org
+
+@eel.expose
+def get_perturbing_species(indx):
+    network = state.reaction_network
+    bt_org=network.ConnectedStrOrgListBtArray[indx] # we select one of bitarray organization generated.
+    inflow_species = network.getInflowFromSp(bt_org)
+    spcs = network.SpIdStrArray[inflow_species]
+    return str(spcs)
+
+def get_string_indices(array1, array2):
+    return [index for index, item in enumerate(array1) if item in array2 and isinstance(item, str)]
+
+@eel.expose
+def perturb(species, indx):
+    print(species)
+    network = state.reaction_network
+    bt_org=network.ConnectedStrOrgListBtArray[indx] # we select one of bitarray organization generated.
+    opsp=network.getallOpSpBt(bt_org,pr=None) # calculation all overproducible species
+    org_v=network.getOpOrgProcess(sp_set=bt_org,opsp_set=opsp) # obtaining the process to overproduce all overproducible species
+    inflow_species=network.getInflowFromSp(bt_org)
+    indcs = get_string_indices(species, network.SpIdStrArray[inflow_species])
+    inflow_pertubed_species = []
+    for index in indcs:
+        inflow_pertubed_species.append(inflow_species[index])
+    pertubed_v=network.setInflowPert(org_v,org_v,inflow_pertubed_species)
+    chg=network.getRecursiveChangCoff(network.ConnectedStrOrgListBtArray[1],org_v,pertubed_v,round_order=9)
+    chg_graphs=[]
+    for ind, j in enumerate(enumerate(chg['species_function'])):
+        net = network.displayDynRolePv(j[1],chg['processes'][ind])
+        nodes, edges, heading, height, width, options = net.get_network_data()
+        chg_graphs.append({"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options})
+        print({"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options})
+    state.perturb_networks = chg_graphs
+    return len(state.perturb_networks)
+
+@eel.expose
+def get_network_graph(index):
+    print(index)
+    myNetwork = state.network_graph
+    if index != 0 and index-1 < len(state.perturb_networks):
+        print("IF")
+        myNetwork = state.perturb_networks[index-1]
+        return myNetwork
+    else:
+        nodes, edges, heading, height, width, options = myNetwork.get_network_data()
+        return {"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options}
 
 @eel.expose
 def get_reactions():
@@ -157,15 +213,20 @@ def new_random_walk(w, l, d, nmin, n, trys, save, fname):
         keys = None
         state.simple_rw = False
         state.reaction_network.RwDict = {}
+        print("Works till here")
         if state.get_walk_type() == WalkTypes.SIMPLE_RANDOM_WALK:
+            print("In If")
             keys = state.get_simple_rw(walk_range=range(w), l=l, d=d, nmin=nmin, fname=fname)
         else:
+            print("In else")
             keys = state.get_mak_rw(walk_range = range(w), l=l, n=n, trys=trys, save=save, fname=fname)
         if keys != None:
+            print("Keys:")
             print(range(w))
             print(keys)
             return list(keys)
         else:
+            print("NO KEYS")
             return False
     else:
         return False

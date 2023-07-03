@@ -1,5 +1,7 @@
 import { getModal } from '../components/Modal.svelte';
 
+let node_positions = {};
+
 export function openFile(callback) {
     window.electron.open().then(result => {
         let name = result;
@@ -29,4 +31,26 @@ export async function action(random_species, random_vector) {
     });
     //getModal().close();
     return true;
+}
+
+export function saveNodePositions(nodes) {
+    let node_names = Object.keys(nodes);
+    node_names.forEach(name => {
+        node_positions[name] = [nodes[name].x, nodes[name].y];
+    });
+}
+
+export function setNodePositions(nodes) {
+    let node_names = Object.keys(nodes);
+    if(Object.keys(node_positions).length != 0) {
+        node_names.forEach(name => {
+            if(node_positions[name] == undefined) {
+                
+            } else {
+                nodes[name].x = node_positions[name][0];
+                nodes[name].y = node_positions[name][1];
+            }
+        });
+    }
+    return nodes;
 }

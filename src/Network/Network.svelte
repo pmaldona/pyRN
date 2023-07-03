@@ -2,6 +2,7 @@
     import { GraphType, setVisObject } from '../misc/drawNetwork';
     import exportSvg from '../misc/svg';
     import { genRNStr } from './Network';
+    import { saveNodePositions, setNodePositions } from '../actions/Base';
 
     export let is_loaded;
 
@@ -65,6 +66,15 @@
             let res = await _genRNStr();
             if(res != undefined){
                 network = res;
+                network.on("dragEnd", function(properties) {
+                    var ids = properties.nodes;
+                    if(ids.length == 0) {
+                        return;
+                    }
+                    saveNodePositions(network.body.nodes);
+                });
+                network.body.nodes = setNodePositions(network.body.nodes);
+                saveNodePositions(network.body.nodes);
             }
         }
     }

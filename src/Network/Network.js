@@ -22,6 +22,10 @@ export function genRNStr(type) {
             }
             edge.physics = false;
         }
+        // if(type == 'org_network') {
+        //     console.log(result);
+        //     return result;
+        // }
         return setVisObject(type, result.nodes, result.edges, result.options, true);
     }); 
     return result;

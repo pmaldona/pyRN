@@ -28,6 +28,7 @@ class State:
         self.simple_rw: bool = False
         self.random_walk_type: WalkTypes = WalkTypes.SIMPLE_RANDOM_WALK
         self.simulation_parameters: list = []
+        self.perturb_networks: Union[list, None] = None
     
     def save_parameters(self, timeStart, timeFinal, steps, cutoff, w, l, d, nmin, n, trys, save, fname, convPert, keys) -> bool:
         self.simulation_parameters = [timeStart, timeFinal, steps, cutoff, w, l, d, nmin, n, trys, save, fname, convPert, keys]
@@ -124,16 +125,19 @@ class State:
             try:
                 self.reaction_network.setGenerators()
                 self.reaction_network.setSynStr()
+                self.reaction_network.setConnectedStr()
                 self.organizations = self.reaction_network.SynStrOrgListBtArray
                 print(self.organizations)
-                net=self.reaction_network.getHasseNxFromBtList(self.reaction_network.SynStrOrgListBtArray,setlabel="L")
+                net=self.reaction_network.getHassePvFromSynStr(self.reaction_network.SynStrNx)
+                print(net)
                 rn: pyRN = self.reaction_network
-                net = nx.relabel_nodes(net, lambda x: str(rn.getIndArrayFromBt(bt(x))))
-                nt = Network('500px', '500px',directed=False,notebook=False)
-                nt.toggle_physics(False)
-                nt.from_nx(net)
-                self.hasse_graph = nt
+                #net = nx.relabel_nodes(net, lambda x: str(rn.getIndArrayFromBt(bt(x))))
+                #nt = Network('500px', '500px',directed=False,notebook=False)
+                #nt.toggle_physics(False)
+                #nt.from_nx(net)
+                self.hasse_graph = net
             except:
+                print("FUGG")
                 return False
             else:
                 return True
@@ -199,19 +203,22 @@ class State:
         self.random_walk_type = random_walk_type
         return True
 
-    def init_simple_random_walk(self, w=range(10),l=10,d=1,nmin=3, fname="rand_walk.json") -> bool:
+    def init_simple_random_walk(self, w=range(10),l=10,d=1,nmin=3, conn=True, fname="rand_walk.json", org_list=None, pert_type="species") -> bool:
         if self.reaction_network != None:
             if self.organizations == None:
                 if self.generate_organizations() == False:
+                    print("No Orgs")
                     return False
             try:
-                self.reaction_network.setRwSimple(None,w,l,d,nmin,fname=fname)
+                self.reaction_network.setRwSimple(None,w,l,d,nmin,conn, fname, org_list, pert_type)
                 self.simple_rw = True
             except:
+                print("Except")
                 return False
             else:
                 return True
         else:
+            print("No RN")
             return False
     
     def init_mak_random_walk(self, w=range(10),l=10,n=500, trys=10, save=True, fname="rand_mak_walk.json") -> bool:
@@ -320,7 +327,7 @@ class State:
         else:
             return None
         
-    def get_simple_rw(self, walk_range=range(10),l=10,d=1,nmin=3, fname="rand_walk.json"):
+    def get_simple_rw(self, walk_range=range(10),l=10,d=1,nmin=3, conn=True, fname="rand_walk.json", org_list=None, pert_type="species"):
         if self.reaction_network == None:
             return None
         else:
@@ -330,7 +337,8 @@ class State:
             except:
                 print("NO run")
             # if self.reaction_network.RwDict[self.random_walk_type.value].keys() == None:
-                if self.init_simple_random_walk(w=walk_range,l=l,d=d,nmin=nmin, fname=fname) == False:
+                if self.init_simple_random_walk(walk_range,l,d,nmin, conn, fname, org_list, pert_type) == False:
+                    print("RETURN None")
                     return None
             print(self.reaction_network.RwDict[self.random_walk_type.value].keys())
             print(walk_range)
