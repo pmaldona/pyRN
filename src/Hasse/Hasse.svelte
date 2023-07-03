@@ -12,6 +12,8 @@
     let modal;
     let cur_org = "";
 
+    let full = false;
+
     let graphs = [
 		{ id: 1, text: `Reactive Organisation Structures` },
 		{ id: 2, text: `Synergistic Structures` }
@@ -51,9 +53,10 @@
         is_loaded().then(result => {
             has_file_open = result;
         });
-        let promise = eel.calculate_orgs()();
+        let promise = eel.calculate_orgs(full)();
         promise.then(result => {
             if(result == null) {
+                console.log("NOTHING");
                 return;
             }
             console.log(result);
@@ -95,7 +98,7 @@
                 var ids = properties.nodes;
                 console.log(network);
                 var clickedNode = network.body.nodes[ids]; //nodes.get(ids)[0];
-                if (clickedNode && Array.from(clickedNode.options.label)[0] != "C") {
+                if (clickedNode && (Array.from(clickedNode.options.label)[0] == "L" || Array.from(clickedNode.options.label)[0] == "O")) {
                     console.log('clicked nodes:', clickedNode);
                     cur_org = clickedNode.options;
                     console.log(cur_org);
@@ -192,10 +195,16 @@
 
             Y-Space: {y_space[0]}
             <Slider bind:value = {y_space} max="200"/>
-
-            Use Layout:
+            <!-- 
+            
             <label>
-                <input type=checkbox bind:value={useLayout}>
+                Use Layout:
+                <input type=checkbox bind:value={useLayout} style="opacity: 1; position: relative;">
+            </label>
+            <br> -->
+            <label>
+                Full Graph:
+                <input type=checkbox bind:value={full} on:change={drawLattice} style="opacity: 1; position: relative;">
             </label>
             <br>
             <!-- svelte-ignore a11y-missing-attribute -->

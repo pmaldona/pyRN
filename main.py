@@ -69,13 +69,25 @@ def gen_protosynergetic():
         return None
 
 @eel.expose
-def calculate_orgs():
-    network = state.get_hasse_structure()
-    if network != None:
-        nodes, edges, heading, height, width, options = network.get_network_data()
-        return {"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options}
+def calculate_orgs(full):
+    if full:
+        print("Full")
+        network = state.get_hasse_structure()
+        print("All Good")
+        print(network.get_network_data())
+        if network != None:
+            nodes, edges, heading, height, width, options = network.get_network_data()
+            return {"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options}
+        else:
+            return None
     else:
-        return None
+        print("Lite")
+        network = state.get_hasse_structure_lite()
+        if network != None:
+            nodes, edges, heading, height, width, options = network.get_network_data()
+            return {"nodes": nodes, "edges": edges, "heading": heading, "height": height, "width": width, "options": options}
+        else:
+            return None
 
 @eel.expose
 def get_selected_org(org):

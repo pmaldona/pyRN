@@ -23,6 +23,7 @@ class State:
         self.network_graph: Union[Network, None] = None
         self.protosynergies_graph: Union[Network, None] = None
         self.hasse_graph: Union[Network, None] = None
+        self.hasse_graph_lite: Union[Network, None] = None
         self.synergies_graph: Union[Network, None] = None
         self.model: bool = False
         self.simple_rw: bool = False
@@ -120,7 +121,7 @@ class State:
         else:
             return False
     
-    def generate_organizations(self) -> bool:
+    def generate_organizations(self, boolean) -> bool:
         if self.reaction_network != None:
             try:
                 self.reaction_network.setGenerators()
@@ -129,15 +130,22 @@ class State:
                 self.organizations = self.reaction_network.SynStrOrgListBtArray
                 print(self.organizations)
                 net=self.reaction_network.getHassePvFromSynStr(self.reaction_network.SynStrNx)
-                print(net)
+                print("NET")
+                net2=self.reaction_network.getHasseNxFromBtList(self.reaction_network.SynStrOrgListBtArray,setlabel="L")
+                print("1")
                 rn: pyRN = self.reaction_network
-                #net = nx.relabel_nodes(net, lambda x: str(rn.getIndArrayFromBt(bt(x))))
-                #nt = Network('500px', '500px',directed=False,notebook=False)
-                #nt.toggle_physics(False)
-                #nt.from_nx(net)
+                print("2")
+                net2 = nx.relabel_nodes(net2, lambda x: str(rn.getIndArrayFromBt(bt(x))))
+                print("3")
+                nt = Network('500px', '500px',directed=False,notebook=False)
+                print("4")
+                nt.toggle_physics(False)
+                nt.from_nx(net2)
+                print("Nothig wrong")
+                self.hasse_graph_lite = nt
                 self.hasse_graph = net
             except:
-                print("FUGG")
+                print("Except")
                 return False
             else:
                 return True
@@ -294,11 +302,22 @@ class State:
         else:
             return None
     
+    def get_hasse_structure_lite(self) -> Union[Network, None]:
+        if self.hasse_graph_lite != None:
+            return self.hasse_graph_lite
+        elif self.hasse_graph_lite == None and self.reaction_network != None:
+            if self.generate_organizations(False):
+                return self.hasse_graph_lite
+            else:
+                return None
+        else:
+            return None
+
     def get_hasse_structure(self) -> Union[Network, None]:
         if self.hasse_graph != None:
             return self.hasse_graph
         elif self.hasse_graph == None and self.reaction_network != None:
-            if self.generate_organizations():
+            if self.generate_organizations(True):
                 return self.hasse_graph
             else:
                 return None
