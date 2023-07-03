@@ -14,8 +14,9 @@ def T_inf(T, max_steps=500):
     for step in range(max_steps):
         T_inf = [[T[i][j] for j in range(len(T))] for i in range(len(T))]
         T     = numpy.matmul(T,T)
-        if (numpy.all(numpy.round(T,10)==numpy.round(T_inf,10))):
+        if (numpy.all(numpy.round(T,8)==numpy.round(T_inf,8))):
             return T_inf
+    return T_inf
 
 def pn(p0,T,n):
     Tn = T
