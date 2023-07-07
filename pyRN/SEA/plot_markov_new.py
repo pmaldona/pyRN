@@ -181,6 +181,6 @@ def plot_markov(subplot, abstractions_df, transitions_df, shift_x=False, node_si
     layer_3 = matplotlib.lines.Line2D(range(5), range(5), color="white", marker='o', markerfacecolor="#00ff00")
     networkx.draw_networkx_nodes(subset_graph, node_positions, node_size=node_sizes, node_color='#00ff00'ax=subplot)
     networkx.draw_networkx_labels(subset_graph, node_positions, node_labels, font_size=15, bbox=textbox, ax=subplot)
-    subplot.pyplot.legend((layer_1,layer_2, layer_3),("Subset relationship","Transition (width~probability)", node_size), fontsize=15)
+    subplot.legend((layer_1,layer_2, layer_3),("Subset relationship","Transition (width~probability)", node_size), fontsize=15)
     subplot.tick_params(left=True, labelleft=True)
     subplot.set_ylabel('Number of species', fontsize=15)
