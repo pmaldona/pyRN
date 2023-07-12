@@ -10,3 +10,4 @@ pyvis
 matplotlib
 joblib
 pulp
+seaborn
