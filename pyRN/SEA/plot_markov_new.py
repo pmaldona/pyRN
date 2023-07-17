@@ -179,7 +179,7 @@ def plot_markov(subplot, abstractions_df, transitions_df, shift_x=False, node_si
     layer_1 = plot_subset_relationships(subplot, subset_graph, node_positions, node_size=node_sizes)
     layer_2 = plot_transitions(subplot, transitions_graph, transitions_df, node_positions, node_size=node_sizes)
     layer_3 = matplotlib.lines.Line2D(range(5), range(5), color="white", marker='o', markerfacecolor="#00ff00")
-    networkx.draw_networkx_nodes(subset_graph, node_positions, node_size=node_sizes, node_color='#00ff00'ax=subplot)
+    networkx.draw_networkx_nodes(subset_graph, node_positions, node_size=node_sizes, node_color='#00ff00',ax=subplot)
     networkx.draw_networkx_labels(subset_graph, node_positions, node_labels, font_size=15, bbox=textbox, ax=subplot)
     subplot.legend((layer_1,layer_2, layer_3),("Subset relationship","Transition (width~probability)", node_size), fontsize=15)
     subplot.tick_params(left=True, labelleft=True)

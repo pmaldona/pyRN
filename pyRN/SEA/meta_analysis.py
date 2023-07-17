@@ -323,7 +323,7 @@ def binning_abstraction_dfs_by_column_value(abstractions_dfs: list, bins: list, 
     '''
     return [[abstractions_df for abstractions_df in abstractions_dfs if bin[0]<=abstractions_df[column]<=bins[1]] for bin in bins]
 
-def pairwise_plot(abstractions_dfs, column_names):
+def pairwise_plot(abstractions_dfs, column_names,concat=True):
     '''
     Parameters:
         abstractions_dfs (list), list of abstractions DataFrames
@@ -331,7 +331,10 @@ def pairwise_plot(abstractions_dfs, column_names):
     Returns:
         A nice seaborn pairplot
     '''
-    plot_df = concat(abstractions_dfs, ignore_index=True)[column_names]
+    if concat:
+        plot_df = concat(abstractions_dfs, ignore_index=True)[column_names]
+    else:
+        plot_df = abstractions_dfs
     g = seaborn.pairplot(plot_df, height=3)
     g.map_upper(seaborn.kdeplot, fill=True)
     g.map_upper(seaborn.regplot, line_kws={'color':'red'}, ci=None)
