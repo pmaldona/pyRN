@@ -1265,7 +1265,7 @@ class CRNS(RNIRG):
     
     # Generates a networkx Hasse diagram of a form a list of bitarrays 
     # Blist       
-    def getHasseNxFromBtList(self,BtList,setlabel="O"):
+    def getHasseNxFromBtList(self,BtList,setlabel="O",directed=False):
         
         NSpSetsDict=count(list(map(lambda x: x.count(),BtList)))
         
@@ -1275,7 +1275,11 @@ class CRNS(RNIRG):
         SortedSets=sorted(SortedSets,key= lambda x: x.count())
         
         # creation of the Graph object
-        Hasse=nx.Graph()
+        if not directed:
+            Hasse=nx.Graph()
+        else:
+            Hasse=nx.DiGraph()
+        
         c = 0
         node_id_count=0
         for i in SortedSets:

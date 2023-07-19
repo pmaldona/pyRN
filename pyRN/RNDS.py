@@ -1005,7 +1005,7 @@ class RNDS(RNIRG):
                  
         return op_hasse
     
-    def getDecomDisplayPv(self,decom_array,process,x_size='500px',y_size='500px',notebook=False,cdn_resources='local'):
+    def getDecomDisplayPv(self,decom_array,process,x_size='500px',y_size='500px',notebook=False,cdn_resources='local',disp_non_act=True):
 
         G = nx.MultiDiGraph()
         r_i=np.where(process>0)[0]
@@ -1022,10 +1022,10 @@ class RNDS(RNIRG):
             elif i == -1:
                 for j in np.where(decom_array==i)[0]:
                     G.add_node(self.SpIdStrArray[j], color = "#00FF80", label=self.SpIdStrArray[j], size=14, shape="dot")
-            elif i == 0:
+            elif i == 0 and disp_non_act:
                 for j in np.where(decom_array==i)[0]:
                     G.add_node(self.SpIdStrArray[j], color = "#E0E0E0", label=self.SpIdStrArray[j], size=14, shape="dot")
-            else:                
+            elif i>0:                
                 # generate a new color that is visually distinguishable from the existing colors
                 while True:
                     hue = random.random()
@@ -1062,7 +1062,7 @@ class RNDS(RNIRG):
                     G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="#4B0082",
                                label=label,title=label)
             
-            else:
+            elif disp_non_act:
                 G.add_node("r"+str(i), color = "#E0E0E0", label="r"+str(i), shape="square", size=7,title="")
             
             
