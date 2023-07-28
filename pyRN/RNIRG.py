@@ -627,7 +627,7 @@ class RNIRG:
     # Function that displays the reactions on the screen. It receives as
     # input a list p of integers corresponding to the reactions to be displayed. 
     # If p is not entered, the complete network is displayed.
-    def printRp(self,r_set=None):
+    def printRp(self,r_set=None,string_out=False):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
@@ -645,7 +645,8 @@ class RNIRG:
                     if i in self.MpDf.columns:
                         r_i.append(i)
                 # r=r_set
-                 
+            
+        str_out=str()
         for i in r_i:
             p_text="r"+str(i)+":   "
             for j in np.where(self.MrDf.iloc[:,i]!=0)[0]:
@@ -670,8 +671,14 @@ class RNIRG:
                 p_text+="+ "
             if len(np.where(self.MpDf.iloc[:,i]!=0)[0])>0:
                 p_text=p_text[:-2]    
-            print(p_text)
+            if not string_out:
+                print(p_text)
+            else:
+                str_out+=p_text+"\n"
             
+        if string_out:
+            return str_out
+        
     # Function that displays the reactions on the screen. It receives as
     # input a list p of integers corresponding to the reactions to be displayed. 
     # If p is not entered, the complete network is displayed.
@@ -1845,6 +1852,46 @@ class RNIRG:
         self.ReacListBt=reac
         self.ProdListBt=prod
     
+    def addInflow(self,sp_set):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        '''
+        
+        # selection of species that will considere as inflow species
+        SpIds = sp_set.search(1)
+        inflow_sp = self.getInflowFromSp(self.SpIdStrArray)
+        
+        SpIds =list(set(SpIds)-set(inflow_sp))
+        
+        
+        
+        k=self.MpDf.shape[1]
+        for l in SpIds:
+            print(l)
+            self.MpDf[k]=0.0
+            self.MrDf[k]=0.0
+            self.MpDf.loc[self.SpIdStrArray[l],k]=1.0
+            
+            p_bt=bt(self.MpDf.shape[0])
+            p_bt.setall(0)
+            r_bt=p_bt.copy()
+            
+            self.ReacListBt.append(r_bt)
+            
+            p_bt[l]=1
+            self.ProdListBt.append(p_bt)
+            k+=1
+    
     # function that adds a percentage of additional (extra) inflow 
     # reactions to an existing network
     def setExtraRandomgeneratedOutflow(self,extra=0.1):
@@ -1995,3 +2042,5 @@ class RNIRG:
         
         return out
         
+    
+ 
