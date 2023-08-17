@@ -1206,9 +1206,9 @@ class CRNS(RNIRG):
         
         # creation of the Graph object
         Hasse=nx.Graph()
-        org_id_count=0
-        ssm_id_count=0
-        crs_id_count=0
+        org_id_count_list=np.zeros(len(SortedSets[0][0]),dtype=int).tolist()
+        ssm_id_count_list=org_id_count_list.copy()
+        crs_id_count_list=org_id_count_list.copy()
         
         old_size=0
         size_count=0
@@ -1230,22 +1230,26 @@ class CRNS(RNIRG):
             old_size=size 
             
             if i[1]=="org":
-                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=1,label="O"+str(org_id_count),
+                
+                level=i[0].count()
+                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=1,label="O"+str(org_id_count_list[level-1])+"L"+str(level),
                                title=str(self.SpIdStrArray[self.getSpBtInGBt(i[0]).search(1)]),
                                fixed = json.loads('{ "x":false, "y":true}'),size=node_size)
-                org_id_count+=1
+                org_id_count_list[level-1]+=1
         
             elif i[1]=="ssm":
-                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=3,label="Ssm"+str(ssm_id_count),
+                level=i[0].count()
+                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=3,label="Ssm"+str(ssm_id_count_list[level-1])+"L"+str(level),
                                title=str(self.SpIdStrArray[self.getSpBtInGBt(i[0]).search(1)]),
                                fixed = json.loads('{ "x":false, "y":true}'),size=node_size)
-                ssm_id_count+=1
+                ssm_id_count_list[level-1]+=1
         
             elif i[1]=="crs":
-                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=2,label="C"+str(crs_id_count),
+                level=i[0].count()
+                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=2,label="C"+str(crs_id_count_list[level-1])+"L"+str(level),
                                title=str(self.SpIdStrArray[self.getSpBtInGBt(i[0]).search(1)]),
                                fixed = json.loads('{ "x":false, "y":true}'),size=node_size)
-                crs_id_count+=1
+                crs_id_count_list[level-1]+=1
             
         for i in SortedSets:
             
@@ -1305,7 +1309,7 @@ class CRNS(RNIRG):
             DirectlyBelowSets=self.getDirectlyBelowBtList(i, BtList)
             if DirectlyBelowSets:
                 for j in DirectlyBelowSets:
-                    Hasse.add_edge(j, i,color="gray", smooth = False)
+                    Hasse.add_edge(i, j,color="gray", smooth = False)
             
         return Hasse
     

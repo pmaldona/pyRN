@@ -1877,7 +1877,6 @@ class RNIRG:
         
         k=self.MpDf.shape[1]
         for l in SpIds:
-            print(l)
             self.MpDf[k]=0.0
             self.MrDf[k]=0.0
             self.MpDf.loc[self.SpIdStrArray[l],k]=1.0
