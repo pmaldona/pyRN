@@ -20,3 +20,4 @@ Bumped Linux Up - Bumped Pillow down
 Auto Yes for uninstall
 Made Fixes for different problems
 Added New Graphics
+Installed Libroadrunner before pyrn
