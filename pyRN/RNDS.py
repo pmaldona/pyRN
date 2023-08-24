@@ -1006,26 +1006,31 @@ class RNDS(RNIRG):
                  
         return op_hasse
     
-    def getDecomDisplayPv(self,decom_array,process,x_size='500px',y_size='500px',notebook=False,cdn_resources='local',disp_non_act=True):
+    def getDecomDisplayPv(self,decom_array,process,x_size='500px',y_size='500px',notebook=False,cdn_resources='local',disp_non_act=True,sp_name=False):
 
         G = nx.MultiDiGraph()
         r_i=np.where(process>0)[0]
         
         exluded_colors=["#E0E0E0","#0080FF","#FF6666","#00FF80","#4B0082"]
         
+        if sp_name:
+            sp_id=self.SpNameStrArray.copy()
+        else: 
+            sp_id=self.SpIdStrArray.copy()
+            
         for i in np.unique(decom_array):
-            if i ==-3:
+            if i ==-3 and not disp_non_act:
                 for j in np.where(decom_array==i)[0]:
-                    G.add_node(self.SpIdStrArray[j], color = "#FF6666", label=self.SpIdStrArray[j], size=14, shape="dot")
+                    G.add_node(self.SpIdStrArray[j], color = "#FF6666", label=sp_id[j], size=14, shape="dot")
             elif i == -2:
                 for j in np.where(decom_array==i)[0]:
-                    G.add_node(self.SpIdStrArray[j], color = "#0080FF", label=self.SpIdStrArray[j], size=14, shape="dot")
+                    G.add_node(self.SpIdStrArray[j], color = "#0080FF", label=sp_id[j], size=14, shape="dot")
             elif i == -1:
                 for j in np.where(decom_array==i)[0]:
-                    G.add_node(self.SpIdStrArray[j], color = "#00FF80", label=self.SpIdStrArray[j], size=14, shape="dot")
+                    G.add_node(self.SpIdStrArray[j], color = "#00FF80", label=sp_id[j], size=14, shape="dot")
             elif i == 0 and disp_non_act:
                 for j in np.where(decom_array==i)[0]:
-                    G.add_node(self.SpIdStrArray[j], color = "#E0E0E0", label=self.SpIdStrArray[j], size=14, shape="dot")
+                    G.add_node(self.SpIdStrArray[j], color = "#E0E0E0", label=sp_id[j], size=14, shape="dot")
             elif i>0:                
                 # generate a new color that is visually distinguishable from the existing colors
                 while True:
@@ -1038,7 +1043,7 @@ class RNDS(RNIRG):
                         break
                     
                 for j in np.where(decom_array==i)[0]:
-                    G.add_node(self.SpIdStrArray[j], color = color, label=self.SpIdStrArray[j], size=14, shape="dot")
+                    G.add_node(self.SpIdStrArray[j], color = color, label=sp_id[j], size=14, shape="dot")
         
         for i in range(self.MpDf.shape[1]):
             if i in r_i:

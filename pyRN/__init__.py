@@ -26,7 +26,7 @@ class pyRN(RNLI,RNSEA):
             hard copy of pyRN object.
 
         '''
-        return pyRN(copy.copy(self))
+        return copy.deepcopy(self)
     
     pass
     

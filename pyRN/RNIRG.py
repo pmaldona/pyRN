@@ -42,8 +42,8 @@ class RNIRG:
             # IsTextBool -> boolean if is load form a textfile
             # IsSbmlBool -> boolean if its load form a Smbl file
 
-    # The following constructors setFromText and from_bml, generate the same 
-    # variables from the reading of a file
+    # The following constructors setFromText and setFromSbml, generate the same 
+    # variables reading a file
     def __init__(self):
             self.SpIdStrArray=None
             self.SpNameStrArray=None

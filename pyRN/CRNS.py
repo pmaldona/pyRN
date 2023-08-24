@@ -1278,6 +1278,8 @@ class CRNS(RNIRG):
         # Sorting elements by size (smallest to biggest)
         SortedSets=sorted(SortedSets,key= lambda x: x.count())
         
+        node_id_count_list=np.zeros(len(SortedSets[0]),dtype=int).tolist()
+        
         # creation of the Graph object
         if not directed:
             Hasse=nx.Graph()
@@ -1285,7 +1287,6 @@ class CRNS(RNIRG):
             Hasse=nx.DiGraph()
         
         c = 0
-        node_id_count=0
         for i in SortedSets:
             size=i.count()
             
@@ -1298,11 +1299,14 @@ class CRNS(RNIRG):
                 c = 0
             
             y = -75*(size-1)
-
-            Hasse.add_node(i,x=x,y=y,group=1,label=setlabel+str(node_id_count),
+            
+            level=self.getGBtInSpBt(i).count()
+            label=setlabel+str(node_id_count_list[level-1])+"L"+str(level)
+            
+            Hasse.add_node(i,x=x,y=y,group=1,label=label,
                            title=str(self.SpIdStrArray[self.getIndArrayFromBt(i)]),
                            fixed = json.loads('{ "x":false, "y":true}'))
-            node_id_count+=1
+            node_id_count_list[level-1]+=1
         
         for i in SortedSets:
             
