@@ -923,7 +923,8 @@ class RNSRW(CRNSMP):
         return
     
 
-    def setRwSimple(self, init_gen=None, w=range(10),l=10,d=3,nmin=1,conn=True, fname="rand_walk.json",org_list=None,pert_type="species"):
+    def setRwSimple(self, init_gen=None, w=range(10),l=10,d=3,nmin=1,conn=True, fname="rand_walk.json",org_list=None,pert_type="species",
+                    pert_class="all"):
         '''
         
 
@@ -1091,7 +1092,7 @@ class RNSRW(CRNSMP):
                 json.dump(out, outfile)
             
     
-    def getallPert(self,init_state,pert_type="species",pert_size=4,conn=True):
+    def getallPert(self,init_state,pert_type="species",pert_size=4,conn=True,pert_class="all"):
         '''
         
 
@@ -1163,9 +1164,18 @@ class RNSRW(CRNSMP):
         pert_range=range(pert_size+1)
         
         # list of position of all permurtations
-        pert = [com for sub in pert_range for com in combinations(self.getIndArrayFromBt(mask), sub)]
+        pert = [com for sub in pert_range for com in combinations(mask.search(1), sub)]
         pert = list(map(lambda x: self.getBtFromIndArray(x,len(init_state)),pert))
         pert = [x for x in pert if x.count()!=0]
+        
+        
+        if pert_class=="constructive":
+            pert=list(filter(lambda x: (~init_state&x).any() and not (init_state&x).any(),pert))    
+        if pert_class=="destructive":
+            pert=list(filter(lambda x: not (~init_state&x).any() and (init_state&x).any(),pert))
+        if pert_class=="mixed":
+            pert=list(filter(lambda x: (~init_state&x).any() and (init_state&x).any(),pert))
+
         
         res=list(map(lambda x: init_state^x ,pert)) 
         
@@ -1173,7 +1183,7 @@ class RNSRW(CRNSMP):
 
         
     
-    def setSimpleTransDict(self,orglist,pert_type="species",pert_size=4,conn=True,closure=True,include_empty_set=False,org_below_reset=True):
+    def setSimpleTransDict(self,orglist,pert_type="species",pert_size=4,conn=True,closure=True,include_empty_set=False,org_below_reset=True,pert_class="all"):
         '''
         Parameters
         ----------
@@ -1226,7 +1236,7 @@ class RNSRW(CRNSMP):
             for i in orgs:
                     print("Simple Transition for org",l,"of",len(orgs))
                     # itereting all posible perturbations
-                    pert=self.getallPert(self.getGBtInSpBt(i),pert_type=pert_type,pert_size=pert_size,conn=conn)
+                    pert=self.getallPert(self.getGBtInSpBt(i),pert_type=pert_type,pert_size=pert_size,conn=conn,pert_class=pert_class)
 
                     if closure:
                         pert=list(map(lambda x: (x[0],self.getClosureFromSp(self.getSpBtInGBt(x[1]),bt_type=True)),pert))
@@ -1266,7 +1276,7 @@ class RNSRW(CRNSMP):
             for i in orgs:
                     print("Simple Transition for org",l,"of",len(orgs))
                     # itereting all posible perturbations
-                    pert=self.getallPert(i,pert_type=pert_type,pert_size=pert_size,conn=conn)
+                    pert=self.getallPert(i,pert_type=pert_type,pert_size=pert_size,conn=conn,pert_class=pert_class)
 
                     if closure:
                         pert=list(map(lambda x: (x[0],self.getClosureFromSp(x[1],bt_type=True)),pert))
