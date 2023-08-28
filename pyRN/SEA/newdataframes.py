@@ -604,20 +604,25 @@ def fix_transition_probabilities(transitions_df, initial_state):
         transitions_df,
         initial_state
     '''
+    
     # Determine what and where to update  probabilities
     transitions_from_initial_state         = transitions_df.query('initial_state==@initial_state')
     probabilities                          = transitions_from_initial_state['probability'].tolist()
-    error                                  = 1-sum(probabilities)
-    maximimum_probability                  = max(probabilities)
-    transition_with_max_probability        = transitions_from_initial_state.query('probability==@maximimum_probability')
-    convergent_states_with_max_probability = transition_with_max_probability['convergent_state'].tolist()
-    new_probability                        = maximimum_probability + (error/len(convergent_states_with_max_probability))
+    if any(numpy.array(probabilities)!=0): 
+        error                                  = 1-sum(probabilities)
+        maximimum_probability                  = max(probabilities)
+        transition_with_max_probability        = transitions_from_initial_state.query('probability==@maximimum_probability')
+        convergent_states_with_max_probability = transition_with_max_probability['convergent_state'].tolist()
+        new_probability                        = maximimum_probability + (error/len(convergent_states_with_max_probability))
 
-    # Update
-    mask = (transitions_df[['initial_state', 'probability']] == [initial_state, maximimum_probability]).all(axis=1)
-    for convergent_state in convergent_states_with_max_probability:
-        transitions_df.loc[mask, 'probability'] = new_probability
-
+        # Update
+        mask = (transitions_df[['initial_state', 'probability']] == [initial_state, maximimum_probability]).all(axis=1)
+        for convergent_state in convergent_states_with_max_probability:
+            transitions_df.loc[mask, 'probability'] = new_probability
+    else:
+        transitions_df.loc[(transitions_df['initial_state']==initial_state) &\
+                       (transitions_df['convergent_state']==initial_state),'probability']=1
+            
 def fix_transition_probabilities_for_all_initial_states(transitions_df):
     '''
     For all initial states:
