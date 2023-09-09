@@ -1108,7 +1108,16 @@ class RNDS(RNIRG):
         None.
 
         '''
-    
+        
+        inflow=self.getInflowFromSp(self.SpIdStrArray,return_type="bt")
+        
+        inflow_rp=bt(self.MpDf.shape[1])
+        inflow_rp.setall(0)
+        
+        for ind, prod in enumerate(self.ProdListBt):
+            if (prod&inflow).any() and not self.ReacListBt[ind].any() :
+                inflow_rp[ind]=1
+            
         # Creation of graph for causal decompostition
         Causal_G=nx.DiGraph()
        
@@ -1141,8 +1150,24 @@ class RNDS(RNIRG):
                     b_sp.setall(0)
                     b_sp[k]=1
                     
+                    is_inflow=False
+                    b_rp=bt(self.MpDf.shape[1])
+                    b_rp.setall(0)
+                    for ind, reac in enumerate(self.ReacListBt):
+                        if (reac&b_sp).any():
+                            b_rp[ind]=1
+                            
+                    b_rp&=~inflow_rp
+                    if (b_sp&inflow).any():
+                        is_inflow=True
+                    #     b_rp=bt(self.MpDf.shape[0])
+                    #     b_rp.setall(0)
+                    #     for ind, reac in enumerate(self.ReacListBt):
+                    #         if (reac&b_sp).any():
+                    #             b_rp[ind]=1
+                    
                     Causal_G.add_node("F_"+str(int(j)), b_sp=b_sp.copy(), sp_id=self.SpIdStrArray[b_sp.search(1)],
-                                      b_rp=self.getTriggerableRpBtFromSp(b_sp),type="F")
+                                      b_rp=b_rp,type="F",is_inflow=is_inflow)
                     j+=1
             
             elif i==-2:
@@ -1152,8 +1177,16 @@ class RNDS(RNIRG):
                     b_sp.setall(0)
                     b_sp[k]=1
                     
+                    b_rp=bt(self.MpDf.shape[1])
+                    b_rp.setall(0)
+                    for ind, reac in enumerate(self.ReacListBt):
+                        if (reac&b_sp).any():
+                            b_rp[ind]=1
+                            
+                    b_rp&=~inflow_rp
+                    
                     Causal_G.add_node("E_"+str(int(j)), b_sp=b_sp.copy(), sp_id=self.SpIdStrArray[b_sp.search(1)],
-                                      b_rp=self.getTriggerableRpBtFromSp(b_sp),type="E")
+                                      b_rp=b_rp,type="E")
                     j+=1
                     
         
@@ -1163,7 +1196,7 @@ class RNDS(RNIRG):
         
         supp_sp=b_sp.copy()
         prod_sp=b_sp.copy() 
-        print(Causal_G.nodes(data=True))
+        
         # Assigning causality edges between nodes.
         for i in Causal_G.nodes(data=True):
             
@@ -1184,38 +1217,45 @@ class RNDS(RNIRG):
                 N_nodes = list(map(lambda x: x[0],filter(lambda x: (x[1]['b_sp']&N_sp).any(), Causal_G.nodes(data=True))))
                 
                 for j in P_nodes:
-                    if not Causal_G.has_edge(j, i[0]):
-                        Causal_G.add_edge(j, i[0])
-                
-                for j in N_nodes:
                     if not Causal_G.has_edge(i[0],j):
                         Causal_G.add_edge(i[0],j)
                 
+                for j in N_nodes:
+                    if not Causal_G.has_edge(j, i[0]):
+                        Causal_G.add_edge(j, i[0])
                 
             if i[1]['type']=="F":
                 
                 supp_sp.setall(0)
                 prod_sp.setall(0)
                 
+                # print("node",i[0])
+                # print("reactions")
+                self.printRp(i[1]['b_rp'].search(1))
                 for j in i[1]['b_rp'].search(1):
-                    supp_sp|=self.ReacListBt[j]
+                    # supp_sp|=self.ReacListBt[j]
                     prod_sp|=self.ProdListBt[j]
                 
-                #N_sp=supp_sp
+                # N_sp=supp_sp&~i[1]['b_sp']
                 P_sp=prod_sp
                 # N_sp=supp_sp&~i[1]['b_sp']
                 # P_sp=prod_sp&~i[1]['b_sp']
                 
                 P_nodes = list(map(lambda x: x[0],filter(lambda x: (x[1]['b_sp']&P_sp).any(), Causal_G.nodes(data=True))))
-               # N_nodes = list(map(lambda x: x[0],filter(lambda x: (x[1]['b_sp']&N_sp).any(), Causal_G.nodes(data=True))))
+                # N_nodes = list(map(lambda x: x[0],filter(lambda x: (x[1]['b_sp']&N_sp).any(), Causal_G.nodes(data=True))))
+                
+                
+                # print("p_nodes",P_nodes)
+                # print("n_nodes",N_nodes)
+                
                 
                 for j in P_nodes:
-                    if not Causal_G.has_edge(j, i[0]):
-                        Causal_G.add_edge(j, i[0])
+                    if not Causal_G.has_edge(i[0],j):
+                        Causal_G.add_edge(i[0],j)
                 
                 # for j in N_nodes:
-                #     if not Causal_G.has_edge(i[0],j):
-                #         Causal_G.add_edge(i[0],j)
+                #     if not Causal_G.has_edge(j,i[0]):
+                #         Causal_G.add_edge(j,i[0])
                 
 
                     

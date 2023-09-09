@@ -149,9 +149,11 @@ class CRNS(RNIRG):
                 for k in self.getIndArrayFromBt(r_a[j]): 
                     rsp_b[i]|=self.ReacListBt[k]
                     psp_b[i]|=self.ProdListBt[k]
-                    sp_sp_b[i]|=bt(self.MrDf.iloc[:,k] < self.MpDf.iloc[:,k])
-                    sn_sp_b[i]|=bt(self.MrDf.iloc[:,k] > self.MpDf.iloc[:,k])
-            
+                    sp_sp_b[i]|=bt((self.MrDf[k].to_numpy() < self.MpDf[k].to_numpy()).tolist())
+                    sn_sp_b[i]|=bt((self.MrDf[k].to_numpy() < self.MpDf[k].to_numpy()).tolist())
+                    # sp_sp_b[i]|=bt(self.MrDf.loc[k] < self.MpDf.loc[k])
+                    # sn_sp_b[i]|=bt(self.MrDf.loc[k] > self.MpDf.loc[k])
+
         self.GInBListBt=a_b
         self.BRpListBt=r_b
         self.BReacSpListBt=rsp_b
