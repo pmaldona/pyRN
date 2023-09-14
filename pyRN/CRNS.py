@@ -343,7 +343,16 @@ class CRNS(RNIRG):
                 p[i]=1
         
         return p
-    
+
+    # Function of species that returns the generator that contains the species
+    def getGBtInRpBt(self, sp):
+        p=bt(len(self.BSpListBt))
+        p.setall(0)
+        for i in range(len(self.GRpListBt)):
+            if (sp & self.GRpListBt[i]) == self.GRpListBt[i]:
+                p[i]=1
+        
+        return p
     
     # Function that returns the contains the species contained in a Bitarray ofgetGBtContribBBt
     # generators
@@ -1271,7 +1280,7 @@ class CRNS(RNIRG):
     
     # Generates a networkx Hasse diagram of a form a list of bitarrays 
     # Blist       
-    def getHasseNxFromBtList(self,BtList,setlabel="O",directed=False):
+    def getHasseNxFromBtList(self,BtList,setlabel="O",directed=False,bt_type="species"):
         
         NSpSetsDict=count(list(map(lambda x: x.count(),BtList)))
         
@@ -1302,11 +1311,20 @@ class CRNS(RNIRG):
             
             y = -75*(size-1)
             
-            level=self.getGBtInSpBt(i).count()
+            if bt_type=="species":
+                level=self.getGBtInSpBt(i).count()
+                title=str(self.SpIdStrArray[self.getIndArrayFromBt(i)])
+            elif bt_type=="reactions":
+                level=self.getGBtInRpBt(i).count()
+                title=str(i.search(1))
+            elif bt_type=="generators":
+                level=i.count()
+                title=str(i.search(1))
+            
             label=setlabel+str(node_id_count_list[level-1])+"L"+str(level)
             
             Hasse.add_node(i,x=x,y=y,group=1,label=label,
-                           title=str(self.SpIdStrArray[self.getIndArrayFromBt(i)]),
+                           title=title,
                            fixed = json.loads('{ "x":false, "y":true}'))
             node_id_count_list[level-1]+=1
         
