@@ -1006,7 +1006,7 @@ class RNDS(RNIRG):
                  
         return op_hasse
     
-    def getDecomDisplayPv(self,decom_array,process,x_size='500px',y_size='500px',notebook=False,cdn_resources='local',disp_non_act=True,sp_name=False):
+    def getDecomDisplayPv(self,decom_array,process,x_size='500px',y_size='500px',notebook=True,cdn_resources='remote',disp_non_act=True,sp_name=False):
 
         G = nx.MultiDiGraph()
         r_i=np.where(process>0)[0]

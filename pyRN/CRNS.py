@@ -1052,7 +1052,7 @@ class CRNS(RNIRG):
     # respectively. The shape of the set is circular if it is a basic or 
     # square if it is not. Finally, the green arrows correspond to synergies 
     # and the blue arrows to spurious union.
-    def getStrDisplayPv(self,graph,size_fact=2,height=75,width=75,notebook=True,cdn_resources='local'):
+    def getStrDisplayPv(self,graph,size_fact=2,height=75,width=75,notebook=True,cdn_resources='remote'):
         G = nx.relabel_nodes(graph, lambda x: str(self.getIndArrayFromBt(bt(x))))
         nt = Network('500px', '500px',directed=True,notebook=notebook,cdn_resources=cdn_resources)
         
@@ -1170,7 +1170,7 @@ class CRNS(RNIRG):
         return(all_orgs+orgslist)
     
     
-    def getHassePvFromSynStr(self,SynStr,width=75,node_size=10,height=75,notebook=True,cdn_resources='local'):
+    def getHassePvFromSynStr(self,SynStr,width=75,node_size=10,height=75,notebook=True,cdn_resources='remote'):
         '''
         
 
@@ -1243,21 +1243,21 @@ class CRNS(RNIRG):
             if i[1]=="org":
                 
                 level=i[0].count()
-                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=1,label="O"+str(org_id_count_list[level-1])+"L"+str(level),
+                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,color='powderblue',label="O"+str(org_id_count_list[level-1])+" L"+str(level),
                                title=str(self.SpIdStrArray[self.getSpBtInGBt(i[0]).search(1)]),
                                fixed = json.loads('{ "x":false, "y":true}'),size=node_size)
                 org_id_count_list[level-1]+=1
         
             elif i[1]=="ssm":
                 level=i[0].count()
-                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=3,label="Ssm"+str(ssm_id_count_list[level-1])+"L"+str(level),
+                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,color='indianred',label="Ssm"+str(ssm_id_count_list[level-1])+" L"+str(level),
                                title=str(self.SpIdStrArray[self.getSpBtInGBt(i[0]).search(1)]),
                                fixed = json.loads('{ "x":false, "y":true}'),size=node_size)
                 ssm_id_count_list[level-1]+=1
         
             elif i[1]=="crs":
                 level=i[0].count()
-                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,group=2,label="C"+str(crs_id_count_list[level-1])+"L"+str(level),
+                Hasse.add_node(str(self.getSpBtInGBt(i[0]).search(1)),x=x,y=y,color='yellow',label="C"+str(crs_id_count_list[level-1])+" L"+str(level),
                                title=str(self.SpIdStrArray[self.getSpBtInGBt(i[0]).search(1)]),
                                fixed = json.loads('{ "x":false, "y":true}'),size=node_size)
                 crs_id_count_list[level-1]+=1
@@ -1567,7 +1567,7 @@ class CRNS(RNIRG):
     # pyvis object, where each synergy is labeled as p, and it's draw as a 
     # green square. The generators are colored as blue circules, where the size 
     # is proportinal to the number of contained species.
-    def displaySynPv(self,notebook=False):
+    def displaySynPv(self,notebook=True):
         
         all_part=bt(len(self.BSpListBt))
         all_part.setall(0)

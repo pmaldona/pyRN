@@ -751,7 +751,7 @@ class RNIRG:
         
                    
     
-    def getRnDisplayPv(self,r_set=None,x_size='500px',y_size='500px',notebook=False,cdn_resources='local'):
+    def getRnDisplayPv(self,r_set=None,x_size='500px',y_size='500px',notebook=True,cdn_resources='remote'):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
