@@ -751,41 +751,64 @@ class RNIRG:
         
                    
     
-    def getRnDisplayPv(self,r_set=None,x_size='500px',y_size='500px',notebook=True,cdn_resources='remote'):
+    def getRnDisplayPv(self,sp_set=None,r_set=None,x_size='500px',y_size='500px',notebook=True,cdn_resources='remote'):
 
         # Checks if input is or not a bitarray, If is, it make the 
         # transformation to an numpy array
-        if r_set is None:
-            r=self.MpDf.columns
-            r_i=range(len(r))
-        else:
-            if (isinstance(r_set,bt)):
-               r_i=self.getIndArrayFromBt(r_set)
-               r=self.MpDf.columns[r_i]
-            else:
-                r_i=[]
-                for i in r_set:
-                    if i in self.MpDf.columns:
-                        r_i.append(i)
-                r=r_set
-                
         G = nx.MultiDiGraph()
-        sp=set()
+     
+        if sp_set is None:
+            sp_set=bt(len(self.SpIdStrArray))
+            sp_set.setall(1)
+        
+            if r_set is None:
+                r=self.MpDf.columns
+                r_i=range(len(r))
+            else:
+                if (isinstance(r_set,bt)):
+                   r_i=self.getIndArrayFromBt(r_set)
+                   r=self.MpDf.columns[r_i]
+                else:
+                    r_i=[]
+                    for i in r_set:
+                        if i in self.MpDf.columns:
+                            r_i.append(i)
+                    r=r_set
+                    
+            sp=set()
+          
+        else: 
+            print("sp",sp_set)
+            if not (isinstance(sp_set,bt)):
+                sp=bt(self.MpDf.shape[0])
+                sp.setall(0)
+                
+                for i in sp_set:
+                    if i in self.SpIdStrArray:
+                        ind=np.where(self.SpIdStrArray==i)[0][0]
+                        sp[ind]=1
+            else:
+                sp=sp_set.copy()
+            
+            print("sp",sp)
+            r_i=self.getTriggerableRpBtFromSp(sp).search(1)
+            print("r_i",r_i)
+            r=self.MpDf.columns[r_i]
+            print("r",r)
+            sp|=self.getInflowFromSp(sp_set,return_type="bt")        
+            sp=set(self.SpIdStrArray[sp.search(1)])
+        
         for i in r_i:
             sp|=set(self.SpIdStrArray[self.getIndArrayFromBt(self.ReacListBt[i])])|set(self.SpIdStrArray[self.getIndArrayFromBt(self.ProdListBt[i])])
             # size=len(self.SpIdStrArray[self.getIndArrayFromBt(self.SpIdStrArray_p[i])])*3
             G.add_node("r"+str(i), color = "yellow", label="r"+str(i), shape="square", size=7)
-        
-        
+      
         not_r_i=set(range(self.MpDf.shape[1]))-set(r_i)
         for i in not_r_i:
             G.add_node("r"+str(i), color = "#E0E0E0", label="r"+str(i), shape="square", size=7)
         
         
         nsp=set(self.SpIdStrArray)-sp
-        
-        
-        
         inf=set(self.getInflowFromSp(np.array(list(sp)),"id"))
         out=set(self.getOutflowFromSp(np.array(list(sp)),"id"))
         sp-=inf
