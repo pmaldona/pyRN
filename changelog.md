@@ -22,3 +22,4 @@ Made Fixes for different problems
 Added New Graphics
 Installed Libroadrunner before pyrn
 last Project build
+bumped ubuntu to 22.04
