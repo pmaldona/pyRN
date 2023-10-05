@@ -54,7 +54,8 @@ class RNIRG:
             self.FilenameStr=None
             self.IsTextBool=False
             self.IsSbmlBool=False
-    
+            self.RpIndArray=None
+
     # Reaction Network initialization form text file similar to antimony format, 
     # see example "rn_test.txt". calling the object can be done by RN(file_name). 
     # Example rn = RN.form_txt("rn_text.txt")
@@ -158,10 +159,11 @@ class RNIRG:
             r_sp=bt(len(mr.columns))
             r_sp.setall(0)
             
-            if er[i][0][0]: 
-                for j in range(len(er[i][0])):           
+            if er[i][0][0]:
+                for j in range(len(er[i][0])):   
                     ind=mr.columns.get_loc(er[i][0][j])
-                    mr.iloc[i][ind]=er[i][1][j]
+                    sub_sp=er[i][0][j]
+                    mr[sub_sp].iloc[i]=er[i][1][j]
                     r_sp[ind]=1            
                         
             reac.append(r_sp)
@@ -170,8 +172,9 @@ class RNIRG:
             p_sp.setall(0)
             if ep[i][0][0]: 
                 for j in range(len(ep[i][0])):
+                    sub_sp=ep[i][0][j]
                     ind=mp.columns.get_loc(ep[i][0][j])
-                    mp.iloc[i][ind]=ep[i][1][j]
+                    mp[sub_sp].iloc[i]=ep[i][1][j]
                     p_sp[ind]=1             
  
                
@@ -207,6 +210,7 @@ class RNIRG:
         out.FilenameStr=file
         out.IsTextBool=True
         out.IsSbmlBool=False
+        out.RpIndArray=np.array(out.MpDf.columns)
         
         return out
     
@@ -390,7 +394,8 @@ class RNIRG:
                 if er[i][0][0]: 
                     for j in range(len(er[i][0])):           
                         ind=mr.columns.get_loc(er[i][0][j])
-                        mr.iloc[i][ind]=er[i][1][j]
+                        sub_sp=er[i][0][j]
+                        mr[sub_sp].iloc[i]=er[i][1][j]
                         r_sp[ind]=1            
                             
                 reac.append(r_sp)
@@ -399,11 +404,11 @@ class RNIRG:
                 p_sp.setall(0)
                 if ep[i][0][0]: 
                     for j in range(len(ep[i][0])):
+                        sub_sp=ep[i][0][j]
                         ind=mp.columns.get_loc(ep[i][0][j])
-                        mp.iloc[i][ind]=ep[i][1][j]
-                        p_sp[ind]=1             
-     
-                   
+                        mp[sub_sp].iloc[i]=ep[i][1][j]
+                        p_sp[ind]=1     
+                       
                 prod.append(p_sp)              
             
             #sorting mp and mr dataframes
@@ -445,10 +450,116 @@ class RNIRG:
             out.FilenameStr=file.name
             out.IsTextBool=False 
             out.IsSbmlBool=True 
-            
+            out.RpIndArray=np.array(out.MpDf.columns)
             return out
         except:
             print("error reading smbl file")
+    
+    def getSubNet(self,sp_set=None,reactive=False,closure=False):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : TYPE, optional
+            DESCRIPTION. The default is None.
+        reactive : TYPE, optional
+            DESCRIPTION. The default is False.
+        closure : TYPE, optional
+            DESCRIPTION. The default is False.
+
+        Returns
+        -------
+        out : TYPE
+            DESCRIPTION.
+
+        '''
+        
+        if sp_set is None:
+            sp=self.SpIdStrArray.copy()
+
+        if (isinstance(sp_set,bt)):
+            bit_list=sp_set.tolist()
+            sp=[]
+            for i in range(len(bit_list)):
+                if bit_list[i]==1:
+                    sp.append(self.MrDf.index[i])
+        else:
+            sp=sp_set
+        
+        if closure:
+            sp=self.getClosureFromSp(sp,bt_type=False)
+        
+        sp_ind=list(map(lambda x:np.where(self.SpIdStrArray==x)[0][0],sp))
+        rp_ind=self.getTriggerableRpBtFromSp(sp).search(1)
+       
+        
+        sp_bt=self.ReacListBt[0].copy()
+        sp_bt.setall(0)
+        
+        for i in sp_ind:
+            sp_bt[i]=1
+        # remove inflow reactions if species aren't selected
+        sp=set(sp)
+        iter_r=rp_ind.copy()
+        
+        for i in iter_r:
+            if (not self.ReacListBt[i].any()) and not (self.ProdListBt[i]&sp_bt).any():
+                rp_ind.remove(i)
+            
+        for i in rp_ind:
+            sp|=set(self.SpIdStrArray[self.getIndArrayFromBt(self.ReacListBt[i])])|set(self.SpIdStrArray[self.getIndArrayFromBt(self.ProdListBt[i])])
+        
+        
+        sp=np.array(list(sp))
+        sp_ind=list(map(lambda x:np.where(self.SpIdStrArray==x)[0][0],sp))
+        
+        if reactive:
+            sp_bt.setall(0)
+            
+            for i in rp_ind:
+                sp_bt|=self.ReacListBt[i]
+                sp_bt|=self.ProdListBt[i]
+            
+            sp=self.SpIdStrArray[sp_bt.search(1)]
+            
+        rp_ind=np.array(rp_ind) 
+        out=RNIRG()
+        
+        out.RpIndArray=np.arange(0,len(rp_ind),1)
+        out.SpIdStrArray=sp
+        out.SpNameStrArray=self.SpNameStrArray[sp_ind]
+        out.MrDf=self.MrDf.loc[sp,rp_ind].copy()
+        out.MrDf.columns=out.RpIndArray
+        out.MpDf=self.MpDf.loc[sp,rp_ind].copy()
+        out.MpDf.columns=out.RpIndArray
+        
+        # generation of the new reaction and product bitsets
+        reac=[]
+        prod=[]
+        for i in range(out.MpDf.shape[1]):
+            
+            r_sp=bt(out.MpDf.shape[0])
+            r_sp.setall(0)
+            p_sp=r_sp.copy()
+            
+            for j in np.where(out.MrDf.iloc[:,i]!=0)[0]:
+                r_sp[j]=1
+            for j in np.where(out.MpDf.iloc[:,i]!=0)[0]:
+                p_sp[j]=1
+            
+            reac.append(r_sp)
+            prod.append(p_sp)
+  
+        out.ReacListBt=reac
+        out.ProdListBt=prod
+        out.FilenameStr=None
+        out.IsTextBool=False
+        out.IsSbmlBool=False
+        
+        return out
+        
+    
     
     def setSpConnMat(self,transitive=True):
         '''
@@ -758,27 +869,24 @@ class RNIRG:
         G = nx.MultiDiGraph()
      
         if sp_set is None:
-            sp_set=bt(len(self.SpIdStrArray))
-            sp_set.setall(1)
-        
             if r_set is None:
-                r=self.MpDf.columns
-                r_i=range(len(r))
+                r_i=self.MpDf.columns
+                sp=bt(self.MpDf.shape[0])
+                sp.setall(1)
             else:
                 if (isinstance(r_set,bt)):
                    r_i=self.getIndArrayFromBt(r_set)
-                   r=self.MpDf.columns[r_i]
                 else:
                     r_i=[]
                     for i in r_set:
                         if i in self.MpDf.columns:
                             r_i.append(i)
-                    r=r_set
                     
-            sp=set()
-          
+                    
+                sp=bt(self.MpDf.shape[0])
+                sp.setall(0)
+              
         else: 
-            print("sp",sp_set)
             if not (isinstance(sp_set,bt)):
                 sp=bt(self.MpDf.shape[0])
                 sp.setall(0)
@@ -790,26 +898,38 @@ class RNIRG:
             else:
                 sp=sp_set.copy()
             
-            print("sp",sp)
-            r_i=self.getTriggerableRpBtFromSp(sp).search(1)
-            print("r_i",r_i)
-            r=self.MpDf.columns[r_i]
-            print("r",r)
-            sp|=self.getInflowFromSp(sp_set,return_type="bt")        
-            sp=set(self.SpIdStrArray[sp.search(1)])
-        
+            r_i=list(self.getTriggerableRpBtFromSp(sp).search(1))
+            sp|=self.getInflowFromSp(sp_set=sp,return_type="bt")        
+            # sp_bt=sp.copy()
+            not_inf=sp.copy()
+            not_inf.setall(0)
+            # sp=set(self.SpIdStrArray[sp_bt.search(1)])
+            iter_r=r_i.copy()
+            for i in iter_r:
+                
+                if (not self.ReacListBt[i].any()) and not (self.ProdListBt[i]&sp).any():
+                    r_i.remove(i)
+                    
         for i in r_i:
-            sp|=set(self.SpIdStrArray[self.getIndArrayFromBt(self.ReacListBt[i])])|set(self.SpIdStrArray[self.getIndArrayFromBt(self.ProdListBt[i])])
-            # size=len(self.SpIdStrArray[self.getIndArrayFromBt(self.SpIdStrArray_p[i])])*3
+            
+            sp|=self.ReacListBt[i]|self.ProdListBt[i]
             G.add_node("r"+str(i), color = "yellow", label="r"+str(i), shape="square", size=7)
-      
+        
+        not_inf=sp.copy()
+        not_inf.setall(0)
+        for i in range(self.MpDf.shape[1]):
+            if (not self.ReacListBt[i].any()) and (self.ProdListBt[i]&sp).any() and not (i in r_i):
+                not_inf|=self.ProdListBt[i]&sp
+                    
+        sp=set(self.SpIdStrArray[sp.search(1)])
         not_r_i=set(range(self.MpDf.shape[1]))-set(r_i)
         for i in not_r_i:
             G.add_node("r"+str(i), color = "#E0E0E0", label="r"+str(i), shape="square", size=7)
         
         
         nsp=set(self.SpIdStrArray)-sp
-        inf=set(self.getInflowFromSp(np.array(list(sp)),"id"))
+
+        inf=set(self.getInflowFromSp(np.array(list(sp)),"id"))-set(self.SpIdStrArray[not_inf.search(1)])
         out=set(self.getOutflowFromSp(np.array(list(sp)),"id"))
         sp-=inf
         sp-=out
