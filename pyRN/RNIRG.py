@@ -639,7 +639,36 @@ class RNIRG:
         # Conneted fration
         self.SpConnFrac = len(self.SpConnNx.edges) / total_edges
 
-    
+    def isConnSp(self,sp_set):
+        '''
+        
+
+        Parameters
+        ----------
+        sp_set : bitarray ot SpId array
+            Candiadate species we want to explore.
+            
+        Returns
+        -------
+        True if all sp_set is connected.
+
+        '''
+        #Check type of file and set it to species array
+        if sp_set is None:
+            sp_set=self.SpIdStrArray
+            
+        if (isinstance(sp_set,bt)):
+            bit_list=sp_set.tolist()
+            sp=[]
+            for i in range(len(bit_list)):
+                if bit_list[i]==1:
+                    sp.append(self.MrDf.index[i])
+            # sp=np.array(sp)
+        
+        
+        subgraph = self.SpCConnNx.subgraph(sp_set)
+        return(nx.is_weakly_connected(subgraph))
+
     def getConnSp(self,sp_set,bitout=False):
         '''
         
