@@ -1,4 +1,11 @@
 .DS_store
 package-lock.json
 node_modules
-crns
+crns__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging
+*.egg-info/
+dist/
+build/
