@@ -8,6 +8,8 @@ Created on Sat Jul  9 19:15:03 2022
 General Reaction Network Class
 """
 
+__version__ = "0.6"
+
 from .RNLI import RNLI
 from .RNSEA import RNSEA
 import pickle

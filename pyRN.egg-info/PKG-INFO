@@ -1,3 +1,54 @@
+Metadata-Version: 2.4
+Name: pyRN
+Version: 0.6
+Summary: Reaction Network Structure and Simulation Library for Resilience
+Author: Alejandro Bassi, Fionn Daire Keogh, Tomas Veloz
+Author-email: Pedro Maldonado <pmaldona@sax.cl>
+License-Expression: GPL-3.0-only
+Project-URL: Homepage, https://github.com/pmaldona/pyRN
+Project-URL: Repository, https://github.com/pmaldona/pyRN
+Keywords: chemical reaction networks,closed structure,decomposition,simulation,random walk,random network generator
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Science/Research
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: beautifulsoup4
+Requires-Dist: bitarray
+Requires-Dist: joblib
+Requires-Dist: lxml
+Requires-Dist: networkx
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: pulp
+Requires-Dist: scipy
+Provides-Extra: viz
+Requires-Dist: matplotlib; extra == "viz"
+Requires-Dist: pyvis; extra == "viz"
+Requires-Dist: seaborn; extra == "viz"
+Provides-Extra: roadrunner
+Requires-Dist: libroadrunner; extra == "roadrunner"
+Provides-Extra: geometry
+Requires-Dist: pypoman; extra == "geometry"
+Provides-Extra: all
+Requires-Dist: libroadrunner; extra == "all"
+Requires-Dist: matplotlib; extra == "all"
+Requires-Dist: pypoman; extra == "all"
+Requires-Dist: pyvis; extra == "all"
+Requires-Dist: seaborn; extra == "all"
+Provides-Extra: dev
+Requires-Dist: build; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: twine; extra == "dev"
+Dynamic: license-file
+
 # pyRN
 
 Reaction Network Structure and Simulation Library for Resilience.
@@ -64,58 +115,8 @@ python -m pip install '.[geometry]'
 
 Windows:
 
-**Python Setup** (required for all optional features):
-
-1. Download and install Python from [python.org](https://www.python.org/downloads/):
-   - During installation, check both:
-     - ☑ "Add python.exe to PATH"
-     - ☑ "Use admin privileges when installing py.exe"
-   - After installation, click "Disable path length limit" to avoid issues with long file paths
-
-2. Upgrade pip and build tools:
-   ```bash
-   python -m pip install --upgrade pip setuptools wheel
-   ```
-
-**Geometry features (pycddlib):**
-
-The recommended approach is using **conda** or **mamba**, as prebuilt wheels are available there. If you prefer pure pip, pre-built wheels exist for Python 3.10–3.12 on most systems.
-
-*Option A: Using conda/mamba (recommended)*
-
-```bash
-# If you don't have conda, install Miniconda from https://docs.conda.io/projects/miniconda/
-conda create -n pyrn_env python=3.11
-conda activate pyrn_env
-conda install -c conda-forge cddlib gmp
-python -m pip install '.[geometry]'
-```
-
-*Option B: Using pip with wheels (Python 3.10–3.12)*
-
-For recent Python versions on Windows, prebuilt wheels of `pycddlib` are often available. Try installing directly:
-
-```bash
-python -m pip install '.[geometry]'
-```
-
-If wheels are not available for your Python version and compilation fails, refer to Option A.
-
-**Optional: GLPK support** (if needed for optimization features)
-
-If you need GLPK for linear optimization, you can use the native binary:
-
-1. Download GLPK for Windows from [GNU GLPK](https://www.gnu.org/software/glpk/):
-   - Download the precompiled Windows binary
-   - Extract the archive and add the `bin` directory to your PATH:
-     - Open "Environment Variables" (search in Windows Start menu)
-     - Edit "Path" and add the full path to the GLPK `bin` folder
-   - Verify: `glpsol --version` in a new PowerShell terminal
-
-2. Alternatively, use Python package (simpler):
-   ```bash
-   python -m pip install glpk-py
-   ```
+- Prefer Python versions for which wheels are available for the scientific stack.
+- If `pycddlib` does not build with pip, use a conda/mamba environment and install native dependencies there, or omit the `geometry` extra if those functions are not needed.
 
 Python 3.10–3.12 is usually the most stable path for optional native dependencies. Python 3.13 support depends on wheel availability for each dependency.
 

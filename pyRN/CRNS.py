@@ -8,13 +8,12 @@ Created on Sat Jul  9 20:12:37 2022
 Closed Reaction Network Strucutre Library
 """
 from .RNIRG import RNIRG
+from ._optional import require_matplotlib_pyplot, require_pyvis_network
 import numpy as np
 import pandas as pd
 from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 import networkx as nx
-import matplotlib.pyplot as plt
-from pyvis.network import Network
 from bitarray.util import subset
 from collections import Counter as count
 import json
@@ -279,11 +278,12 @@ class CRNS(RNIRG):
     # the vector sp appears. The input vector sp can be a list of 
     # strings or a bitarray.
     def plotSpPresenceInBG(self,sp_set):
+        plt = require_matplotlib_pyplot()
         histo=self.getSpPresenceInBGArray(sp_set)
-        
+
         names=histo[0].columns.to_list()
         values=histo[0].iloc[0].tolist()
-    
+
         fig = plt.figure(figsize = (10, 5))
  
         # creating the bar plot
@@ -316,7 +316,8 @@ class CRNS(RNIRG):
     # the vector r appears. The input vector v can be a list of 
     # strings or a bitarray.
     def plotRpPresenceInB(self,v):
-        
+        plt = require_matplotlib_pyplot()
+
         histo=self.getRpPresenceInBArray(v)
         
         names=histo.columns.to_list()
@@ -1054,6 +1055,7 @@ class CRNS(RNIRG):
     # and the blue arrows to spurious union.
     def getStrDisplayPv(self,graph,size_fact=2,height=75,width=75,notebook=True,cdn_resources='remote'):
         G = nx.relabel_nodes(graph, lambda x: str(self.getIndArrayFromBt(bt(x))))
+        Network = require_pyvis_network()
         nt = Network('500px', '500px',directed=True,notebook=notebook,cdn_resources=cdn_resources)
         
 
@@ -1269,6 +1271,7 @@ class CRNS(RNIRG):
                 for j in DirectlyBelowSets:
                     Hasse.add_edge(str(self.getSpBtInGBt(j).search(1)), str(self.getSpBtInGBt(i[0]).search(1)),color="gray", smooth = False)
         
+        Network = require_pyvis_network()
         nt=Network('500px', '500px',notebook=notebook,cdn_resources=cdn_resources)
         nt.from_nx(Hasse)
         # nx.draw(G, with_labels=True, font_weight='bold')
@@ -1601,6 +1604,7 @@ class CRNS(RNIRG):
                     G.add_edge(j, "p"+str(i), color="teal")
                 for j in self.getIndArrayFromBt(self.SynProdListGBt[i]):    
                     G.add_edge("p"+str(i), j, color="teal")
+        Network = require_pyvis_network()
         nt = Network('500px', '500px',directed=True,notebook=notebook)
         nt.from_nx(G)
         nt.toggle_physics(False)

@@ -9,8 +9,8 @@ Reaction Network Simulator and Random Walk Class
 """
 from .CRNSMP import CRNSMP
 # from .CRNS_MP import CRNSMP
+from ._optional import require_pyvis_network, require_roadrunner
 import numpy as np
-import roadrunner as re
 import pandas as pd
 import time
 import json
@@ -19,7 +19,6 @@ from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 from itertools import combinations
 import networkx as nx
-from pyvis.network import Network
 
 class RNSRW(CRNSMP):
     # Funtions that create a mass action dinamics telurrium model (CRNS.model) of 
@@ -42,7 +41,8 @@ class RNSRW(CRNSMP):
             except:
                 self.model
         except:
-            self.model=re.RoadRunner()
+            rr = require_roadrunner()
+            self.model=rr.RoadRunner()
             
         self.model.addCompartment("C", 1,True)
         # Creating the random initial concetration if it's out of condition
@@ -122,7 +122,8 @@ class RNSRW(CRNSMP):
             except:
                 self.model
         except:
-            self.model=re.RoadRunner()
+            rr = require_roadrunner()
+            self.model=rr.RoadRunner()
 
         self.model.addCompartment("C", 1,True)
         # Creating the random initial concetration if it's out of condition
@@ -204,7 +205,8 @@ class RNSRW(CRNSMP):
             print("network do not correspond to an sbml file")
             return
         # self.model = te.loadSBMLModel(self.fname)
-        self.model = re.RoadRunner(self.fname)
+        rr = require_roadrunner()
+        self.model = rr.RoadRunner(self.fname)
     
     # Function that save initial conditions parameters in files
     def saveInitCondToText(self,SpConFileNameStr=None,KConstFileNameStr=None):
@@ -1960,6 +1962,7 @@ class RNSRW(CRNSMP):
             G.nodes()[i]['x']=x_width*(pos[i][0]-0.5)
             G.nodes()[i]['y']=y_width*(pos[i][1]-0.5)
         
+        Network = require_pyvis_network()
         nt = Network(x_size, y_size ,directed=True,notebook=notebook,cdn_resources=cdn_resources)
         nt.from_nx(G)
         nt.toggle_physics(False)

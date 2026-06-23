@@ -7,15 +7,8 @@ Created on Mon Nov  7 09:53:50 2022
 """
 
 from .RNSRW import RNSRW
-from .SEA.plot_raw import plot_raw #./SEA/plot_raw.py import me plot_raw function
-from .SEA.plot_change import plot_change
-from .SEA.plot_complexitychange import plot_complexitychange
-from .SEA.plot_hasse import plot_hasse
-from .SEA.plot_hasse import plot_hasse_convergence_and_perturbation
 from .SEA.dataframes import dataframesFromLists
-from .SEA.plot_markov_new import plot_markov
-from .SEA.plotHistoAbstrac import plotHistAbstrac
-from .SEA import sos 
+from .SEA import sos
 import itertools
 
 
@@ -44,7 +37,8 @@ class RNSEA(RNSRW):
         Changes de subplot displaying the raw data of the random walk.
 
         '''
-        
+
+        from .SEA.plot_raw import plot_raw
         plot_raw(subplot, self.RwDict[walk_type][walk_index][abstraction_type].transpose(), title=title)
     
 
@@ -77,9 +71,10 @@ class RNSEA(RNSRW):
         -------
         Changes de subplot displaying the evolution of an Random Walk in terms of growment and contractions
         '''
-        
-        plot_change(subplot, self.RwDict[walk_type][walk_index][abstraction_type].transpose().values.tolist(), 
-                    change_function=change_function, title=title, 
+
+        from .SEA.plot_change import plot_change
+        plot_change(subplot, self.RwDict[walk_type][walk_index][abstraction_type].transpose().values.tolist(),
+                    change_function=change_function, title=title,
                     show_indices=show_indices, index_spacing=index_spacing, legend=legend)
 
 
@@ -115,6 +110,7 @@ class RNSEA(RNSRW):
         abstractions=[]
         for i in walk_indexes:
             abstractions.append(self.RwDict[walk_type][i][abstraction_type].transpose().values.tolist())
+        from .SEA.plot_hasse import plot_hasse
         plot_hasse(subplot, abstractions, title=title, loga=loga)
             
     
@@ -148,10 +144,11 @@ class RNSEA(RNSRW):
             perturbation_abstractions=(self.RwDict[walk_type][walk_index]['p']>0).transpose().values.tolist()
         else:
             perturbation_abstractions=self.RwDict[walk_type][walk_index]['p'].transpose().values.tolist()
-        
-        plot_hasse_convergence_and_perturbation(subplot, 
-                                                self.RwDict[walk_type][walk_index][convergent_abstraction_type].transpose().values.tolist(), 
-                                                perturbation_abstractions, 
+
+        from .SEA.plot_hasse import plot_hasse_convergence_and_perturbation
+        plot_hasse_convergence_and_perturbation(subplot,
+                                                self.RwDict[walk_type][walk_index][convergent_abstraction_type].transpose().values.tolist(),
+                                                perturbation_abstractions,
                                                 title=title, loga=loga)
     
     def getAbstrationTransitionDf(self,walk_type='simple',walk_indexes=None,abstraction_type='c',complexity_type='cc'):
@@ -213,10 +210,11 @@ class RNSEA(RNSRW):
         -------
         Plot funtion that modefies subplot displaying the Markovian probabilities of a random walk
         '''
-        abstractions_df, transitions_df = self.getAbstrationTransitionDf(walk_type=walk_type, 
-                                                                walk_indexes=walk_indexes, 
+        abstractions_df, transitions_df = self.getAbstrationTransitionDf(walk_type=walk_type,
+                                                                walk_indexes=walk_indexes,
                                                                 abstraction_type=abstraction_type,
                                                                 complexity_type=complexity_type)
+        from .SEA.plot_markov_new import plot_markov
         plot_markov(subplot,abstractions_df,transitions_df)
     
     def plotHistAbstRw(self,subplot,walk_type='simple',walk_indexes=None, abstraction_type='c'):
@@ -251,6 +249,7 @@ class RNSEA(RNSRW):
             abstractions.append(self.RwDict[walk_type][i][abstraction_type].transpose().values.tolist())
         
         abstractions = list(itertools.chain(*abstractions))
+        from .SEA.plotHistoAbstrac import plotHistAbstrac
         plotHistAbstrac(subplot, abstractions, self.SpIdStrArray)
         
     def plotComplexityChangeRw(self, subplot, walk_type='simple', walk_index=0, 
@@ -288,11 +287,11 @@ class RNSEA(RNSRW):
 
         
         abstractions = self.RwDict[walk_type][walk_index][abstraction_type].transpose().astype(int).values.tolist()   
-        abstractions_df, transitions_df = self.getAbstrationTransitionDf(walk_type=walk_type, 
-                                                                walk_indexes=[walk_index], 
+        abstractions_df, transitions_df = self.getAbstrationTransitionDf(walk_type=walk_type,
+                                                                walk_indexes=[walk_index],
                                                                 abstraction_type=abstraction_type,
                                                                 complexity_type=complexity_type)
-        
-        plot_complexitychange(subplot, abstractions, abstractions_df, title=title, 
+
+        from .SEA.plot_complexitychange import plot_complexitychange
+        plot_complexitychange(subplot, abstractions, abstractions_df, title=title,
                               show_indices=show_indices, index_spacing=index_spacing)
-        

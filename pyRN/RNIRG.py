@@ -17,10 +17,9 @@ from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 from scipy.optimize import linprog
 import random as rm
-import matplotlib.pyplot as plt
-from pyvis.network import Network
 import networkx as nx
 from itertools import combinations
+from ._optional import require_matplotlib_pyplot, require_pyvis_network
 from .genhrn import gen_rn_csp
 
 
@@ -88,7 +87,7 @@ class RNIRG:
            
             if rn[2][i]!=['']:
                 for j in range(len(rn[2][i])):
-                    st=re.search("^(-?[\d.]+(?:e-?\d+)?)\s*(.*)",rn[2][i][j])
+                    st=re.search(r"^(-?[\d.]+(?:e-?\d+)?)\s*(.*)",rn[2][i][j])
                     try:
                         # st=re.search("[0-9]*",rn[2][i][j]).group()
                         if st is None:
@@ -108,7 +107,7 @@ class RNIRG:
             
             if rn[3][i]!=['']:
                 for j in range(len(rn[3][i])):
-                    st=re.search("^(-?[\d.]+(?:e-?\d+)?)\s*(.*)",rn[3][i][j])
+                    st=re.search(r"^(-?[\d.]+(?:e-?\d+)?)\s*(.*)",rn[3][i][j])
                     try:
                         # st=re.search("[0-9]*",rn[3][i][j]).group()
                         if st is None:
@@ -163,19 +162,19 @@ class RNIRG:
                 for j in range(len(er[i][0])):   
                     ind=mr.columns.get_loc(er[i][0][j])
                     sub_sp=er[i][0][j]
-                    mr[sub_sp].iloc[i]=er[i][1][j]
-                    r_sp[ind]=1            
-                        
+                    mr.loc[i, sub_sp]=er[i][1][j]
+                    r_sp[ind]=1
+
             reac.append(r_sp)
-            
+
             p_sp=bt(len(mr.columns))
             p_sp.setall(0)
-            if ep[i][0][0]: 
+            if ep[i][0][0]:
                 for j in range(len(ep[i][0])):
                     sub_sp=ep[i][0][j]
                     ind=mp.columns.get_loc(ep[i][0][j])
-                    mp[sub_sp].iloc[i]=ep[i][1][j]
-                    p_sp[ind]=1             
+                    mp.loc[i, sub_sp]=ep[i][1][j]
+                    p_sp[ind]=1
  
                
             prod.append(p_sp)              
@@ -395,19 +394,19 @@ class RNIRG:
                     for j in range(len(er[i][0])):           
                         ind=mr.columns.get_loc(er[i][0][j])
                         sub_sp=er[i][0][j]
-                        mr[sub_sp].iloc[i]=er[i][1][j]
-                        r_sp[ind]=1            
-                            
+                        mr.loc[i, sub_sp]=er[i][1][j]
+                        r_sp[ind]=1
+
                 reac.append(r_sp)
-                
+
                 p_sp=bt(len(mr.columns))
                 p_sp.setall(0)
-                if ep[i][0][0]: 
+                if ep[i][0][0]:
                     for j in range(len(ep[i][0])):
                         sub_sp=ep[i][0][j]
                         ind=mp.columns.get_loc(ep[i][0][j])
-                        mp[sub_sp].iloc[i]=ep[i][1][j]
-                        p_sp[ind]=1     
+                        mp.loc[i, sub_sp]=ep[i][1][j]
+                        p_sp[ind]=1
                        
                 prod.append(p_sp)              
             
@@ -950,7 +949,7 @@ class RNIRG:
             if (not self.ReacListBt[i].any()) and (self.ProdListBt[i]&sp).any() and not (i in r_i):
                 not_inf|=self.ProdListBt[i]&sp
                     
-        sp=set(self.SpIdStrArray[sp.search(1)])
+        sp=set(self.SpIdStrArray[self.getIndArrayFromBt(sp)])
         not_r_i=set(range(self.MpDf.shape[1]))-set(r_i)
         for i in not_r_i:
             G.add_node("r"+str(i), color = "#E0E0E0", label="r"+str(i), shape="square", size=7)
@@ -958,7 +957,7 @@ class RNIRG:
         
         nsp=set(self.SpIdStrArray)-sp
 
-        inf=set(self.getInflowFromSp(np.array(list(sp)),"id"))-set(self.SpIdStrArray[not_inf.search(1)])
+        inf=set(self.getInflowFromSp(np.array(list(sp)),"id"))-set(self.SpIdStrArray[self.getIndArrayFromBt(not_inf)])
         out=set(self.getOutflowFromSp(np.array(list(sp)),"id"))
         sp-=inf
         sp-=out
@@ -1008,6 +1007,7 @@ class RNIRG:
                            label=label,title=label)
             
         
+        Network = require_pyvis_network()
         nt = Network(x_size, y_size ,directed=True,notebook=notebook,cdn_resources=cdn_resources)
         nt.from_nx(G)
         nt.toggle_physics(False)
@@ -1050,12 +1050,13 @@ class RNIRG:
                         r_i.append(i)
                 r=r_set
             
-        # Generating the sotichiometrix sub-matrix        
+        # Generating the sotichiometrix sub-matrix
         S=self.MpDf.iloc[sp_i,r_i]-self.MrDf.iloc[sp_i,r_i]
+        plt = require_matplotlib_pyplot()
         fig = plt.figure(figsize = (10, 5))
-        
+
         #  Ploting
-       
+
         plt.matshow(S, cmap=plt.cm.viridis)
        
         

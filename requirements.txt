@@ -1,13 +1,28 @@
+# Convenience file for a full local/development install.
+# Package metadata lives in pyproject.toml; prefer:
+#   python -m pip install .
+#   python -m pip install '.[viz]'
+#   python -m pip install '.[roadrunner]'
+#   python -m pip install '.[geometry]'
+
 numpy
 pandas
 beautifulsoup4
 bitarray
 scipy
 networkx
-libroadrunner
 lxml
-pyvis
-matplotlib
 joblib
 pulp
+
+# Optional visualization dependencies: python -m pip install '.[viz]'
+matplotlib
+pyvis
 seaborn
+
+# Optional RoadRunner simulation dependency: python -m pip install '.[roadrunner]'
+libroadrunner
+
+# Optional geometry dependency: python -m pip install '.[geometry]'
+# pypoman may require system cddlib/GLPK tooling on some platforms.
+pypoman

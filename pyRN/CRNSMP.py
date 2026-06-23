@@ -13,8 +13,6 @@ import pandas as pd
 from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
 import networkx as nx
-import matplotlib.pyplot as plt
-from pyvis.network import Network
 from bitarray.util import subset
 from collections import Counter as count
 import json

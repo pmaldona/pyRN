@@ -8,6 +8,7 @@ Created on Fri Jul  8 14:07:20 2022
 Reaction Network Decomposition Class 
 """
 from .RNIRG import RNIRG
+from ._optional import require_pypoman, require_pyvis_network
 import numpy as np
 from bitarray import bitarray as bt
 from bitarray import frozenbitarray as fbt
@@ -20,9 +21,7 @@ from bitarray.util import subset
 from pulp import *
 import re
 import random
-from pyvis.network import Network
 from colorsys import hsv_to_rgb
-import pypoman as ph
 
 class RNDS(RNIRG):
 
@@ -1088,6 +1087,7 @@ class RNDS(RNIRG):
                     G.add_edge("r"+str(i), str(self.SpIdStrArray[j]), color="#E0E0E0",
                                label=label,title=label)
             
+        Network = require_pyvis_network()
         nt = Network(x_size, y_size ,directed=True,notebook=notebook,cdn_resources=cdn_resources)
         nt.from_nx(G)
         nt.toggle_physics(False)
